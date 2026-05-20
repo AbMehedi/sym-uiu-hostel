@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Announcements - UIU Hostel Management System</title>
+    <meta name="description" content="Post and manage announcements for your block students — UIU HMS Supervisor Portal.">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="dashboard-wrapper">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <h2>UIU <span>HMS</span></h2>
+                <p>Supervisor Portal</p>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="supervisor-dashboard.html">🏠 Dashboard Overview</a></li>
+                <li><a href="supervisor-students.html">👥 My Block Students</a></li>
+                <li><a href="supervisor-complaints.html">📋 Complaints</a></li>
+                <li><a href="supervisor-announcements.html" class="active">📢 Announcements</a></li>
+            </ul>
+            <div class="sidebar-bottom">
+                <a href="login.html" class="logout-btn">Log Out</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+
+            <header class="dashboard-header">
+                <div>
+                    <h1>Block Announcements</h1>
+                    <p class="date-display">Post notices and updates for Block A students</p>
+                </div>
+                <div class="admin-profile">
+                    <div class="avatar sup-avatar">SR</div>
+                    <span>Block A Supervisor</span>
+                </div>
+            </header>
+
+            <!-- Two-column layout: form + list -->
+            <div class="announcement-layout">
+
+                <!-- Post New Announcement Form -->
+                <div class="dashboard-box announce-form-box">
+                    <div class="box-header">
+                        <h3>Post New Announcement</h3>
+                    </div>
+                    <form id="announcement-form" class="announce-form" onsubmit="postAnnouncement(event)">
+                        <div class="form-group">
+                            <label for="ann-title">Announcement Title</label>
+                            <input
+                                type="text"
+                                id="ann-title"
+                                class="form-control announce-input"
+                                placeholder="e.g. Water Supply Interruption"
+                                required
+                                maxlength="100"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label for="ann-category">Category</label>
+                            <select id="ann-category" class="form-control announce-input">
+                                <option value="General">General</option>
+                                <option value="Maintenance">Maintenance</option>
+                                <option value="Rules">Rules &amp; Regulations</option>
+                                <option value="Event">Event</option>
+                                <option value="Urgent">⚠️ Urgent</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ann-body">Message</label>
+                            <textarea
+                                id="ann-body"
+                                class="form-control announce-input"
+                                rows="6"
+                                placeholder="Write your announcement here…"
+                                required
+                                maxlength="600"
+                            ></textarea>
+                            <div class="char-counter"><span id="char-count">0</span>/600 characters</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full announce-btn" id="post-btn">
+                            📢 Post Announcement
+                        </button>
+                        <div id="post-success" class="post-success-msg" style="display:none;">
+                            ✅ Announcement posted successfully!
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Posted Announcements List -->
+                <div class="dashboard-box">
+                    <div class="box-header">
+                        <h3>Posted Announcements</h3>
+                        <span class="badge-count" id="ann-count">3</span>
+                    </div>
+                    <div class="announcement-list" id="announcements-list">
+
+                        <div class="announcement-card">
+                            <div class="announcement-card-header">
+                                <span class="ann-category-badge maintenance">Maintenance</span>
+                                <span class="ann-date">May 3, 2026</span>
+                            </div>
+                            <h4 class="ann-card-title">Water Supply Interruption – May 4</h4>
+                            <p class="ann-card-body">Water supply will be off from 9 AM to 1 PM on May 4 for pipe maintenance. Please store water in advance.</p>
+                            <div class="ann-card-footer">
+                                <button class="btn-action ann-delete-btn" onclick="deleteAnnouncement(this)">🗑 Delete</button>
+                            </div>
+                        </div>
+
+                        <div class="announcement-card">
+                            <div class="announcement-card-header">
+                                <span class="ann-category-badge general">General</span>
+                                <span class="ann-date">Apr 29, 2026</span>
+                            </div>
+                            <h4 class="ann-card-title">Hostel Cleanliness Drive</h4>
+                            <p class="ann-card-body">All students must ensure their rooms are cleaned before the monthly inspection on May 1.</p>
+                            <div class="ann-card-footer">
+                                <button class="btn-action ann-delete-btn" onclick="deleteAnnouncement(this)">🗑 Delete</button>
+                            </div>
+                        </div>
+
+                        <div class="announcement-card">
+                            <div class="announcement-card-header">
+                                <span class="ann-category-badge rules">Rules &amp; Regulations</span>
+                                <span class="ann-date">Apr 20, 2026</span>
+                            </div>
+                            <h4 class="ann-card-title">Gate Curfew Reminder</h4>
+                            <p class="ann-card-body">Reminder that the hostel gate closes at 10 PM. No entry allowed after this time without prior permission.</p>
+                            <div class="ann-card-footer">
+                                <button class="btn-action ann-delete-btn" onclick="deleteAnnouncement(this)">🗑 Delete</button>
+                            </div>
+                        </div>
+
+                    </div> <!-- end announcements-list -->
+                </div>
+
+            </div> <!-- end announcement-layout -->
+
+        </main>
+    </div>
+
+    <script>
+        // Character counter
+        const bodyEl = document.getElementById('ann-body');
+        const charCount = document.getElementById('char-count');
+        bodyEl.addEventListener('input', () => {
+            charCount.textContent = bodyEl.value.length;
+        });
+
+        // Post announcement
+        function postAnnouncement(e) {
+            e.preventDefault();
+            const title = document.getElementById('ann-title').value.trim();
+            const body = bodyEl.value.trim();
+            const category = document.getElementById('ann-category').value;
+
+            // Format date
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+            // Build category CSS class
+            const classMap = {
+                'General': 'general',
+                'Maintenance': 'maintenance',
+                'Rules': 'rules',
+                'Event': 'event',
+                'Urgent': 'urgent'
+            };
+
+            const card = document.createElement('div');
+            card.className = 'announcement-card new-card';
+            card.innerHTML = `
+                <div class="announcement-card-header">
+                    <span class="ann-category-badge ${classMap[category]}">${category}</span>
+                    <span class="ann-date">${dateStr}</span>
+                </div>
+                <h4 class="ann-card-title">${escHtml(title)}</h4>
+                <p class="ann-card-body">${escHtml(body)}</p>
+                <div class="ann-card-footer">
+                    <button class="btn-action ann-delete-btn" onclick="deleteAnnouncement(this)">🗑 Delete</button>
+                </div>
+            `;
+
+            const list = document.getElementById('announcements-list');
+            list.insertBefore(card, list.firstChild);
+
+            // Update count badge
+            const allCards = list.querySelectorAll('.announcement-card');
+            document.getElementById('ann-count').textContent = allCards.length;
+
+            // Reset form
+            document.getElementById('announcement-form').reset();
+            charCount.textContent = '0';
+
+            // Show success
+            const msg = document.getElementById('post-success');
+            msg.style.display = 'block';
+            setTimeout(() => { msg.style.display = 'none'; }, 3000);
+        }
+
+        function deleteAnnouncement(btn) {
+            if (!confirm('Delete this announcement?')) return;
+            const card = btn.closest('.announcement-card');
+            card.style.transition = 'opacity 0.3s';
+            card.style.opacity = '0';
+            setTimeout(() => {
+                card.remove();
+                const list = document.getElementById('announcements-list');
+                document.getElementById('ann-count').textContent = list.querySelectorAll('.announcement-card').length;
+            }, 300);
+        }
+
+        function escHtml(str) {
+            const d = document.createElement('div');
+            d.appendChild(document.createTextNode(str));
+            return d.innerHTML;
+        }
+    </script>
+
+</body>
+</html>

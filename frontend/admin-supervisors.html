@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supervisor Management - UIU HMS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="dashboard-wrapper">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <h2>UIU <span>HMS</span></h2>
+                <p>Admin Portal</p>
+            </div>
+            
+            <ul class="sidebar-nav">
+                <li><a href="admin-dashboard.html">Dashboard Overview</a></li>
+                <li><a href="admin-supervisors.html" class="active">Supervisor Management</a></li>
+                <li><a href="admin-rooms.html">Room Management</a></li>
+                <li><a href="admin-students.html">Student Admission</a></li>
+                <li><a href="admin-complaints.html">Complaints &amp; Costs</a></li>
+                <li><a href="admin-reports.html">Reports &amp; PDF Export</a></li>
+            </ul>
+
+            <div class="sidebar-bottom">
+                <a href="login.html" class="logout-btn">Log Out</a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            
+            <!-- Top Header -->
+            <header class="dashboard-header">
+                <div>
+                    <h1>Supervisor Management</h1>
+                    <p class="date-display">Assign, reassign, and manage block supervisors.</p>
+                </div>
+                <button class="btn btn-primary" onclick="document.getElementById('add-supervisor').scrollIntoView({behavior: 'smooth'})">
+                    + Add New Supervisor
+                </button>
+            </header>
+
+            <!-- Current Supervisors Grid -->
+            <div class="dashboard-box" style="margin-bottom: 40px; background: transparent; border: none; box-shadow: none; padding: 0;">
+                <h3 style="margin-bottom: 20px;">Active Supervisors</h3>
+                <div class="supervisor-grid">
+                    
+                    <!-- Supervisor Card 1 -->
+                    <div class="supervisor-card" id="sup-card-1">
+                        <div class="supervisor-header">
+                            <div class="supervisor-avatar">SI</div>
+                            <span class="badge" style="background-color: #dbeafe; color: #1d4ed8;">Block A</span>
+                        </div>
+                        <div class="supervisor-info">
+                            <h4>Shafiqul Islam</h4>
+                            <p>ID: SUP-1001</p>
+                            <p>📞 01711-000001</p>
+                            <p id="stu-badge-1" class="sup-student-count" style="display:none;"></p>
+                        </div>
+                        <div class="supervisor-actions">
+                            <button class="btn-action approve" onclick="openAssignTask('SUP-1001', 'Shafiqul Islam')">Assign Task</button>
+                            <button class="btn-action" style="background:rgba(139,92,246,0.15);color:#a78bfa;" onclick="openAssignStudent('SUP-1001', 'Shafiqul Islam', 'stu-badge-1')">Assign Student</button>
+                            <button class="btn-action reject">Remove</button>
+                        </div>
+                    </div>
+
+                    <!-- Supervisor Card 2 -->
+                    <div class="supervisor-card" id="sup-card-2">
+                        <div class="supervisor-header">
+                            <div class="supervisor-avatar" style="background-color: #10b981;">KR</div>
+                            <span class="badge" style="background-color: #dcfce3; color: #166534;">Block B</span>
+                        </div>
+                        <div class="supervisor-info">
+                            <h4>Kamal Rahman</h4>
+                            <p>ID: SUP-1002</p>
+                            <p>📞 01811-000002</p>
+                            <p id="stu-badge-2" class="sup-student-count" style="display:none;"></p>
+                        </div>
+                        <div class="supervisor-actions">
+                            <button class="btn-action approve" onclick="openAssignTask('SUP-1002', 'Kamal Rahman')">Assign Task</button>
+                            <button class="btn-action" style="background:rgba(139,92,246,0.15);color:#a78bfa;" onclick="openAssignStudent('SUP-1002', 'Kamal Rahman', 'stu-badge-2')">Assign Student</button>
+                            <button class="btn-action reject">Remove</button>
+                        </div>
+                    </div>
+
+                    <!-- Supervisor Card 3 -->
+                    <div class="supervisor-card" id="sup-card-3">
+                        <div class="supervisor-header">
+                            <div class="supervisor-avatar" style="background-color: #f59e0b;">MA</div>
+                            <span class="badge" style="background-color: #fef3c7; color: #b45309;">Block C</span>
+                        </div>
+                        <div class="supervisor-info">
+                            <h4>Md. Ali</h4>
+                            <p>ID: SUP-1003</p>
+                            <p>📞 01911-000003</p>
+                            <p id="stu-badge-3" class="sup-student-count" style="display:none;"></p>
+                        </div>
+                        <div class="supervisor-actions">
+                            <button class="btn-action approve" onclick="openAssignTask('SUP-1003', 'Md. Ali')">Assign Task</button>
+                            <button class="btn-action" style="background:rgba(139,92,246,0.15);color:#a78bfa;" onclick="openAssignStudent('SUP-1003', 'Md. Ali', 'stu-badge-3')">Assign Student</button>
+                            <button class="btn-action reject">Remove</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Assigned Tasks Table -->
+            <div class="dashboard-box" style="margin-bottom: 40px;">
+                <div class="box-header" style="margin-bottom: 20px;">
+                    <h3>My Assigned Tasks</h3>
+                    <span class="badge-count" id="task-count">0</span>
+                </div>
+                <table class="data-table" id="tasks-table">
+                    <thead>
+                        <tr>
+                            <th>Supervisor</th>
+                            <th>Task</th>
+                            <th>Priority</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasks-tbody">
+                        <tr id="tasks-empty-row">
+                            <td colspan="5" style="text-align:center; padding:30px; color:#64748b;">
+                                📋 No tasks assigned yet. Use the "Assign Task" button above to get started.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Add New Supervisor Form -->
+            <div id="add-supervisor" class="dashboard-box">
+                <div class="box-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 25px;">
+                    <h3>Add New Supervisor</h3>
+                    <p class="text-muted" style="font-size: 0.85rem; color: #64748b;">Register a new supervisor and assign them to a block.</p>
+                </div>
+                
+                <form class="auth-form" action="#" method="POST">
+                    <div class="form-grid">
+                        <!-- Full Name -->
+                        <div class="form-group">
+                            <label for="fullName">Full Name</label>
+                            <input type="text" id="fullName" class="form-control" placeholder="e.g. Rafiqul Hasan" required>
+                        </div>
+
+                        <!-- Phone Number -->
+                        <div class="form-group">
+                            <label for="phone">Phone Number</label>
+                            <input type="tel" id="phone" class="form-control" placeholder="01XXX XXXXXX" required>
+                        </div>
+
+                        <!-- Assign Block -->
+                        <div class="form-group">
+                            <label for="block">Assign to Block</label>
+                            <select id="block" class="form-control" required>
+                                <option value="" disabled selected>Select a Block...</option>
+                                <option value="block_a">Block A (Premium)</option>
+                                <option value="block_b">Block B (Standard)</option>
+                                <option value="block_c">Block C (Economy)</option>
+                            </select>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" class="form-control" placeholder="supervisor@uiu.ac.bd" required>
+                        </div>
+                    </div>
+
+                    <!-- File Uploads (Photo & NID) -->
+                    <div class="form-grid" style="margin-top: 15px;">
+                        <div class="form-group file-upload-group">
+                            <label for="photoUpload">Upload Supervisor Photo</label>
+                            <input type="file" id="photoUpload" class="form-control file-input" accept="image/jpeg, image/png" required>
+                        </div>
+
+                        <div class="form-group file-upload-group">
+                            <label for="nidUpload">Upload NID Document</label>
+                            <input type="file" id="nidUpload" class="form-control file-input" accept=".pdf, image/jpeg, image/png" required>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div style="margin-top: 25px; text-align: right;">
+                        <button type="submit" class="btn btn-primary">Create Supervisor Account</button>
+                    </div>
+                </form>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ── Assign Task Modal ── -->
+    <div class="modal-overlay" id="task-modal-overlay" onclick="closeTaskModal(event)">
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+            <div class="modal-header">
+                <h3 id="task-modal-title">Assign Task</h3>
+                <button class="modal-close-btn" onclick="closeTaskModal()" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="task-form" onsubmit="submitTask(event)">
+                    <div class="form-group">
+                        <label for="task-supervisor">Supervisor</label>
+                        <select id="task-supervisor" class="form-control announce-input" required>
+                            <option value="SUP-1001" data-name="Shafiqul Islam">SUP-1001 — Shafiqul Islam</option>
+                            <option value="SUP-1002" data-name="Kamal Rahman">SUP-1002 — Kamal Rahman</option>
+                            <option value="SUP-1003" data-name="Md. Ali">SUP-1003 — Md. Ali</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-desc">Task Description <span style="color:#ef4444;">*</span></label>
+                        <textarea id="task-desc" class="form-control announce-input" rows="4" placeholder="Describe the task in detail…" required maxlength="300"></textarea>
+                    </div>
+                    <div class="modal-detail-grid">
+                        <div class="form-group">
+                            <label for="task-priority">Priority</label>
+                            <select id="task-priority" class="form-control announce-input" required>
+                                <option value="Low">Low</option>
+                                <option value="Normal" selected>Normal</option>
+                                <option value="Urgent">Urgent</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="task-due">Due Date <span style="color:#ef4444;">*</span></label>
+                            <input type="date" id="task-due" class="form-control announce-input" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" onclick="closeTaskModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Assign Task</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Assign Student Modal ── -->
+    <div class="modal-overlay" id="student-modal-overlay" onclick="closeStudentModal(event)">
+        <div class="modal-box modal-box-wide" role="dialog" aria-modal="true" aria-labelledby="student-modal-title">
+            <div class="modal-header">
+                <h3 id="student-modal-title">Assign Students</h3>
+                <button class="modal-close-btn" onclick="closeStudentModal()" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:16px;">Select students to assign to <strong id="assign-sup-name" style="color:white;"></strong></p>
+                <div style="overflow-x:auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;"><input type="checkbox" id="select-all-students" onchange="toggleAllStudents(this)"></th>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Current Room</th>
+                                <th>Department</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><input type="checkbox" class="student-checkbox" value="011221001"></td>
+                                <td>011221001</td><td>Ahmed Fahim</td><td>A-205</td><td>CSE</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="student-checkbox" value="011221045"></td>
+                                <td>011221045</td><td>Sakib Rahman</td><td>A-205</td><td>CSE</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="student-checkbox" value="011220310"></td>
+                                <td>011220310</td><td>Riya Akter</td><td>A-102</td><td>EEE</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="student-checkbox" value="011220417"></td>
+                                <td>011220417</td><td>Farhan Islam</td><td>A-205</td><td>BBA</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="student-checkbox" value="011219522"></td>
+                                <td>011219522</td><td>Nadia Hasan</td><td>A-308</td><td>CSE</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="student-checkbox" value="011220633"></td>
+                                <td>011220633</td><td>Sadia Sultana</td><td>A-105</td><td>EEE</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeStudentModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmStudentAssignment()">Confirm Assignment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="admin-toast" class="toast" style="display:none;"></div>
+
+    <script>
+        // ── Task Modal ──
+        let currentStudentBadgeId = null;
+        let currentSupId = null;
+
+        function openAssignTask(supId, supName) {
+            currentSupId = supId;
+            document.getElementById('task-supervisor').value = supId;
+            document.getElementById('task-modal-overlay').classList.add('active');
+            // Set min date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('task-due').min = today;
+        }
+
+        function closeTaskModal(e) {
+            if (e && e.target !== document.getElementById('task-modal-overlay')) return;
+            document.getElementById('task-modal-overlay').classList.remove('active');
+            document.getElementById('task-form').reset();
+        }
+
+        function submitTask(e) {
+            e.preventDefault();
+            const supSel = document.getElementById('task-supervisor');
+            const supId  = supSel.value;
+            const supName = supSel.options[supSel.selectedIndex].dataset.name;
+            const desc   = document.getElementById('task-desc').value.trim();
+            const pri    = document.getElementById('task-priority').value;
+            const due    = document.getElementById('task-due').value;
+
+            const priorityClass = { Low: 'low', Normal: 'normal', Urgent: 'urgent' }[pri];
+            const tbody = document.getElementById('tasks-tbody');
+            const emptyRow = document.getElementById('tasks-empty-row');
+            if (emptyRow) emptyRow.remove();
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${supName}</td>
+                <td>${desc}</td>
+                <td><span class="priority-badge ${priorityClass}">${pri}</span></td>
+                <td>${due}</td>
+                <td><span class="status pending">Pending</span></td>
+            `;
+            tbody.appendChild(tr);
+
+            const cnt = document.getElementById('task-count');
+            cnt.textContent = parseInt(cnt.textContent || 0) + 1;
+
+            document.getElementById('task-modal-overlay').classList.remove('active');
+            document.getElementById('task-form').reset();
+            showToast('Task assigned successfully!');
+        }
+
+        // ── Student Modal ──
+        function openAssignStudent(supId, supName, badgeId) {
+            currentStudentBadgeId = badgeId;
+            document.getElementById('assign-sup-name').textContent = supName;
+            // Uncheck all
+            document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('select-all-students').checked = false;
+            document.getElementById('student-modal-overlay').classList.add('active');
+        }
+
+        function closeStudentModal(e) {
+            if (e && e.target !== document.getElementById('student-modal-overlay')) return;
+            document.getElementById('student-modal-overlay').classList.remove('active');
+        }
+
+        function toggleAllStudents(masterCb) {
+            document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = masterCb.checked);
+        }
+
+        function confirmStudentAssignment() {
+            const selected = document.querySelectorAll('.student-checkbox:checked');
+            if (selected.length === 0) {
+                showToast('Please select at least one student.', true);
+                return;
+            }
+            if (currentStudentBadgeId) {
+                const badge = document.getElementById(currentStudentBadgeId);
+                badge.style.display = 'block';
+                badge.innerHTML = `👥 ${selected.length} Student${selected.length > 1 ? 's' : ''} Assigned`;
+                badge.style.color = '#10b981';
+                badge.style.fontWeight = '600';
+                badge.style.fontSize = '0.85rem';
+            }
+            document.getElementById('student-modal-overlay').classList.remove('active');
+            showToast(`${selected.length} student(s) assigned successfully!`);
+        }
+
+        // ── Toast ──
+        function showToast(msg, isError = false) {
+            const t = document.getElementById('admin-toast');
+            t.textContent = (isError ? '⚠️ ' : '✅ ') + msg;
+            t.style.backgroundColor = isError ? '#ef4444' : '#10b981';
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 2800);
+        }
+
+        // Close modals on Escape key
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(el => el.classList.remove('active'));
+            }
+        });
+    </script>
+
+</body>
+</html>

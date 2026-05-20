@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Management - UIU HMS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="dashboard-wrapper">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <h2>UIU <span>HMS</span></h2>
+                <p>Admin Portal</p>
+            </div>
+            
+            <ul class="sidebar-nav">
+                <li><a href="admin-dashboard.html">Dashboard Overview</a></li>
+                <li><a href="admin-supervisors.html">Supervisor Management</a></li>
+                <li><a href="admin-rooms.html">Room Management</a></li>
+                <li><a href="admin-students.html" class="active">Student Admission</a></li>
+                <li><a href="admin-complaints.html">Complaints & Costs</a></li>
+                <li><a href="admin-reports.html">Reports & PDF Export</a></li>
+            </ul>
+
+            <div class="sidebar-bottom">
+                <a href="login.html" class="logout-btn">Log Out</a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            
+            <!-- Top Header -->
+            <header class="dashboard-header">
+                <div>
+                    <h1>Student Management</h1>
+                    <p class="date-display">Review admission requests and manage student profiles.</p>
+                </div>
+            </header>
+
+            <!-- Pending Admission Requests -->
+            <div class="dashboard-box">
+                <div class="box-header">
+                    <h3>Pending Admission Requests</h3>
+                    <span class="status pending">2 New Applications</span>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Applicant Name</th>
+                            <th>Department</th>
+                            <th>Applied On</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>011223346</td>
+                            <td>Nusrat Jahan</td>
+                            <td>CSE</td>
+                            <td>May 5, 2026</td>
+                            <td>
+                                <button class="btn-action approve">Approve</button>
+                                <button class="btn-action reject">Reject</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>011334458</td>
+                            <td>Saimum Hossain</td>
+                            <td>EEE</td>
+                            <td>May 5, 2026</td>
+                            <td>
+                                <button class="btn-action approve">Approve</button>
+                                <button class="btn-action reject">Reject</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <br><br>
+
+            <!-- Interactive Master-Detail Grid (Pure CSS No-JS Version) -->
+            <div class="css-interactive-wrapper">
+                
+                <!-- Hidden State Controllers for CSS Logic -->
+                <input type="radio" name="student-select" id="student-omor" class="hidden-radio" checked>
+                <input type="radio" name="student-select" id="student-hasan" class="hidden-radio">
+                <input type="radio" name="student-select" id="student-rafiq" class="hidden-radio">
+
+                <div class="dashboard-grid">
+                    
+                    <!-- LEFT CONTAINER: Student List -->
+                    <div class="dashboard-box">
+                        <div class="box-header">
+                            <h3>Registered Students</h3>
+                            <div class="nav-buttons">
+                                <input type="text" class="form-control" placeholder="Search..." style="padding: 6px 10px; width: 150px;">
+                            </div>
+                        </div>
+                        
+                        <!-- CSS Grid Table -->
+                        <div class="css-table">
+                            <div class="css-thead">
+                                <div class="css-th">ID</div>
+                                <div class="css-th">Name</div>
+                                <div class="css-th">Room</div>
+                            </div>
+                            <div class="css-tbody">
+                                <!-- Row 1: Omor -->
+                                <label for="student-omor" class="css-tr clickable-row" id="label-omor">
+                                    <div class="css-td">011223344</div>
+                                    <div class="css-td"><strong>Omor Faruk</strong></div>
+                                    <div class="css-td">A-102</div>
+                                </label>
+                                <!-- Row 2: Hasan -->
+                                <label for="student-hasan" class="css-tr clickable-row" id="label-hasan">
+                                    <div class="css-td">011223345</div>
+                                    <div class="css-td"><strong>Hasan Mahmud</strong></div>
+                                    <div class="css-td">B-205</div>
+                                </label>
+                                <!-- Row 3: Rafiq -->
+                                <label for="student-rafiq" class="css-tr clickable-row" id="label-rafiq">
+                                    <div class="css-td">011112222</div>
+                                    <div class="css-td"><strong>Rafiq Islam</strong></div>
+                                    <div class="css-td">A-101</div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT CONTAINER: Dynamic Profile Details -->
+                    <div class="dashboard-box right-container">
+                        <div class="box-header profile-section-header">
+                            <h3>Student Profile Details</h3>
+                            <button class="btn btn-outline btn-sm">Print Profile</button>
+                        </div>
+
+                        <!-- PROFILE VIEW 1: Omor Faruk -->
+                        <div class="profile-view" id="profile-omor">
+                            <div class="profile-hero">
+                                <div class="profile-avatar-lg">OF</div>
+                                <div class="profile-title">
+                                    <h2>Omor Faruk</h2>
+                                    <p>CSE Department • ID: 011223344</p>
+                                    <span class="status resolved">Approved Resident</span>
+                                </div>
+                            </div>
+                            <h4 class="profile-subheading">Contact & Admission Info</h4>
+                            <div class="profile-info-grid">
+                                <div class="info-item"><span>Email Address</span><strong>omor.farukh16@uiu.ac.bd</strong></div>
+                                <div class="info-item"><span>Phone Number</span><strong>+880 1711 000000</strong></div>
+                                <div class="info-item"><span>Admission Date</span><strong>May 3, 2026</strong></div>
+                                <div class="info-item"><span>Assigned Room</span><strong class="text-primary">Block A - 102</strong></div>
+                            </div>
+                            <h4 class="profile-subheading">Verified Documents</h4>
+                            <div class="document-grid">
+                                <div class="document-card">
+                                    <div class="doc-info">
+                                        <h5>National ID Card</h5>
+                                        <a href="#">View PDF &rarr;</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PROFILE VIEW 2: Hasan Mahmud -->
+                        <div class="profile-view" id="profile-hasan">
+                            <div class="profile-hero">
+                                <div class="profile-avatar-lg" style="background-color: #10b981;">HM</div>
+                                <div class="profile-title">
+                                    <h2>Hasan Mahmud</h2>
+                                    <p>EEE Department • ID: 011223345</p>
+                                    <span class="status resolved">Approved Resident</span>
+                                </div>
+                            </div>
+                            <h4 class="profile-subheading">Contact & Admission Info</h4>
+                            <div class="profile-info-grid">
+                                <div class="info-item"><span>Email Address</span><strong>hasan.m@uiu.ac.bd</strong></div>
+                                <div class="info-item"><span>Phone Number</span><strong>+880 1822 111111</strong></div>
+                                <div class="info-item"><span>Admission Date</span><strong>May 4, 2026</strong></div>
+                                <div class="info-item"><span>Assigned Room</span><strong class="text-primary">Block B - 205</strong></div>
+                            </div>
+                            <h4 class="profile-subheading">Verified Documents</h4>
+                            <div class="document-grid">
+                                <div class="document-card">
+                                    <div class="doc-info">
+                                        <h5>National ID Card</h5>
+                                        <a href="#">View PDF &rarr;</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PROFILE VIEW 3: Rafiq Islam -->
+                        <div class="profile-view" id="profile-rafiq">
+                            <div class="profile-hero">
+                                <div class="profile-avatar-lg" style="background-color: #f59e0b;">RI</div>
+                                <div class="profile-title">
+                                    <h2>Rafiq Islam</h2>
+                                    <p>BBA Department • ID: 011112222</p>
+                                    <span class="status resolved">Approved Resident</span>
+                                </div>
+                            </div>
+                            <h4 class="profile-subheading">Contact & Admission Info</h4>
+                            <div class="profile-info-grid">
+                                <div class="info-item"><span>Email Address</span><strong>rafiq.i@uiu.ac.bd</strong></div>
+                                <div class="info-item"><span>Phone Number</span><strong>+880 1933 222222</strong></div>
+                                <div class="info-item"><span>Admission Date</span><strong>May 1, 2026</strong></div>
+                                <div class="info-item"><span>Assigned Room</span><strong class="text-primary">Block A - 101</strong></div>
+                            </div>
+                            <h4 class="profile-subheading">Verified Documents</h4>
+                            <div class="document-grid">
+                                <div class="document-card">
+                                    <div class="doc-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                        </svg>
+                                    </div>
+                                    <div class="doc-info">
+                                        <h5>National ID Card</h5>
+                                        <a href="#">View PDF &rarr;</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Universal Action Button (Stays at bottom regardless of profile) -->
+                        <div class="profile-footer">
+                            <button class="btn-action reject">Revoke Admission</button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+</body>
+</html>

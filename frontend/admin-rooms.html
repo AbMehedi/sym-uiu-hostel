@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Management - UIU HMS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="dashboard-wrapper">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <h2>UIU <span>HMS</span></h2>
+                <p>Admin Portal</p>
+            </div>
+            
+            <ul class="sidebar-nav">
+                <li><a href="admin-dashboard.html">Dashboard Overview</a></li>
+                <li><a href="admin-supervisors.html">Supervisor Management</a></li>
+                <li><a href="admin-rooms.html" class="active">Room Management</a></li>
+                <li><a href="admin-students.html">Student Admission</a></li>
+                <li><a href="admin-complaints.html">Complaints & Costs</a></li>
+                <li><a href="admin-reports.html">Reports & PDF Export</a></li>
+            </ul>
+
+            <div class="sidebar-bottom">
+                <a href="login.html" class="logout-btn">Log Out</a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            
+            <!-- Top Header -->
+            <header class="dashboard-header">
+                <div>
+                    <h1>Room Management</h1>
+                    <p class="date-display">Add, edit, and monitor physical room infrastructure.</p>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <a href="admin-room-assign.html" class="btn btn-outline" style="background:transparent;">Go to Student Allocation &rarr;</a>
+                    <button class="btn btn-primary" onclick="document.getElementById('add-room').scrollIntoView({behavior: 'smooth'})">
+                        + Add New Room
+                    </button>
+                </div>
+            </header>
+
+            <!-- Current Rooms Grid -->
+            <div class="dashboard-box" style="margin-bottom: 40px; background: transparent; border: none; box-shadow: none; padding: 0;">
+                <h3 style="margin-bottom: 20px;">Current Hostel Rooms</h3>
+                <div class="admin-room-grid">
+                    
+                    <!-- Room Card 1 (Full) -->
+                    <div class="admin-room-card">
+                        <div class="room-photo">Room Photo</div>
+                        <div class="room-card-body">
+                            <div class="room-card-header">
+                                <h4>Room 101</h4>
+                                <span class="status reject" style="font-size: 0.75rem;">Full (4/4)</span>
+                            </div>
+                            <p class="room-meta">Block A • Ground Floor</p>
+                            <p class="room-desc">Four-bed dormitory, non-AC, individual lockers, common bathroom.</p>
+                            <div class="room-actions">
+                                <button class="btn-action approve">Edit Info</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Room Card 2 (Vacant Space) -->
+                    <div class="admin-room-card">
+                        <div class="room-photo">Room Photo</div>
+                        <div class="room-card-body">
+                            <div class="room-card-header">
+                                <h4>Room 205</h4>
+                                <span class="status in-progress" style="font-size: 0.75rem;">Available (1/2)</span>
+                            </div>
+                            <p class="room-meta">Block B • 2nd Floor</p>
+                            <p class="room-desc">Double shared, AC, attached bathroom, fully furnished with study tables.</p>
+                            <div class="room-actions">
+                                <button class="btn-action approve">Edit Info</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Room Card 3 (Completely Vacant) -->
+                    <div class="admin-room-card">
+                        <div class="room-photo">Room Photo</div>
+                        <div class="room-card-body">
+                            <div class="room-card-header">
+                                <h4>Room 301</h4>
+                                <span class="status resolved" style="font-size: 0.75rem;">Vacant (0/1)</span>
+                            </div>
+                            <p class="room-meta">Block A • 3rd Floor</p>
+                            <p class="room-desc">Premium single room, AC, attached bathroom, mini-fridge included.</p>
+                            <div class="room-actions">
+                                <button class="btn-action approve">Edit Info</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Add/Edit Room Form -->
+            <div id="add-room" class="dashboard-box">
+                <div class="box-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 25px;">
+                    <h3>Add / Edit Room Setup</h3>
+                    <p class="text-muted" style="font-size: 0.85rem; color: #64748b;">Enter details for the new room. These details will be visible to students applying.</p>
+                </div>
+                
+                <form class="auth-form" action="#" method="POST">
+                    <div class="form-grid">
+                        <!-- Room Number -->
+                        <div class="form-group">
+                            <label for="roomNumber">Room Number</label>
+                            <input type="text" id="roomNumber" class="form-control" placeholder="e.g. 101, 205B" required>
+                        </div>
+
+                        <!-- Block / Building -->
+                        <div class="form-group">
+                            <label for="roomBlock">Hostel Block</label>
+                            <select id="roomBlock" class="form-control" required>
+                                <option value="" disabled selected>Select Block</option>
+                                <option value="A">Block A</option>
+                                <option value="B">Block B</option>
+                                <option value="C">Block C</option>
+                            </select>
+                        </div>
+
+                        <!-- Floor -->
+                        <div class="form-group">
+                            <label for="roomFloor">Floor</label>
+                            <select id="roomFloor" class="form-control" required>
+                                <option value="Ground">Ground Floor</option>
+                                <option value="1st">1st Floor</option>
+                                <option value="2nd">2nd Floor</option>
+                                <option value="3rd">3rd Floor</option>
+                                <option value="4th">4th Floor</option>
+                            </select>
+                        </div>
+
+                        <!-- Total Capacity -->
+                        <div class="form-group">
+                            <label for="roomCapacity">Total Capacity (Beds)</label>
+                            <input type="number" id="roomCapacity" class="form-control" placeholder="e.g. 1, 2, 4" min="1" max="10" required>
+                        </div>
+                    </div>
+
+                    <!-- Room Description -->
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label for="roomDescription">Room Description & Features</label>
+                        <textarea id="roomDescription" class="form-control" rows="3" placeholder="e.g. AC room, attached bathroom, south-facing, comes with study tables and individual lockers..." style="resize: vertical;"></textarea>
+                    </div>
+
+                    <!-- Photo Upload -->
+                    <div class="form-group file-upload-group" style="margin-top: 15px;">
+                        <label for="roomPhotoUpload">Upload Room Photos</label>
+                        <input type="file" id="roomPhotoUpload" class="form-control file-input" accept="image/jpeg, image/png" multiple required>
+                        <p style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">Upload actual images of the room so students can view them before applying.</p>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div style="margin-top: 25px; text-align: right;">
+                        <button type="submit" class="btn btn-primary">Save Room Configuration</button>
+                    </div>
+                </form>
+            </div>
+
+        </main>
+    </div>
+
+</body>
+</html>

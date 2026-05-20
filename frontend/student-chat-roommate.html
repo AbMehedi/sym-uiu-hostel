@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with Roommate - UIU Hostel Management System</title>
+    <meta name="description" content="Messenger-style chat with your roommates — UIU HMS Student Portal.">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="dashboard-wrapper">
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <h2>UIU <span>HMS</span></h2>
+            <p>Student Portal</p>
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="student-dashboard.html">🏠 Dashboard Overview</a></li>
+            <li><a href="student-complaints.html">📋 My Complaints</a></li>
+            <li><a href="student-room-change.html">🔄 Room Change Request</a></li>
+            <li>
+                <a href="student-announcements.html">📢 Announcements
+                    <span class="nav-notif-dot" id="ann-notif-dot" style="display:none;"></span>
+                </a>
+            </li>
+            <li><a href="student-chat-supervisor.html">💬 Chat with Supervisor</a></li>
+            <li><a href="student-chat-roommate.html" class="active">🛏️ Chat with Roommate</a></li>
+        </ul>
+        <div class="sidebar-bottom">
+            <a href="login.html" class="logout-btn">Log Out</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main" style="padding:30px 40px; display:flex; flex-direction:column;">
+
+        <header class="dashboard-header" style="margin-bottom:20px; flex-shrink:0;">
+            <div>
+                <h1>Chat with Roommate</h1>
+                <p class="date-display">Room A-205 · Triple Sharing</p>
+            </div>
+            <div class="admin-profile">
+                <div class="avatar stu-avatar">AF</div>
+                <span>Room A-205</span>
+            </div>
+        </header>
+
+        <!-- ── Messenger Layout ── -->
+        <div class="messenger-layout">
+
+            <!-- Left: Contact List Panel -->
+            <div class="contact-list-panel">
+                <div class="contact-list-header">
+                    <h4>Roommates</h4>
+                    <span class="badge-count">2</span>
+                </div>
+
+                <!-- Contact 1: Sakib Rahman -->
+                <div class="contact-item active" data-contact="sakib" onclick="switchContact(this, 'sakib')">
+                    <div class="contact-avatar" style="background-color:#8b5cf6;">SR</div>
+                    <div class="contact-info">
+                        <div class="contact-name">Sakib Rahman</div>
+                        <div class="contact-preview" id="preview-sakib">Hey! Just moved in. Are you around?</div>
+                    </div>
+                    <div class="contact-meta">
+                        <span class="contact-time">3:12 PM</span>
+                        <span class="contact-unread-dot" id="dot-sakib" style="display:none;"></span>
+                    </div>
+                </div>
+
+                <!-- Contact 2: Nadia Hossain -->
+                <div class="contact-item" data-contact="nadia" onclick="switchContact(this, 'nadia')">
+                    <div class="contact-avatar" style="background-color:#10b981;">NH</div>
+                    <div class="contact-info">
+                        <div class="contact-name">Nadia Hossain</div>
+                        <div class="contact-preview" id="preview-nadia">Sure, I'll keep it down 🙂</div>
+                    </div>
+                    <div class="contact-meta">
+                        <span class="contact-time">Yesterday</span>
+                        <span class="contact-unread-dot" id="dot-nadia"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Chat Area -->
+            <div class="chat-container" style="flex:1; min-width:0;">
+
+                <!-- Chat Header Bar -->
+                <div class="chat-header-bar roommate-chat-header" id="chat-header-bar">
+                    <div class="chat-header-left">
+                        <div class="avatar stu-avatar" id="chat-avatar" style="width:44px;height:44px;font-size:1rem;background-color:#8b5cf6;">SR</div>
+                        <div class="chat-header-info">
+                            <h4 id="chat-contact-name">Sakib Rahman</h4>
+                            <span class="chat-online-dot roommate-dot"></span>
+                            <span class="chat-status-text" id="chat-contact-sub">Your Roommate · Room A-205</span>
+                        </div>
+                    </div>
+                    <div class="chat-header-right">
+                        <span class="chat-tag roommate-tag">🛏️ Roommate Chat</span>
+                    </div>
+                </div>
+
+                <!-- Messages Area -->
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Messages injected by JS -->
+                </div>
+
+                <!-- Input Bar -->
+                <div class="chat-input-bar">
+                    <textarea id="room-input" class="chat-textarea" placeholder="Type a message…" rows="1"
+                        oninput="autoGrow(this); toggleSend('room-send', this.value)"
+                        onkeydown="handleEnter(event)"></textarea>
+                    <button class="chat-send-btn roommate-send-btn" id="room-send" disabled onclick="sendMessage()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
+                </div>
+
+            </div><!-- end chat-container -->
+        </div><!-- end messenger-layout -->
+
+    </main>
+</div>
+
+<script>
+    // ── Sidebar unread badge ──
+    (function() {
+        const readIds = JSON.parse(localStorage.getItem('hms_read_ann') || '[]');
+        const unread  = 5 - readIds.length;
+        const dot     = document.getElementById('ann-notif-dot');
+        if (dot && unread > 0) { dot.style.display = 'inline-flex'; dot.textContent = unread; }
+    })();
+
+    // ── Contact data ──
+    const contacts = {
+        sakib: {
+            name:    'Sakib Rahman',
+            initials: 'SR',
+            color:   '#8b5cf6',
+            sub:     'Your Roommate · Room A-205',
+            messages: [
+                { from: 'them', text: "Hey! Just moved in. Are you around?",                       time: "Apr 10, 3:00 PM" },
+                { from: 'me',   text: "Yes! Welcome! I'm Ahmed, your roommate. Nice to meet you 👋", time: "Apr 10, 3:05 PM" },
+                { from: 'them', text: "Nice to meet you too! Which side of the room do you prefer?", time: "Apr 10, 3:07 PM" },
+                { from: 'me',   text: "I'll take the left side near the window if that's ok 😄",     time: "Apr 10, 3:10 PM" },
+                { from: 'them', text: "Sure, no problem! By the way, I usually study late. Hope that won't be an issue?", time: "Apr 10, 3:12 PM" },
+                { from: 'me',   text: "Not at all! I'm a night owl too. We'll get along just fine 🙂", time: "Apr 10, 3:15 PM" }
+            ]
+        },
+        nadia: {
+            name:    'Nadia Hossain',
+            initials: 'NH',
+            color:   '#10b981',
+            sub:     'Your Roommate · Room A-205',
+            messages: [
+                { from: 'me',   text: "Hey Nadia, could you keep the music a bit lower tonight? 🙏", time: "May 4, 10:00 PM" },
+                { from: 'them', text: "Oh sorry! Sure, I'll keep it down 🙂",                        time: "May 4, 10:03 PM" },
+                { from: 'me',   text: "Thanks! Really appreciate it 😊",                              time: "May 4, 10:04 PM" }
+            ]
+        }
+    };
+
+    // In-memory message store (initialized from contacts data above)
+    const msgStore = {
+        sakib: contacts.sakib.messages.map(m => ({...m})),
+        nadia: contacts.nadia.messages.map(m => ({...m}))
+    };
+
+    let activeContact = 'sakib';
+
+    function switchContact(el, contactId) {
+        // Deactivate all contact items
+        document.querySelectorAll('.contact-item').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+
+        // Remove unread dot
+        const dot = document.getElementById('dot-' + contactId);
+        if (dot) dot.style.display = 'none';
+
+        activeContact = contactId;
+        const c = contacts[contactId];
+
+        // Update chat header
+        const avatar = document.getElementById('chat-avatar');
+        avatar.textContent        = c.initials;
+        avatar.style.backgroundColor = c.color;
+        document.getElementById('chat-contact-name').textContent = c.name;
+        document.getElementById('chat-contact-sub').textContent  = c.sub;
+
+        renderMessages(contactId);
+    }
+
+    function renderMessages(contactId) {
+        const msgs    = msgStore[contactId];
+        const area    = document.getElementById('chat-messages');
+        const c       = contacts[contactId];
+        area.innerHTML = '';
+
+        msgs.forEach(msg => {
+            const row = document.createElement('div');
+            if (msg.from === 'me') {
+                row.className = 'chat-msg-row sent';
+                row.innerHTML = `<div class="msg-column"><div class="msg-bubble msg-sent">${escapeHtml(msg.text)}</div><span class="msg-time msg-time-right">${msg.time}</span></div>`;
+            } else {
+                row.className = 'chat-msg-row received';
+                row.innerHTML = `
+                    <div class="msg-avatar" style="background-color:${c.color};">${c.initials}</div>
+                    <div class="msg-column">
+                        <div class="msg-bubble msg-received-roommate">${escapeHtml(msg.text)}</div>
+                        <span class="msg-time">${msg.time}</span>
+                    </div>`;
+            }
+            area.appendChild(row);
+        });
+
+        area.scrollTop = area.scrollHeight;
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('room-input');
+        const text  = input.value.trim();
+        if (!text) return;
+
+        const now     = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+        // Store message
+        msgStore[activeContact].push({ from: 'me', text, time: 'Now ' + timeStr });
+
+        // Update contact preview
+        const preview = document.getElementById('preview-' + activeContact);
+        if (preview) preview.textContent = text;
+
+        renderMessages(activeContact);
+
+        input.value = '';
+        input.style.height = 'auto';
+        document.getElementById('room-send').disabled = true;
+    }
+
+    function autoGrow(el) {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+
+    function toggleSend(btnId, value) {
+        document.getElementById(btnId).disabled = value.trim() === '';
+    }
+
+    function handleEnter(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    }
+
+    function escapeHtml(str) {
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(str));
+        return d.innerHTML;
+    }
+
+    // Init: render default contact
+    window.addEventListener('load', () => {
+        renderMessages('sakib');
+    });
+</script>
+</body>
+</html>

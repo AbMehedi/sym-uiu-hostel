@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complaints & Maintenance - UIU HMS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="dashboard-wrapper">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <h2>UIU <span>HMS</span></h2>
+                <p>Admin Portal</p>
+            </div>
+            
+            <ul class="sidebar-nav">
+                <li><a href="admin-dashboard.html">Dashboard Overview</a></li>
+                <li><a href="admin-supervisors.html">Supervisor Management</a></li>
+                <li><a href="admin-rooms.html">Room Management</a></li>
+                <li><a href="admin-students.html">Student Admission</a></li>
+                <li><a href="admin-complaints.html" class="active">Complaints & Costs</a></li>
+                <li><a href="admin-reports.html">Reports & PDF Export</a></li>
+            </ul>
+
+            <div class="sidebar-bottom">
+                <a href="login.html" class="logout-btn">Log Out</a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            
+            <!-- Top Header -->
+            <header class="dashboard-header">
+                <div>
+                    <h1>Complaints & Maintenance</h1>
+                    <p class="date-display">Track student issues, update statuses, and log repair costs.</p>
+                </div>
+            </header>
+
+            <!-- Quick Stats Row -->
+            <div class="dashboard-stats stats-row-margin">
+                <div class="stat-card danger">
+                    <div class="stat-title">Pending Issues</div>
+                    <div class="stat-value">5</div>
+                </div>
+                <div class="stat-card occupied">
+                    <div class="stat-title">Resolved (This Month)</div>
+                    <div class="stat-value">42</div>
+                </div>
+                <div class="stat-card vacant">
+                    <div class="stat-title">Total Spent (This Month)</div>
+                    <div class="stat-value">৳ 12,500</div>
+                </div>
+            </div>
+
+            <!-- Interactive Master-Detail Grid (Pure CSS No-JS Version) -->
+            <div class="css-interactive-wrapper">
+                
+                <!-- Hidden State Controllers for CSS Logic -->
+                <input type="radio" name="comp-select" id="comp-1" class="hidden-radio" checked>
+                <input type="radio" name="comp-select" id="comp-2" class="hidden-radio">
+                <input type="radio" name="comp-select" id="comp-3" class="hidden-radio">
+
+                <div class="dashboard-grid">
+                    
+                    <!-- LEFT CONTAINER: Complaints List -->
+                    <div class="dashboard-box">
+                        <div class="box-header">
+                            <h3>Active Complaints</h3>
+                            <div class="nav-buttons">
+                                <select class="form-control form-control-sm">
+                                    <option>All Types</option>
+                                    <option>Plumbing</option>
+                                    <option>Electricity</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- CSS Grid Table -->
+                        <div class="css-table">
+                            <div class="css-thead">
+                                <div class="css-th">Room</div>
+                                <div class="css-th">Subject</div>
+                                <div class="css-th">Status</div>
+                            </div>
+                            <div class="css-tbody">
+                                <!-- Row 1 -->
+                                <label for="comp-1" class="css-tr clickable-row" id="label-comp-1">
+                                    <div class="css-td"><strong>A-102</strong></div>
+                                    <div class="css-td">Water Leakage...</div>
+                                    <div class="css-td"><span class="status pending status-sm">Pending</span></div>
+                                </label>
+                                <!-- Row 2 -->
+                                <label for="comp-2" class="css-tr clickable-row" id="label-comp-2">
+                                    <div class="css-td"><strong>B-205</strong></div>
+                                    <div class="css-td">Broken Ceiling Fan</div>
+                                    <div class="css-td"><span class="status in-progress status-sm">In Progress</span></div>
+                                </label>
+                                <!-- Row 3 -->
+                                <label for="comp-3" class="css-tr clickable-row" id="label-comp-3">
+                                    <div class="css-td"><strong>C-301</strong></div>
+                                    <div class="css-td">Wifi Not Working</div>
+                                    <div class="css-td"><span class="status resolved status-sm">Resolved</span></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT CONTAINER: Dynamic Complaint Details -->
+                    <div class="dashboard-box right-container">
+                        <div class="box-header profile-section-header">
+                            <h3>Complaint Details</h3>
+                            <span class="text-muted">Ticket ID: #CMP-892</span>
+                        </div>
+
+                        <!-- COMPLAINT VIEW 1: Water Leakage -->
+                        <div class="profile-view" id="view-comp-1">
+                            <div class="complaint-header">
+                                <h2 class="complaint-title">Water leakage in bathroom pipe</h2>
+                                <p class="complaint-meta">Type: <strong class="text-primary">Plumbing</strong> • Block A, Room 102</p>
+                                <p class="complaint-meta">Submitted by: <strong>Omor Faruk (ID: 011223344)</strong> on May 4, 2026</p>
+                            </div>
+
+                            <h4 class="profile-subheading">Description</h4>
+                            <div class="complaint-desc-box">
+                                "The main pipe under the sink is leaking continuously. The floor is getting flooded. Please send someone urgently."
+                            </div>
+
+                            <h4 class="profile-subheading">Attached Photo</h4>
+                            <div class="complaint-photo">
+                                [ Student's Uploaded Photo ]
+                            </div>
+
+                            <h4 class="profile-subheading">Update Status & Cost</h4>
+                            <div class="form-grid complaint-update-box">
+                                <div class="form-group">
+                                    <label>Current Status</label>
+                                    <select class="form-control">
+                                        <option selected>Pending</option>
+                                        <option>In Progress</option>
+                                        <option>Resolved</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Repair Cost (৳ BDT)</label>
+                                    <input type="number" class="form-control" placeholder="Enter cost amount">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- COMPLAINT VIEW 2: Broken Fan -->
+                        <div class="profile-view" id="view-comp-2">
+                            <div class="complaint-header">
+                                <h2 class="complaint-title">Broken Ceiling Fan</h2>
+                                <p class="complaint-meta">Type: <strong class="text-primary">Electricity</strong> • Block B, Room 205</p>
+                                <p class="complaint-meta">Submitted by: <strong>Hasan Mahmud (ID: 011223345)</strong> on May 3, 2026</p>
+                            </div>
+
+                            <h4 class="profile-subheading">Description</h4>
+                            <div class="complaint-desc-box">
+                                "The ceiling fan makes a loud clicking noise and is shaking dangerously when turned on."
+                            </div>
+
+                            <h4 class="profile-subheading">Update Status & Cost</h4>
+                            <div class="form-grid complaint-update-box">
+                                <div class="form-group">
+                                    <label>Current Status</label>
+                                    <select class="form-control">
+                                        <option>Pending</option>
+                                        <option selected>In Progress</option>
+                                        <option>Resolved</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Repair Cost (৳ BDT)</label>
+                                    <input type="number" class="form-control" placeholder="Enter cost amount">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- COMPLAINT VIEW 3: Wifi -->
+                        <div class="profile-view" id="view-comp-3">
+                            <div class="complaint-header">
+                                <h2 class="complaint-title">Wifi Router Dead</h2>
+                                <p class="complaint-meta">Type: <strong class="text-primary">Network</strong> • Block C, Room 301</p>
+                                <p class="complaint-meta">Submitted by: <strong>Rafiq Islam (ID: 011112222)</strong> on May 1, 2026</p>
+                            </div>
+
+                            <h4 class="profile-subheading">Description</h4>
+                            <div class="complaint-desc-box">
+                                "The router lights are completely off. Tried resetting but no power."
+                            </div>
+
+                            <h4 class="profile-subheading">Update Status & Cost</h4>
+                            <div class="form-grid complaint-update-box">
+                                <div class="form-group">
+                                    <label>Current Status</label>
+                                    <select class="form-control">
+                                        <option>Pending</option>
+                                        <option>In Progress</option>
+                                        <option selected>Resolved</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Repair Cost (৳ BDT)</label>
+                                    <input type="number" class="form-control" value="1200" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Universal Action Button -->
+                        <div class="profile-footer footer-margin">
+                            <button class="btn btn-primary">Save Changes & Log Cost</button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+</body>
+</html>

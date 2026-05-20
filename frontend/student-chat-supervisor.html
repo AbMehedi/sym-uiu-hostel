@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with Supervisor - UIU Hostel Management System</title>
+    <meta name="description" content="Chat with your block supervisor about complaints or hostel queries — UIU HMS Student Portal.">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="dashboard-wrapper">
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <h2>UIU <span>HMS</span></h2>
+            <p>Student Portal</p>
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="student-dashboard.html">🏠 Dashboard Overview</a></li>
+            <li><a href="student-complaints.html">📋 My Complaints</a></li>
+            <li><a href="student-room-change.html">🔄 Room Change Request</a></li>
+            <li>
+                <a href="student-announcements.html">📢 Announcements
+                    <span class="nav-notif-dot" id="ann-notif-dot" style="display:none;"></span>
+                </a>
+            </li>
+            <li><a href="student-chat-supervisor.html" class="active">💬 Chat with Supervisor</a></li>
+            <li><a href="student-chat-roommate.html">🛏️ Chat with Roommate</a></li>
+        </ul>
+        <div class="sidebar-bottom">
+            <a href="login.html" class="logout-btn">Log Out</a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main" style="padding:30px 40px;">
+
+        <header class="dashboard-header" style="margin-bottom:20px;">
+            <div>
+                <h1>Chat with Supervisor</h1>
+                <p class="date-display">Direct communication with your block supervisor</p>
+            </div>
+            <div class="admin-profile">
+                <div class="avatar stu-avatar">AF</div>
+                <span>Room A-205</span>
+            </div>
+        </header>
+
+        <!-- Chat Container -->
+        <div class="chat-container dashboard-box" style="padding:0;">
+
+            <!-- Chat Header -->
+            <div class="chat-header-bar">
+                <div class="chat-header-left">
+                    <div class="avatar sup-avatar" style="width:44px;height:44px;font-size:1rem;">SR</div>
+                    <div class="chat-header-info">
+                        <h4>Supervisor Rahman</h4>
+                        <span class="chat-online-dot"></span>
+                        <span class="chat-status-text">Block A Supervisor</span>
+                    </div>
+                </div>
+                <div class="chat-header-right">
+                    <span class="chat-tag">🔒 Private Chat</span>
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div class="chat-messages" id="sup-messages">
+
+                <!-- Received -->
+                <div class="chat-msg-row received">
+                    <div class="msg-avatar sup-avatar-sm">SR</div>
+                    <div class="msg-column">
+                        <div class="msg-bubble msg-received">Welcome to Block A! Feel free to reach out if you have any queries or issues regarding your room.</div>
+                        <span class="msg-time">Apr 20, 10:05 AM</span>
+                    </div>
+                </div>
+
+                <!-- Sent -->
+                <div class="chat-msg-row sent">
+                    <div class="msg-column">
+                        <div class="msg-bubble msg-sent">Thank you, Sir. I have a complaint about the leaking tap in my room. Whom should I contact?</div>
+                        <span class="msg-time msg-time-right">Apr 21, 09:30 AM</span>
+                    </div>
+                </div>
+
+                <!-- Received -->
+                <div class="chat-msg-row received">
+                    <div class="msg-avatar sup-avatar-sm">SR</div>
+                    <div class="msg-column">
+                        <div class="msg-bubble msg-received">Please submit a complaint through the portal. I've already assigned the maintenance team — they'll visit by tomorrow afternoon.</div>
+                        <span class="msg-time">Apr 21, 11:15 AM</span>
+                    </div>
+                </div>
+
+                <!-- Sent -->
+                <div class="chat-msg-row sent">
+                    <div class="msg-column">
+                        <div class="msg-bubble msg-sent">I submitted the complaint. Thank you for the quick response!</div>
+                        <span class="msg-time msg-time-right">Apr 21, 11:22 AM</span>
+                    </div>
+                </div>
+
+                <!-- Received -->
+                <div class="chat-msg-row received">
+                    <div class="msg-avatar sup-avatar-sm">SR</div>
+                    <div class="msg-column">
+                        <div class="msg-bubble msg-received">Great. The team will fix it. Let me know if the issue persists after the visit.</div>
+                        <span class="msg-time">Apr 21, 11:45 AM</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Input Bar -->
+            <div class="chat-input-bar">
+                <textarea id="sup-input" class="chat-textarea" placeholder="Type your message…" rows="1" oninput="autoGrow(this); toggleSend('sup-send', this.value)" onkeydown="handleEnter(event, 'sup-messages', 'sup-input', 'sup-send')"></textarea>
+                <button class="chat-send-btn" id="sup-send" disabled onclick="sendMessage('sup-messages', 'sup-input', 'sup-send')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+            </div>
+
+        </div><!-- end chat-container -->
+    </main>
+</div>
+
+<script>
+    // Sidebar unread badge
+    (function() {
+        const readIds = JSON.parse(localStorage.getItem('hms_read_ann') || '[]');
+        const unread  = 5 - readIds.length;
+        const dot     = document.getElementById('ann-notif-dot');
+        if (dot && unread > 0) { dot.style.display = 'inline-flex'; dot.textContent = unread; }
+    })();
+    function autoGrow(el) {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+
+    function toggleSend(btnId, value) {
+        document.getElementById(btnId).disabled = value.trim() === '';
+    }
+
+    function handleEnter(e, messagesId, inputId, sendId) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage(messagesId, inputId, sendId);
+        }
+    }
+
+    function sendMessage(messagesId, inputId, sendId) {
+        const input = document.getElementById(inputId);
+        const text  = input.value.trim();
+        if (!text) return;
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+
+        const row = document.createElement('div');
+        row.className = 'chat-msg-row sent';
+        row.innerHTML = `<div class="msg-column"><div class="msg-bubble msg-sent">${escapeHtml(text)}</div><span class="msg-time msg-time-right">Now ${timeStr}</span></div>`;
+
+        const msgs = document.getElementById(messagesId);
+        msgs.appendChild(row);
+        msgs.scrollTop = msgs.scrollHeight;
+
+        input.value = '';
+        input.style.height = 'auto';
+        document.getElementById(sendId).disabled = true;
+    }
+
+    function escapeHtml(str) {
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(str));
+        return d.innerHTML;
+    }
+
+    // Scroll to bottom on load
+    window.addEventListener('load', () => {
+        const msgs = document.getElementById('sup-messages');
+        if (msgs) msgs.scrollTop = msgs.scrollHeight;
+    });
+</script>
+</body>
+</html>

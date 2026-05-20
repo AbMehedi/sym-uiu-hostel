@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - UIU Hostel Management System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="dashboard-wrapper">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <h2>UIU <span>HMS</span></h2>
+                <p class="">Admin Portal</p>
+            </div>
+            
+            <ul class="sidebar-nav">
+                <li><a href="#" class="active">Dashboard Overview</a></li>
+                <li><a href="admin-supervisors.html">Supervisor Management</a></li>
+                <li><a href="admin-rooms.html">Room Management</a></li>
+                <li><a href="admin-students.html">Student Admission</a></li>
+                <li><a href="admin-complaints.html">Complaints & Costs</a></li>
+                <li><a href="admin-reports.html">Reports & PDF Export</a></li>
+            </ul>
+
+            <div class="sidebar-bottom">
+                <a href="login.html" class="logout-btn">Log Out</a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            
+            <!-- Top Header -->
+            <header class="dashboard-header">
+                <div>
+                    <h1>Welcome, Admin</h1>
+                    <p class="date-display">Monday, May 4, 2026</p>
+                </div>
+                <div class="admin-profile">
+                    <div class="avatar">A</div>
+                    <span>System Admin</span>
+                </div>
+            </header>
+
+            <!-- Real-time Statistics Cards -->
+            <div class="dashboard-stats">
+                <div class="stat-card">
+                    <div class="stat-title">Total Rooms</div>
+                    <div class="stat-value">120</div>
+                </div>
+                <div class="stat-card occupied">
+                    <div class="stat-title">Occupied Rooms</div>
+                    <div class="stat-value">105</div>
+                </div>
+                <div class="stat-card vacant">
+                    <div class="stat-title">Vacant Rooms</div>
+                    <div class="stat-value">15</div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="stat-title">Active Complaints</div>
+                    <div class="stat-value">8</div>
+                </div>
+            </div>
+
+            <!-- Dashboard Tables Grid -->
+            <div class="dashboard-grid">
+                
+                <!-- Pending Admissions Table -->
+                <div class="dashboard-box">
+                    <div class="box-header">
+                        <h3>Pending Admissions</h3>
+                        <a href="#" class="btn-link">View All</a>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Dept</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>011223344</td>
+                                <td>Omor Faruk</td>
+                                <td>CSE</td>
+                                <td>
+                                    <button class="btn-action approve">Approve</button>
+                                    <button class="btn-action reject">Reject</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>011223345</td>
+                                <td>Hasan Mahmud</td>
+                                <td>EEE</td>
+                                <td>
+                                    <button class="btn-action approve">Approve</button>
+                                    <button class="btn-action reject">Reject</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Recent Complaints Table -->
+                <div class="dashboard-box">
+                    <div class="box-header">
+                        <h3>Recent Complaints</h3>
+                        <a href="#" class="btn-link">View All</a>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Room</th>
+                                <th>Issue</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Block A - 102</td>
+                                <td>Water Leakage</td>
+                                <td><span class="status pending">Pending</span></td>
+                            </tr>
+                            <tr>
+                                <td>Block B - 205</td>
+                                <td>Broken Fan</td>
+                                <td><span class="status in-progress">In Progress</span></td>
+                            </tr>
+                            <tr>
+                                <td>Block A - 105</td>
+                                <td>Wifi Issue</td>
+                                <td><span class="status resolved">Resolved</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                
+
+            </div> <!-- End Dashboard Grid -->
+
+        </main>
+    </div>
+
+</body>
+</html>

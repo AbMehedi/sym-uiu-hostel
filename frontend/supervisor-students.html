@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Block Students - UIU Hostel Management System</title>
+    <meta name="description" content="View all students assigned to the supervisor's block in the UIU HMS.">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="dashboard-wrapper">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <h2>UIU <span>HMS</span></h2>
+                <p>Supervisor Portal</p>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="supervisor-dashboard.html">🏠 Dashboard Overview</a></li>
+                <li><a href="supervisor-students.html" class="active">👥 My Block Students</a></li>
+                <li><a href="supervisor-complaints.html">📋 Complaints</a></li>
+                <li><a href="supervisor-announcements.html">📢 Announcements</a></li>
+            </ul>
+            <div class="sidebar-bottom">
+                <a href="login.html" class="logout-btn">Log Out</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+
+            <header class="dashboard-header">
+                <div>
+                    <h1>Block A — Students</h1>
+                    <p class="date-display">All students currently residing in Block A</p>
+                </div>
+                <div class="admin-profile">
+                    <div class="avatar sup-avatar">SR</div>
+                    <span>Block A Supervisor</span>
+                </div>
+            </header>
+
+            <!-- Search & Filter Bar -->
+            <div class="filter-bar">
+                <input
+                    type="text"
+                    id="student-search"
+                    class="search-input"
+                    placeholder="🔍  Search by name, ID, or room…"
+                    oninput="filterStudents()"
+                >
+                <select id="room-filter" class="filter-select" onchange="filterStudents()">
+                    <option value="">All Rooms</option>
+                    <option value="A-1">Floor 1</option>
+                    <option value="A-2">Floor 2</option>
+                    <option value="A-3">Floor 3</option>
+                    <option value="A-4">Floor 4</option>
+                    <option value="A-5">Floor 5</option>
+                </select>
+                <div class="student-count-label">Showing <span id="visible-count">12</span> students</div>
+            </div>
+
+            <!-- Students Table -->
+            <div class="dashboard-box full-width-box">
+                <table class="data-table" id="students-table">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Department</th>
+                            <th>Room</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                        </tr>
+                    </thead>
+                    <tbody id="students-tbody">
+                        <tr data-name="Riya Akter" data-id="011230101" data-room="A-102">
+                            <td>011230101</td>
+                            <td>
+                                <div class="student-name-cell">
+                                    <div class="student-avatar-sm" style="background-color:#2563eb">RA</div>
+                                    <span>Riya Akter</span>
+                                </div>
+                            </td>
+                            <td>CSE</td>
+                            <td><span class="room-badge">A-102</span></td>
+                            <td>01711-223344</td>
+                            <td>riya@uiu.ac.bd</td>
+                        </tr>
+                        <tr data-name="Farhan Islam" data-id="011230102" data-room="A-205">
+                            <td>011230102</td>
+                            <td>
+                                <div class="student-name-cell">
+                                    <div class="student-avatar-sm" style="background-color:#7c3aed">FI</div>
+                                    <span>Farhan Islam</span>
+                                </div>
+                            </td>
+                            <td>EEE</td>
+                            <td><span class="room-badge">A-205</span></td>
+                            <td>01812-334455</td>
+                            <td>farhan@uiu.ac.bd</td>
+                        </tr>
+                        <tr data-name="Nadia Hasan" data-id="011230103" data-room="A-308">
+                            <td>011230103</td>
+                            <td>
+                                <div class="student-name-cell">
+                                    <div class="student-avatar-sm" style="background-color:#0891b2">NH</div>
+                                    <span>Nadia Hasan</span>
+                                </div>
+                            </td>
+                            <td>BBA</td>
+                            <td><span class="room-badge">A-308</span></td>
+                            <td>01922-445566</td>
+                            <td>nadia@uiu.ac.bd</td>
+                        </tr>
+                        <tr data-name="Raihan Chowdhury" data-id="011230104" data-room="A-401">
+                            <td>011230104</td>
+                            <td>
+                                <div class="student-name-cell">
+                                    <div class="student-avatar-sm" style="background-color:#d97706">RC</div>
+                                    <span>Raihan Chowdhury</span>
+                                </div>
+                            </td>
+                            <td>CSE</td>
+                            <td><span class="room-badge">A-401</span></td>
+                            <td>01611-556677</td>
+                            <td>raihan@uiu.ac.bd</td>
+                        </tr>
+                        <tr data-name="Sadia Sultana" data-id="011230105" data-room="A-103">
+                            <td>011230105</td>
+                            <td>
+                                <div class="student-name-cell">
+                                    <div class="student-avatar-sm" style="background-color:#059669">SS</div>
+                                    <span>Sadia Sultana</span>
+                                </div>
+                            </td>
+                            <td>English</td>
+                            <td><span class="room-badge">A-103</span></td>
+                            <td>01511-667788</td>
+                            <td>sadia@uiu.ac.bd</td>
+                        </tr>
+                        <tr data-name="Mahim Hossain" data-id="011230106" data-room="A-206">
+                            <td>011230106</td>
+                            <td>
+                                <div class="student-name-cell">
+                                    <div class="student-avatar-sm" style="background-color:#dc2626">MH</div>
+                                    <span>Mahim Hossain</span>
+                                </div>
+                            </td>
+                            <td>EEE</td>
+                            <td><span class="room-badge">A-206</span></td>
+                            <td>01415-778899</td>
+                            <td>mahim@uiu.ac.bd</td>
+                        </tr>
+                        <tr data-name="Tasnima Begum" data-id="011230107" data-room="A-309">
+                            <td>011230107</td>
+                            <td>
+                                <div class="student-name-cell">
+                                    <div class="student-avatar-sm" style="background-color:#7c3aed">TB</div>
+                                    <span>Tasnima Begum</span>
+                                </div>
+                            </td>
+                            <td>Pharmacy</td>
+                            <td><span class="room-badge">A-309</span></td>
+                            <td>01312-889900</td>
+                            <td>tasnima@uiu.ac.bd</td>
+                        </tr>
+                        <tr data-name="Hasibul Islam" data-id="011230108" data-room="A-402">
+                            <td>011230108</td>
+                            <td>
+                                <div class="student-name-cell">
+                                    <div class="student-avatar-sm" style="background-color:#0891b2">HI</div>
+                                    <span>Hasibul Islam</span>
+                                </div>
+                            </td>
+                            <td>CSE</td>
+                            <td><span class="room-badge">A-402</span></td>
+                            <td>01212-990011</td>
+                            <td>hasibul@uiu.ac.bd</td>
+                        </tr>
+                        <tr data-name="Mariam Chowdhury" data-id="011230109" data-room="A-501">
+                            <td>011230109</td>
+                            <td>
+                                <div class="student-name-cell">
+                                    <div class="student-avatar-sm" style="background-color:#d97706">MC</div>
+                                    <span>Mariam Chowdhury</span>
+                                </div>
+                            </td>
+                            <td>MBA</td>
+                            <td><span class="room-badge">A-501</span></td>
+                            <td>01122-001122</td>
+                            <td>mariam@uiu.ac.bd</td>
+                        </tr>
+                        <tr data-name="Sadikur Rahman" data-id="011230110" data-room="A-104">
+                            <td>011230110</td>
+                            <td>
+                                <div class="student-name-cell">
+                                    <div class="student-avatar-sm" style="background-color:#2563eb">SR</div>
+                                    <span>Sadikur Rahman</span>
+                                </div>
+                            </td>
+                            <td>Textile</td>
+                            <td><span class="room-badge">A-104</span></td>
+                            <td>01033-112233</td>
+                            <td>sadikur@uiu.ac.bd</td>
+                        </tr>
+                        <tr data-name="Puja Roy" data-id="011230111" data-room="A-207">
+                            <td>011230111</td>
+                            <td>
+                                <div class="student-name-cell">
+                                    <div class="student-avatar-sm" style="background-color:#059669">PR</div>
+                                    <span>Puja Roy</span>
+                                </div>
+                            </td>
+                            <td>ECE</td>
+                            <td><span class="room-badge">A-207</span></td>
+                            <td>01945-223344</td>
+                            <td>puja@uiu.ac.bd</td>
+                        </tr>
+                        <tr data-name="Nafis Ahmed" data-id="011230112" data-room="A-310">
+                            <td>011230112</td>
+                            <td>
+                                <div class="student-name-cell">
+                                    <div class="student-avatar-sm" style="background-color:#dc2626">NA</div>
+                                    <span>Nafis Ahmed</span>
+                                </div>
+                            </td>
+                            <td>CSE</td>
+                            <td><span class="room-badge">A-310</span></td>
+                            <td>01877-334455</td>
+                            <td>nafis@uiu.ac.bd</td>
+                        </tr>
+                        <tr id="no-results-row" style="display:none;">
+                            <td colspan="6" style="text-align:center; padding:30px; color:#64748b;">
+                                🔍 No students match your filter. Try clearing the search or changing the floor.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        function filterStudents() {
+            const query = document.getElementById('student-search').value.toLowerCase();
+            const floorFilter = document.getElementById('room-filter').value;
+            const rows = document.querySelectorAll('#students-tbody tr:not(#no-results-row)');
+            let visible = 0;
+
+            rows.forEach(row => {
+                const name = row.dataset.name.toLowerCase();
+                const id = row.dataset.id.toLowerCase();
+                const room = row.dataset.room.toLowerCase();
+
+                const matchesSearch = name.includes(query) || id.includes(query) || room.includes(query);
+                const matchesFloor = floorFilter === '' || room.startsWith(floorFilter.toLowerCase());
+
+                if (matchesSearch && matchesFloor) {
+                    row.style.display = '';
+                    visible++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            document.getElementById('visible-count').textContent = visible;
+            document.getElementById('no-results-row').style.display = visible === 0 ? '' : 'none';
+        }
+    </script>
+
+</body>
+</html>

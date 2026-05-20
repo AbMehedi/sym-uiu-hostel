@@ -3,16 +3,19 @@
 namespace App\Entity;
 
 use App\Enum\Role;
+use App\Repository\UserRepository;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'users')]
 #[ORM\UniqueConstraint(name: 'uniq_users_email', columns: ['email'])]
 #[ORM\HasLifecycleCallbacks]
-class User
+class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -120,6 +123,11 @@ class User
         return $this;
     }
 
+    public function getUserIdentifier(): string
+    {
+        return $this->email;
+    }
+
     public function getPasswordHash(): string
     {
         return $this->passwordHash;
@@ -132,6 +140,11 @@ class User
         return $this;
     }
 
+    public function getPassword(): string
+    {
+        return $this->passwordHash;
+    }
+
     public function getRole(): Role
     {
         return $this->role;
@@ -142,6 +155,20 @@ class User
         $this->role = $role;
 
         return $this;
+    }
+
+    /** @return list<string> */
+    public function getRoles(): array
+    {
+        return [match ($this->role) {
+            Role::Admin => 'ROLE_ADMIN',
+            Role::Supervisor => 'ROLE_SUPERVISOR',
+            Role::Student => 'ROLE_STUDENT',
+        }];
+    }
+
+    public function eraseCredentials(): void
+    {
     }
 
     public function getCreatedAt(): DateTimeImmutable
