@@ -1,0 +1,175 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Admission Requests{% endblock %}
+
+{% block body %}
+    <!-- Top Header -->
+    <header class="dashboard-header">
+        <div>
+            <h1>Admission Requests</h1>
+            <p class="date-display">Review and approve or reject student hostel admission applications.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <span class="badge-count" style="background:#f59e0b;">{{ pendingRequests|length }} Pending</span>
+            <a href="{{ path('admin_room_assign') }}" class="btn btn-outline">Assign Rooms →</a>
+        </div>
+    </header>
+
+    <!-- Flash Messages -->
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="flash flash-{{ type }}" style="margin-bottom:16px;padding:12px 20px;border-radius:8px;background:{{ type == 'success' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }};color:{{ type == 'success' ? '#10b981' : '#ef4444' }};border:1px solid {{ type == 'success' ? '#10b981' : '#ef4444' }};">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    <!-- Pending Requests -->
+    <div class="dashboard-box" style="margin-bottom:30px;">
+        <div class="box-header" style="margin-bottom:20px;">
+            <h3>🕐 Pending Applications</h3>
+            <span class="badge-count">{{ pendingRequests|length }}</span>
+        </div>
+
+        {% if pendingRequests is empty %}
+            <div style="text-align:center;padding:40px;color:#64748b;">
+                🎉 No pending admission requests right now.
+            </div>
+        {% else %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Student ID</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Applied On</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in pendingRequests %}
+                    <tr>
+                        <td style="color:white;font-weight:500;">{{ req.student.user.name }}</td>
+                        <td>{{ req.student.studentNumber }}</td>
+                        <td>{{ req.student.user.email }}</td>
+                        <td>{{ req.student.phone ?? '—' }}</td>
+                        <td>{{ req.requestedDate|date('M j, Y') }}</td>
+                        <td>
+                            <div style="display:flex;gap:8px;">
+                                <form method="POST" action="{{ path('admin_admission_approve', {id: req.id}) }}" style="display:inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('admission_approve_' ~ req.id) }}">
+                                    <button type="submit" class="btn-action approve"
+                                            onclick="return confirm('Approve admission for {{ req.student.user.name }}?')">
+                                        ✓ Approve
+                                    </button>
+                                </form>
+                                <button class="btn-action reject"
+                                        onclick="openRejectModal({{ req.id }}, '{{ req.student.user.name }}')">
+                                    ✗ Reject
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+
+    <!-- All Requests History -->
+    <div class="dashboard-box">
+        <div class="box-header" style="margin-bottom:20px;">
+            <h3>📋 All Admission Requests</h3>
+            <span class="badge-count" style="background:#334155;">{{ allRequests|length }}</span>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Student ID</th>
+                    <th>Applied On</th>
+                    <th>Status</th>
+                    <th>Reviewed By</th>
+                    <th>Reviewed At</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in allRequests %}
+                <tr>
+                    <td style="color:white;font-weight:500;">{{ req.student.user.name }}</td>
+                    <td>{{ req.student.studentNumber }}</td>
+                    <td>{{ req.requestedDate|date('M j, Y') }}</td>
+                    <td>
+                        {% if req.status.value == 'pending' %}
+                            <span class="status pending">Pending</span>
+                        {% elseif req.status.value == 'approved' %}
+                            <span class="status resolved">Approved</span>
+                        {% elseif req.status.value == 'rejected' %}
+                            <span class="status reject">Rejected</span>
+                        {% else %}
+                            <span class="status">{{ req.status.value|capitalize }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ req.reviewedBy ? req.reviewedBy.name : '—' }}</td>
+                    <td>{{ req.reviewedAt ? req.reviewedAt|date('M j, Y') : '—' }}</td>
+                    <td style="color:#94a3b8;font-size:0.85rem;">{{ req.adminNotes ?? '—' }}</td>
+                </tr>
+                {% endfor %}
+                {% if allRequests is empty %}
+                <tr>
+                    <td colspan="7" style="text-align:center;padding:30px;color:#64748b;">No admission requests found.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Reject Modal -->
+    <div class="modal-overlay" id="reject-modal-overlay" onclick="closeRejectModal(event)">
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="reject-modal-title">
+            <div class="modal-header">
+                <h3 id="reject-modal-title">Reject Admission</h3>
+                <button class="modal-close-btn" onclick="closeRejectModal()" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="color:#94a3b8;margin-bottom:16px;">
+                    Rejecting admission for: <strong id="reject-student-name" style="color:white;"></strong>
+                </p>
+                <form id="reject-form" method="POST" action="">
+                    <div class="form-group">
+                        <label for="reject-notes">Rejection Reason / Notes (optional)</label>
+                        <textarea id="reject-notes" name="notes" class="form-control" rows="3"
+                                  placeholder="e.g. Capacity full, incomplete documents..."></textarea>
+                    </div>
+                    <div style="margin-top:20px;display:flex;gap:12px;justify-content:flex-end;">
+                        <button type="button" class="btn btn-outline" onclick="closeRejectModal()">Cancel</button>
+                        <button type="submit" class="btn-action reject">Confirm Rejection</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="admin-toast" class="toast" style="display:none;"></div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        function openRejectModal(id, name) {
+            document.getElementById('reject-student-name').textContent = name;
+            document.getElementById('reject-form').action = '/admin/admission-requests/' + id + '/reject';
+            document.getElementById('reject-modal-overlay').classList.add('active');
+        }
+        function closeRejectModal(e) {
+            if (e && e.target !== document.getElementById('reject-modal-overlay')) return;
+            document.getElementById('reject-modal-overlay').classList.remove('active');
+        }
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(el => el.classList.remove('active'));
+        });
+    </script>
+{% endblock %}

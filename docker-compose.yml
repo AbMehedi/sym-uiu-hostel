@@ -3,13 +3,15 @@ services:
     build:
       context: ./backend
     volumes:
-      - ./backend:/app
+      - ./backend:/app                      # Source code (bind mount — OK for code files)
+      - php_var:/app/var                    # Cache/logs on fast Docker volume
+      - php_vendor:/app/vendor              # Composer vendor on fast Docker volume
     ports:
       - "8000:8000"
     depends_on:
       - db
     working_dir: /app
-    command: php -S 0.0.0.0:8000
+    command: php -S 0.0.0.0:8000 -t public
 
   db:
     image: mysql:8.0
@@ -32,3 +34,5 @@ services:
 
 volumes:
   db_data:
+  php_var:
+  php_vendor:

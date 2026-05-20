@@ -1,0 +1,179 @@
+{% extends 'student/base.html.twig' %}
+
+{% block title %}Room Change Request{% endblock %}
+
+{% block body %}
+    <header class="dashboard-header">
+        <div>
+            <h1>Room Change Request</h1>
+            <p class="date-display">Request to change your room and track supervisor decision</p>
+        </div>
+        <div class="admin-profile">
+            <div class="avatar stu-avatar"></div>
+            <span>Room {{ app.user.student.room ? app.user.student.room.roomNumber : 'N/A' }}</span>
+        </div>
+    </header>
+
+    <!-- Current Room Banner -->
+    <div class="block-info-banner room-info-banner" style="margin-bottom:30px;">
+        <div class="block-info-item">
+            <span class="block-info-label">Current Room</span>
+            <span class="block-info-value stu-value">{{ app.user.student.room ? app.user.student.room.roomNumber : 'N/A' }}</span>
+        </div>
+        <div class="block-info-divider"></div>
+        <div class="block-info-item">
+            <span class="block-info-label">Room Type</span>
+            <span class="block-info-value stu-value">{{ app.user.student.room ? app.user.student.room.capacity ~ ' Sharing' : 'N/A' }}</span>
+        </div>
+        <div class="block-info-divider"></div>
+        <div class="block-info-item">
+            <span class="block-info-label">Block</span>
+            <span class="block-info-value stu-value">{{ app.user.student.room ? app.user.student.room.hostelBlock : 'N/A' }}</span>
+        </div>
+        <div class="block-info-divider"></div>
+        <div class="block-info-item">
+            <span class="block-info-label">Floor</span>
+            <span class="block-info-value stu-value">{{ app.user.student.room ? app.user.student.room.floor : 'N/A' }}</span>
+        </div>
+    </div>
+
+    <div class="announcement-layout">
+
+        <!-- Left: Submit Form -->
+        <div class="announce-form-box dashboard-box">
+            <div class="box-header"><h3>New Request</h3></div>
+            <div id="pending-notice" class="stu-notice-box" style="display:none;">
+                ⏳ You already have a pending room change request. Please wait for a supervisor decision before submitting another.
+            </div>
+            <form class="announce-form" id="rc-form" onsubmit="submitRoomChange(event)">
+                <div class="form-group">
+                    <label>Current Room</label>
+                    <input type="text" class="form-control announce-input" value="{{ app.user.student.room ? app.user.student.room.roomNumber : 'N/A' }}" readonly style="opacity:0.6;cursor:not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label for="rc-reason">Reason for Change <span style="color:#ef4444;">*</span></label>
+                    <select id="rc-reason" class="form-control announce-input" required>
+                        <option value="">— Select Reason —</option>
+                        <option value="Noise Issues">Noise Issues</option>
+                        <option value="Medical Condition">Medical Condition</option>
+                        <option value="Personal Preference">Personal Preference</option>
+                        <option value="Roommate Conflict">Roommate Conflict</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="rc-details">Additional Details <span style="color:#ef4444;">*</span></label>
+                    <textarea id="rc-details" class="form-control announce-input" rows="5" placeholder="Explain your situation in detail…" required maxlength="400" oninput="document.getElementById('rc-char').textContent=this.value.length"></textarea>
+                    <p class="char-counter"><span id="rc-char">0</span> / 400</p>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full" id="rc-submit-btn">Submit Request</button>
+                <p class="post-success-msg" id="rc-success" style="display:none;">✅ Request submitted! Awaiting supervisor decision.</p>
+            </form>
+        </div>
+
+        <!-- Right: Request History -->
+        <div>
+            <div class="box-header" style="margin-bottom:16px;">
+                <h3 style="color:white;margin:0;">My Request History</h3>
+                <span class="badge-count" id="history-count">{{ requests|length }}</span>
+            </div>
+            <div id="rc-history">
+                {% for request in requests %}
+                <div class="announcement-card rc-card" data-status="{{ request.status.value|capitalize }}">
+                    <div class="announcement-card-header">
+                        <span class="ann-category-badge {% if request.status.value == 'pending' %}general{% elseif request.status.value == 'approved' %}success{% else %}urgent{% endif %}">{{ request.status.value|capitalize }}</span>
+                        <span class="ann-date">{{ request.reviewedAt ? request.reviewedAt|date('M d, Y') : 'Pending' }}</span>
+                    </div>
+                    <h4 class="ann-card-title">{{ request.reason }}</h4>
+                    <div class="rc-supervisor-note">
+                        <span class="rc-note-label">Supervisor Note:</span>
+                        <span class="rc-note-text" style="color:#94a3b8;">
+                            {% if request.status.value == 'pending' %}
+                                Awaiting review…
+                            {% else %}
+                                Reviewed by {{ request.reviewedBy ? request.reviewedBy.user.name : 'Supervisor' }}
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <p id="no-rc-msg" style="{% if requests|length > 0 %}display:none;{% endif %}text-align:center;padding:30px;color:#64748b;">No room change requests submitted yet.</p>
+        </div>
+
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        let hasPending = {{ (requests|filter(r => r.status.value == 'pending')|length > 0) ? 'true' : 'false' }};
+
+        if (hasPending) {
+            document.getElementById('pending-notice').style.display = 'block';
+            document.getElementById('rc-submit-btn').disabled = true;
+            document.getElementById('rc-submit-btn').style.opacity = '0.5';
+        }
+
+        function submitRoomChange(e) {
+            e.preventDefault();
+            if (hasPending) return;
+
+            const reason  = document.getElementById('rc-reason').value;
+            const details = document.getElementById('rc-details').value.trim();
+            const dateStr = new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+
+            fetch('{{ path('student_room_change') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    reason: reason,
+                    details: details
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const card = document.createElement('div');
+                    card.className = 'announcement-card rc-card new-card';
+                    card.dataset.status = 'Pending';
+                    card.innerHTML = `
+                        <div class="announcement-card-header">
+                            <span class="ann-category-badge general">Pending</span>
+                            <span class="ann-date">${dateStr}</span>
+                        </div>
+                        <h4 class="ann-card-title">${reason}</h4>
+                        <div class="rc-supervisor-note"><span class="rc-note-label">Supervisor Note:</span><span class="rc-note-text" style="color:#64748b;">Awaiting review…</span></div>
+                    `;
+                    const hist = document.getElementById('rc-history');
+                    hist.insertBefore(card, hist.firstChild);
+
+                    const cnt = document.getElementById('history-count');
+                    cnt.textContent = parseInt(cnt.textContent) + 1;
+
+                    hasPending = true;
+                    document.getElementById('pending-notice').style.display = 'block';
+                    document.getElementById('rc-submit-btn').disabled = true;
+                    document.getElementById('rc-submit-btn').style.opacity = '0.5';
+
+                    const msg = document.getElementById('rc-success');
+                    msg.style.display = 'block';
+                    setTimeout(() => msg.style.display = 'none', 3000);
+
+                    document.getElementById('rc-form').reset();
+                    document.getElementById('rc-char').textContent = '0';
+                    document.getElementById('no-rc-msg').style.display = 'none';
+                } else {
+                    alert('Error submitting request: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('An error occurred. Please try again.');
+            });
+        }
+    </script>
+{% endblock %}

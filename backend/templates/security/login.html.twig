@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Log in!{% endblock %}
+
+{% block body %}
+    <!-- Simplified Navbar for Auth Pages -->
+    <nav class="navbar">
+        <a href="{{ path('app_home') }}" class="logo">
+            <h2>UIU <span>HMS</span></h2>
+        </a>
+        <a href="{{ path('app_home') }}" class="btn btn-outline">Back to Home</a>
+    </nav>
+
+    <!-- Login Section -->
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h2>Welcome Back</h2>
+                <p>Please log in to your portal</p>
+            </div>
+
+            <form method="post" action="{{ path('app_login') }}" class="auth-form">
+                {% if error %}
+                    <div class="alert alert-danger" style="color:#ef4444; text-align:center; font-size:0.88rem; margin-top:10px; background:rgba(239,68,68,0.08); padding:8px; border-radius:6px;">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+                {% endif %}
+
+                <!-- User ID -->
+                <div class="form-group">
+                    <label for="username">Email or Student ID</label>
+                    <input type="text" value="{{ last_username }}" name="email" id="username" class="form-control" placeholder="Enter your ID or Email" required autofocus>
+                </div>
+
+                <!-- Password -->
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" name="password" id="password" class="form-control" placeholder="Enter your password" required>
+                </div>
+
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                <!-- Options -->
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" name="_remember_me"> Remember me
+                    </label>
+                    <a href="#" class="forgot-link">Forgot Password?</a>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn btn-primary btn-full">Login →</button>
+            </form>
+
+            <div class="auth-footer">
+                <p>New student? <a href="{{ path('app_register') }}">Apply for admission</a></p>
+            </div>
+        </div>
+    </div>
+{% endblock %}

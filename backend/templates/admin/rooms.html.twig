@@ -1,0 +1,104 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Room Management{% endblock %}
+
+{% block body %}
+    <!-- Top Header -->
+    <header class="dashboard-header">
+        <div>
+            <h1>Room Management</h1>
+            <p class="date-display">Add, edit, and monitor physical room infrastructure.</p>
+        </div>
+        <div style="display: flex; gap: 15px;">
+            <a href="{{ path('admin_room_assign') }}" class="btn btn-outline" style="background:transparent;">Go to Student Allocation &rarr;</a>
+            <button class="btn btn-primary" onclick="document.getElementById('add-room').scrollIntoView({behavior: 'smooth'})">
+                + Add New Room
+            </button>
+        </div>
+    </header>
+
+    <!-- Current Rooms Grid -->
+    <div class="dashboard-box" style="margin-bottom: 40px; background: transparent; border: none; box-shadow: none; padding: 0;">
+        <h3 style="margin-bottom: 20px;">Current Hostel Rooms</h3>
+        <div class="admin-room-grid">
+            
+            {% for room in rooms %}
+            <div class="admin-room-card">
+                <div class="room-photo">Room Photo</div>
+                <div class="room-card-body">
+                    <div class="room-card-header">
+                        <h4>Room {{ room.roomNumber }}</h4>
+                         <span class="status {{ room.currentOccupancy == room.capacity ? 'reject' : (room.currentOccupancy > 0 ? 'in-progress' : 'resolved') }}" style="font-size: 0.75rem;">
+                             {{ room.currentOccupancy == room.capacity ? 'Full' : (room.currentOccupancy > 0 ? 'Available' : 'Vacant') }}
+                             ({{ room.currentOccupancy }}/{{ room.capacity }})
+                         </span>
+                     </div>
+                     <p class="room-meta">{{ room.hostelBlock }} • Floor {{ room.floor }}</p>
+                     <p class="room-desc">{{ room.roomType ?? 'Standard Room' }}</p>
+                    <div class="room-actions">
+                        {% if room.currentOccupancy == 0 %}
+                        <form method="POST" action="{{ path('admin_rooms_delete', {id: room.id}) }}" style="display:inline;">
+                            <button type="submit" class="btn-action reject" style="font-size:0.75rem;"
+                                    onclick="return confirm('Delete Room {{ room.roomNumber }}?')">Delete</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+        </div>
+    </div>
+
+    <!-- Add/Edit Room Form -->
+    <div id="add-room" class="dashboard-box">
+        <div class="box-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 25px;">
+            <h3>Add / Edit Room Setup</h3>
+            <p class="text-muted" style="font-size: 0.85rem; color: #64748b;">Enter details for the new room. These details will be visible to students applying.</p>
+        </div>
+        
+        <form class="auth-form" action="{{ path('admin_rooms_new') }}" method="POST">
+            <div class="form-grid">
+                <!-- Room Number -->
+                <div class="form-group">
+                    <label for="roomNumber">Room Number</label>
+                    <input type="text" id="roomNumber" name="roomNumber" class="form-control" placeholder="e.g. 101, 205B" required>
+                </div>
+
+                <!-- Block / Building -->
+                <div class="form-group">
+                    <label for="roomBlock">Hostel Block</label>
+                    <select id="roomBlock" name="block" class="form-control" required>
+                        <option value="" disabled selected>Select Block</option>
+                        <option value="A">Block A</option>
+                        <option value="B">Block B</option>
+                        <option value="C">Block C</option>
+                    </select>
+                </div>
+
+                <!-- Floor -->
+                <div class="form-group">
+                    <label for="roomFloor">Floor</label>
+                    <input type="number" id="roomFloor" name="floor" class="form-control" placeholder="e.g. 1, 2, 3" min="0" max="20" required>
+                </div>
+
+                <!-- Total Capacity -->
+                <div class="form-group">
+                    <label for="roomCapacity">Total Capacity (Beds)</label>
+                    <input type="number" id="roomCapacity" name="capacity" class="form-control" placeholder="e.g. 1, 2, 4" min="1" max="10" required>
+                </div>
+            </div>
+
+            <!-- Room Type -->
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="roomDescription">Room Type / Description</label>
+                <input type="text" id="roomDescription" name="roomType" class="form-control" placeholder="e.g. AC room, attached bathroom, south-facing...">
+            </div>
+
+            <!-- Submit Button -->
+            <div style="margin-top: 25px; text-align: right;">
+                <button type="submit" class="btn btn-primary">Save Room Configuration</button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

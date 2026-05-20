@@ -1,0 +1,106 @@
+{% extends 'student/base.html.twig' %}
+
+{% block title %}My Complaints{% endblock %}
+
+{% block body %}
+    <header class="dashboard-header">
+        <div>
+            <h1>My Complaints</h1>
+            <p class="date-display">Submit issues and track resolution status</p>
+        </div>
+        <div class="admin-profile">
+            <div class="avatar stu-avatar"></div>
+            <span>Room {{ app.user.student.room ? app.user.student.room.roomNumber : 'N/A' }}</span>
+        </div>
+    </header>
+
+    <div class="dashboard-stats">
+        <div class="stat-card"><div class="stat-title">Total Submitted</div><div class="stat-value" id="stat-total">{{ complaints|length }}</div></div>
+        <div class="stat-card danger"><div class="stat-title">Pending</div><div class="stat-value" id="stat-pending">{{ complaints|filter(c => c.status == 'Pending')|length }}</div></div>
+        <div class="stat-card vacant"><div class="stat-title">In Progress</div><div class="stat-value" id="stat-inprogress">{{ complaints|filter(c => c.status == 'In Progress')|length }}</div></div>
+        <div class="stat-card occupied"><div class="stat-title">Resolved</div><div class="stat-value" id="stat-resolved">{{ complaints|filter(c => c.status == 'Resolved')|length }}</div></div>
+    </div>
+
+    <div class="announcement-layout">
+        <!-- Submit Form -->
+        <div class="announce-form-box dashboard-box">
+            <div class="box-header"><h3>Submit a Complaint</h3></div>
+            <form class="announce-form" id="complaint-form" method="post" action="{{ path('student_complaints') }}" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="c-subject">Subject <span style="color:#ef4444;">*</span></label>
+                    <input type="text" id="c-subject" name="subject" class="form-control announce-input" placeholder="e.g. Broken light in bathroom" required maxlength="80">
+                </div>
+                <div class="form-group">
+                    <label for="c-type">Category <span style="color:#ef4444;">*</span></label>
+                    <select id="c-type" name="type" class="form-control announce-input" required>
+                        <option value="">— Select Category —</option>
+                        <option value="Electricity">Electricity</option>
+                        <option value="Plumbing">Plumbing</option>
+                        <option value="Cleaning">Cleaning</option>
+                        <option value="Noise">Noise</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="c-desc">Description <span style="color:#ef4444;">*</span></label>
+                    <textarea id="c-desc" name="description" class="form-control announce-input" rows="5" placeholder="Describe the issue in detail…" required maxlength="500" oninput="document.getElementById('char-count').textContent=this.value.length"></textarea>
+                    <p class="char-counter"><span id="char-count">0</span> / 500</p>
+                </div>
+                <div class="form-group">
+                    <label for="c-photo">Photo (optional)</label>
+                    <input type="file" id="c-photo" name="photo" class="form-control file-input announce-input" accept="image/*">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Submit Complaint</button>
+                <p class="post-success-msg" id="submit-success" style="display:none;">✅ Complaint submitted successfully!</p>
+            </form>
+        </div>
+
+        <!-- Complaints List -->
+        <div>
+            <div class="filter-bar" style="margin-bottom:16px;">
+                <input type="text" class="search-input" placeholder="🔍  Search complaints…" oninput="applyFilters(this.value, currentStatus)">
+                <select class="filter-select" onchange="currentStatus=this.value; applyFilters(document.querySelector('.search-input').value, this.value)">
+                    <option value="">All Statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Resolved">Resolved</option>
+                </select>
+            </div>
+            <div id="complaints-list">
+                {% for complaint in complaints %}
+                <div class="announcement-card complaint-card" data-status="{{ complaint.status }}" data-subject="{{ complaint.subject|lower }}">
+                    <div class="announcement-card-header">
+                        <span class="ann-category-badge {{ complaint.status|lower|replace({' ': '-'}) }}">{{ complaint.status }}</span>
+                        <span class="ann-date">{{ complaint.createdAt|date('M d, Y') }}</span>
+                    </div>
+                    <h4 class="ann-card-title">{{ complaint.subject }}</h4>
+                    <p class="ann-card-body">{{ complaint.description }}</p>
+                    <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+                        <span class="type-badge {{ complaint.category.value|lower }}">{{ complaint.category.value }}</span>
+                        <span style="font-size:0.8rem;color:#64748b;">Room {{ complaint.room ? complaint.room.roomNumber : 'N/A' }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <p id="no-complaints-msg" style="display:none;text-align:center;padding:30px;color:#64748b;">🔍 No complaints match your search.</p>
+        </div>
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        let currentStatus = '';
+        function applyFilters(query, status) {
+            query = (query || '').toLowerCase();
+            const cards = document.querySelectorAll('.complaint-card');
+            let visible = 0;
+            cards.forEach(c => {
+                const ok = (!query || c.dataset.subject.includes(query)) && (!status || c.dataset.status === status);
+                c.style.display = ok ? '' : 'none';
+                if (ok) visible++;
+            });
+            document.getElementById('no-complaints-msg').style.display = visible === 0 ? 'block' : 'none';
+        }
+    </script>
+{% endblock %}

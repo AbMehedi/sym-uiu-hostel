@@ -1,0 +1,105 @@
+{% extends 'supervisor/base.html.twig' %}
+
+{% block title %}Block Students{% endblock %}
+
+{% block body %}
+    <header class="dashboard-header">
+        <div>
+            <h1>{{ app.user.supervisor ? app.user.supervisor.hostelBlock : 'My Block' }} — Students</h1>
+            <p class="date-display">All students currently residing in {{ app.user.supervisor ? app.user.supervisor.hostelBlock : 'your block' }}</p>
+        </div>
+        <div class="admin-profile">
+            <div class="avatar sup-avatar"></div>
+            <span>{{ app.user.supervisor ? app.user.supervisor.hostelBlock : '' }} Supervisor</span>
+        </div>
+    </header>
+
+    <!-- Search & Filter Bar -->
+    <div class="filter-bar">
+        <input
+            type="text"
+            id="student-search"
+            class="search-input"
+            placeholder="🔍  Search by name, ID, or room…"
+            oninput="filterStudents()"
+        >
+        <select id="room-filter" class="filter-select" onchange="filterStudents()">
+            <option value="">All Rooms</option>
+            <option value="A-1">Floor 1</option>
+            <option value="A-2">Floor 2</option>
+            <option value="A-3">Floor 3</option>
+            <option value="A-4">Floor 4</option>
+            <option value="A-5">Floor 5</option>
+        </select>
+        <div class="student-count-label">Showing <span id="visible-count">{{ students|length }}</span> students</div>
+    </div>
+
+    <!-- Students Table -->
+    <div class="dashboard-box full-width-box">
+        <table class="data-table" id="students-table">
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Department</th>
+                    <th>Room</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody id="students-tbody">
+                {% for student in students %}
+                <tr data-name="{{ student.user.name }}" data-id="{{ student.studentNumber }}" data-room="{{ student.room ? student.room.roomNumber : '' }}">
+                    <td>{{ student.studentNumber }}</td>
+                    <td>
+                        <div class="student-name-cell">
+                            <div class="student-avatar-sm" style="background-color:{{ cycle(['#2563eb', '#7c3aed', '#0891b2', '#d97706', '#059669', '#dc2626'], loop.index0) }}">{{ student.user.name|slice(0, 1) }}{{ student.user.name|split(' ')|last|slice(0, 1) }}</div>
+                            <span>{{ student.user.name }}</span>
+                        </div>
+                    </td>
+                    <td>—</td>
+                    <td><span class="room-badge">{{ student.room ? student.room.roomNumber : 'Unassigned' }}</span></td>
+                    <td>{{ student.phone }}</td>
+                    <td>{{ student.user.email }}</td>
+                </tr>
+                {% endfor %}
+                <tr id="no-results-row" style="display:none;">
+                    <td colspan="6" style="text-align:center; padding:30px; color:#64748b;">
+                        🔍 No students match your filter. Try clearing the search or changing the floor.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        function filterStudents() {
+            const query = document.getElementById('student-search').value.toLowerCase();
+            const floorFilter = document.getElementById('room-filter').value;
+            const rows = document.querySelectorAll('#students-tbody tr:not(#no-results-row)');
+            let visible = 0;
+
+            rows.forEach(row => {
+                const name = row.dataset.name.toLowerCase();
+                const id = row.dataset.id.toLowerCase();
+                const room = row.dataset.room.toLowerCase();
+
+                const matchesSearch = name.includes(query) || id.includes(query) || room.includes(query);
+                const matchesFloor = floorFilter === '' || room.startsWith(floorFilter.toLowerCase());
+
+                if (matchesSearch && matchesFloor) {
+                    row.style.display = '';
+                    visible++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            document.getElementById('visible-count').textContent = visible;
+            document.getElementById('no-results-row').style.display = visible === 0 ? '' : 'none';
+        }
+    </script>
+{% endblock %}

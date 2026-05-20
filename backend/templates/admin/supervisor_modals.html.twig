@@ -1,0 +1,95 @@
+<!-- ── Assign Task Modal ── -->
+<div class="modal-overlay" id="task-modal-overlay" onclick="closeTaskModal(event)">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+        <div class="modal-header">
+            <h3 id="task-modal-title">Assign Task</h3>
+            <button class="modal-close-btn" onclick="closeTaskModal()" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+            <form id="task-form" method="POST" action="{{ path('admin_tasks_new') }}">
+                <input type="hidden" id="task-supervisor-id" name="supervisorId" value="">
+                <div class="form-group">
+                    <label>Supervisor</label>
+                    <p id="task-supervisor-name" style="color:white;font-weight:600;padding:8px 0;"></p>
+                </div>
+                <div class="form-group">
+                    <label for="task-desc">Task Title <span style="color:#ef4444;">*</span></label>
+                    <input type="text" id="task-desc" name="title" class="form-control announce-input" placeholder="e.g. Inspect Block A bathrooms" required maxlength="150">
+                </div>
+                <div class="form-group">
+                    <label for="task-description">Description (optional)</label>
+                    <textarea id="task-description" name="description" class="form-control announce-input" rows="3" placeholder="Additional details…"></textarea>
+                </div>
+                <div class="modal-detail-grid">
+                    <div class="form-group">
+                        <label for="task-due">Due Date <span style="color:#ef4444;">*</span></label>
+                        <input type="date" id="task-due" name="dueDate" class="form-control announce-input" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeTaskModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Assign Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ── Assign Student Modal ── -->
+<div class="modal-overlay" id="student-modal-overlay" onclick="closeStudentModal(event)">
+    <div class="modal-box modal-box-wide" role="dialog" aria-modal="true" aria-labelledby="student-modal-title">
+        <div class="modal-header">
+            <h3 id="student-modal-title">Assign Students</h3>
+            <button class="modal-close-btn" onclick="closeStudentModal()" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:16px;">Select students to assign to <strong id="assign-sup-name" style="color:white;"></strong></p>
+            <div style="overflow-x:auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;"><input type="checkbox" id="select-all-students" onchange="toggleAllStudents(this)"></th>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Current Room</th>
+                            <th>Department</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="checkbox" class="student-checkbox" value="011221001"></td>
+                            <td>011221001</td><td>Ahmed Fahim</td><td>A-205</td><td>CSE</td>
+                        </tr>
+                        <tr>
+                            <td><input type="checkbox" class="student-checkbox" value="011221045"></td>
+                            <td>011221045</td><td>Sakib Rahman</td><td>A-205</td><td>CSE</td>
+                        </tr>
+                        <tr>
+                            <td><input type="checkbox" class="student-checkbox" value="011220310"></td>
+                            <td>011220310</td><td>Riya Akter</td><td>A-102</td><td>EEE</td>
+                        </tr>
+                        <tr>
+                            <td><input type="checkbox" class="student-checkbox" value="011220417"></td>
+                            <td>011220417</td><td>Farhan Islam</td><td>A-205</td><td>BBA</td>
+                        </tr>
+                        <tr>
+                            <td><input type="checkbox" class="student-checkbox" value="011219522"></td>
+                            <td>011219522</td><td>Nadia Hasan</td><td>A-308</td><td>CSE</td>
+                        </tr>
+                        <tr>
+                            <td><input type="checkbox" class="student-checkbox" value="011220633"></td>
+                            <td>011220633</td><td>Sadia Sultana</td><td>A-105</td><td>EEE</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeStudentModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="confirmStudentAssignment()">Confirm Assignment</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="admin-toast" class="toast" style="display:none;"></div>

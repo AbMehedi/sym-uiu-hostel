@@ -1,0 +1,118 @@
+{% extends 'supervisor/base.html.twig' %}
+
+{% block title %}Announcements{% endblock %}
+
+{% block body %}
+    <header class="dashboard-header">
+        <div>
+            <h1>Block Announcements</h1>
+            <p class="date-display">Post notices and updates for {{ app.user.supervisor ? app.user.supervisor.blockAssigned : 'your block' }}'s students</p>
+        </div>
+        <div class="admin-profile">
+            <div class="avatar sup-avatar"></div>
+            <span>{{ app.user.supervisor ? app.user.supervisor.blockAssigned : '' }} Supervisor</span>
+        </div>
+    </header>
+
+    <!-- Two-column layout: form + list -->
+    <div class="announcement-layout">
+
+        <!-- Post New Announcement Form -->
+        <div class="dashboard-box announce-form-box">
+            <div class="box-header">
+                <h3>Post New Announcement</h3>
+            </div>
+            <form id="announcement-form" class="announce-form" method="post" action="{{ path('supervisor_announcements') }}">
+                <div class="form-group">
+                    <label for="ann-title">Announcement Title</label>
+                    <input
+                        type="text"
+                        id="ann-title"
+                        name="title"
+                        class="form-control announce-input"
+                        placeholder="e.g. Water Supply Interruption"
+                        required
+                        maxlength="100"
+                    >
+                </div>
+                <div class="form-group">
+                    <label for="ann-category">Category</label>
+                    <select id="ann-category" name="category" class="form-control announce-input">
+                        <option value="General">General</option>
+                        <option value="Maintenance">Maintenance</option>
+                        <option value="Rules">Rules &amp; Regulations</option>
+                        <option value="Event">Event</option>
+                        <option value="Urgent">⚠️ Urgent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="ann-body">Message</label>
+                    <textarea
+                        id="ann-body"
+                        name="body"
+                        class="form-control announce-input"
+                        rows="6"
+                        placeholder="Write your announcement here…"
+                        required
+                        maxlength="600"
+                    ></textarea>
+                    <div class="char-counter"><span id="char-count">0</span>/600 characters</div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full announce-btn" id="post-btn">
+                    📢 Post Announcement
+                </button>
+                <div id="post-success" class="post-success-msg" style="display:none;">
+                    ✅ Announcement posted successfully!
+                </div>
+            </form>
+        </div>
+
+        <!-- Posted Announcements List -->
+        <div class="dashboard-box">
+            <div class="box-header">
+                <h3>Posted Announcements</h3>
+                <span class="badge-count" id="ann-count">{{ announcements|length }}</span>
+            </div>
+            <div class="announcement-list" id="announcements-list">
+                {% for announcement in announcements %}
+                <div class="announcement-card">
+                    <div class="announcement-card-header">
+                        <span class="ann-category-badge {{ announcement.category|lower }}">{{ announcement.category }}</span>
+                        <span class="ann-date">{{ announcement.createdAt|date('M d, Y') }}</span>
+                    </div>
+                    <h4 class="ann-card-title">{{ announcement.title }}</h4>
+                    <p class="ann-card-body">{{ announcement.body }}</p>
+                    <div class="ann-card-footer">
+                        <button class="btn-action ann-delete-btn" onclick="deleteAnnouncement(this)">🗑 Delete</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div> <!-- end announcements-list -->
+        </div>
+
+    </div> <!-- end announcement-layout -->
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        // Character counter
+        const bodyEl = document.getElementById('ann-body');
+        const charCount = document.getElementById('char-count');
+        bodyEl.addEventListener('input', () => {
+            charCount.textContent = bodyEl.value.length;
+        });
+
+        function deleteAnnouncement(btn) {
+            if (!confirm('Delete this announcement?')) return;
+            const card = btn.closest('.announcement-card');
+            card.style.transition = 'opacity 0.3s';
+            card.style.opacity = '0';
+            setTimeout(() => {
+                card.remove();
+                const list = document.getElementById('announcements-list');
+                document.getElementById('ann-count').textContent = list.querySelectorAll('.announcement-card').length;
+            }, 300);
+        }
+    </script>
+{% endblock %}

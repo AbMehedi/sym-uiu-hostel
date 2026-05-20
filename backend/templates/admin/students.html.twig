@@ -1,0 +1,139 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Student Management{% endblock %}
+
+{% block body %}
+    <!-- Top Header -->
+    <header class="dashboard-header">
+        <div>
+            <h1>Student Management</h1>
+            <p class="date-display">Review admission requests and manage student profiles.</p>
+        </div>
+    </header>
+
+    <!-- Pending Admission Requests -->
+    <div class="dashboard-box">
+        <div class="box-header">
+            <h3>Pending Admission Requests</h3>
+            <span class="status pending">2 New Applications</span>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Applicant Name</th>
+                    <th>Department</th>
+                    <th>Applied On</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>011223346</td>
+                    <td>Nusrat Jahan</td>
+                    <td>CSE</td>
+                    <td>May 5, 2026</td>
+                    <td>
+                        <button class="btn-action approve">Approve</button>
+                        <button class="btn-action reject">Reject</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>011334458</td>
+                    <td>Saimum Hossain</td>
+                    <td>EEE</td>
+                    <td>May 5, 2026</td>
+                    <td>
+                        <button class="btn-action approve">Approve</button>
+                        <button class="btn-action reject">Reject</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <br><br>
+
+    <!-- Interactive Master-Detail Grid (Pure CSS No-JS Version) -->
+    <div class="css-interactive-wrapper">
+        
+        {% for student in students %}
+            <input type="radio" name="student-select" id="student-{{ student.id }}" class="hidden-radio" {{ loop.first ? 'checked' : '' }}>
+        {% endfor %}
+
+        <div class="dashboard-grid">
+            
+            <!-- LEFT CONTAINER: Student List -->
+            <div class="dashboard-box">
+                <div class="box-header">
+                    <h3>Registered Students</h3>
+                    <div class="nav-buttons">
+                        <input type="text" class="form-control" placeholder="Search..." style="padding: 6px 10px; width: 150px;">
+                    </div>
+                </div>
+                
+                <!-- CSS Grid Table -->
+                <div class="css-table">
+                    <div class="css-thead">
+                        <div class="css-th">ID</div>
+                        <div class="css-th">Name</div>
+                        <div class="css-th">Room</div>
+                    </div>
+                     <div class="css-tbody">
+                         {% for student in students %}
+                             <label for="student-{{ student.id }}" class="css-tr clickable-row" id="label-{{ student.id }}">
+                                 <div class="css-td">{{ student.studentNumber }}</div>
+                                 <div class="css-td"><strong>{{ student.user.name }}</strong></div>
+                                 <div class="css-td">{{ student.room ? student.room.roomNumber : 'N/A' }}</div>
+                             </label>
+                         {% endfor %}
+                     </div>
+                 </div>
+             </div>
+ 
+             <!-- RIGHT CONTAINER: Dynamic Profile Details -->
+             <div class="dashboard-box right-container">
+                 <div class="box-header profile-section-header">
+                     <h3>Student Profile Details</h3>
+                     <button class="btn btn-outline btn-sm">Print Profile</button>
+                 </div>
+ 
+                 {% for student in students %}
+                 <!-- PROFILE VIEW -->
+                 <div class="profile-view" id="profile-{{ student.id }}">
+                     <div class="profile-hero">
+                         <div class="profile-avatar-lg"></div>
+                         <div class="profile-title">
+                             <h2>{{ student.user.name }}</h2>
+                             <p>Resident • ID: {{ student.studentNumber }}</p>
+                             <span class="status resolved">Approved Resident</span>
+                         </div>
+                     </div>
+                     <h4 class="profile-subheading">Contact & Admission Info</h4>
+                     <div class="profile-info-grid">
+                         <div class="info-item"><span>Email Address</span><strong>{{ student.user.email }}</strong></div>
+                         <div class="info-item"><span>Phone Number</span><strong>{{ student.phone }}</strong></div>
+                         <div class="info-item"><span>Admission Date</span><strong>{{ student.admissionDate ? student.admissionDate|date('M d, Y') : 'N/A' }}</strong></div>
+                         <div class="info-item"><span>Assigned Room</span><strong class="text-primary">{{ student.room ? student.room.roomNumber : 'N/A' }}</strong></div>
+                     </div>
+                    <h4 class="profile-subheading">Verified Documents</h4>
+                    <div class="document-grid">
+                        <div class="document-card">
+                            <div class="doc-info">
+                                <h5>National ID Card</h5>
+                                <a href="#">View PDF &rarr;</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- Universal Action Button (Stays at bottom regardless of profile) -->
+                <div class="profile-footer">
+                    <button class="btn-action reject">Revoke Admission</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+{% endblock %}

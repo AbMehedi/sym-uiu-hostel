@@ -1,0 +1,120 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Student Admission - UIU Hostel Management System{% endblock %}
+
+{% block body %}
+    <!-- Simplified Navbar -->
+    <nav class="navbar">
+        <a href="{{ path('app_home') }}" class="logo">
+            <h2>UIU <span>HMS</span></h2>
+        </a>
+        <a href="{{ path('app_home') }}" class="btn btn-outline">Back to Home</a>
+    </nav>
+
+    <!-- Registration Section -->
+    <div class="auth-container">
+        <!-- We use a wider card for registration to fit the two-column grid -->
+        <div class="auth-card register-card">
+            <div class="auth-header">
+                <h2>Hostel Admission</h2>
+                <p>Create your account and apply for a room.</p>
+            </div>
+
+            {% for flash_error in app.flashes('error') %}
+                <div class="alert alert-danger" role="alert" style="color: #ef4444; text-align:center; font-size:0.88rem; margin-top:10px; background:rgba(239,68,68,0.08); padding:8px; border-radius:6px;">{{ flash_error }}</div>
+            {% endfor %}
+            {% for flash_success in app.flashes('success') %}
+                <div class="alert alert-success" role="alert" style="color: #10b981; text-align:center; font-size:0.88rem; margin-top:10px; background:rgba(16,185,129,0.08); padding:8px; border-radius:6px;">{{ flash_success }}</div>
+            {% endfor %}
+
+            <form class="auth-form" action="{{ path('app_register') }}" method="POST">
+                
+                <!-- We wrap the inputs in a grid layout for better spacing -->
+                <div class="form-grid">
+                    
+                    <!-- First Name -->
+                    <div class="form-group">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" name="firstName" class="form-control" placeholder="e.g. Omor" required value="{{ app.request.request.get('firstName') }}">
+                    </div>
+
+                    <!-- Last Name -->
+                    <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" name="lastName" class="form-control" placeholder="e.g. Faruk" required value="{{ app.request.request.get('lastName') }}">
+                    </div>
+
+                    <!-- Student ID -->
+                    <div class="form-group">
+                        <label for="studentId">Student ID</label>
+                        <input type="text" id="studentId" name="studentId" class="form-control" placeholder="011223344" required value="{{ app.request.request.get('studentId') }}">
+                    </div>
+
+                    <!-- Department -->
+                    <div class="form-group">
+                        <label for="department">Department</label>
+                        <select id="department" name="department" class="form-control" required>
+                            <option value="" disabled selected>Select Department</option>
+                            <option value="cse" {% if app.request.request.get('department') == 'cse' %}selected{% endif %}>Computer Science & Engineering (CSE)</option>
+                            <option value="eee" {% if app.request.request.get('department') == 'eee' %}selected{% endif %}>Electrical & Electronic Eng. (EEE)</option>
+                            <option value="bba" {% if app.request.request.get('department') == 'bba' %}selected{% endif %}>Business Administration (BBA)</option>
+                            <option value="other" {% if app.request.request.get('department') == 'other' %}selected{% endif %}>Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="form-group">
+                        <label for="email">University Email</label>
+                        <input type="email" id="email" name="email" class="form-control" placeholder="omar.farukh16@uiu.ac.bd" required value="{{ app.request.request.get('email') }}">
+                    </div>
+
+                    <!-- Phone Number -->
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" class="form-control" placeholder="+880 1XXX XXXXXX" required value="{{ app.request.request.get('phone') }}">
+                    </div>
+
+                    <!-- Password -->
+                    <div class="form-group">
+                        <label for="password">Create Password</label>
+                        <input type="password" id="password" name="password" class="form-control" placeholder="Min 8 characters" required>
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" placeholder="Retype password" required>
+                    </div>
+                    
+                </div> <!-- End of form-grid -->
+
+                <!-- NID Upload (Full Width) -->
+                <div class="form-group file-upload-group">
+                    <label for="nidUpload">Upload NID / Birth Certificate (PDF or Image)</label>
+                    <input type="file" id="nidUpload" name="nidUpload" class="form-control file-input" accept=".pdf, image/jpeg, image/png">
+                </div>
+
+                <!-- Other Documents Upload (Full Width, Optional) -->
+                <div class="form-group file-upload-group">
+                    <label for="otherDocsUpload">Upload Other Documents <span style="color:#64748b;font-weight:400;">(Optional)</span></label>
+                    <input type="file" id="otherDocsUpload" name="otherDocsUpload" class="form-control file-input" accept=".pdf, image/jpeg, image/png">
+                    <p style="font-size:0.8rem;color:#64748b;margin-top:6px;">e.g. Medical certificate, Guardian ID, etc.</p>
+                </div>
+
+                <!-- Terms and Conditions -->
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" required> I agree to the Hostel Rules & Regulations.
+                    </label>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn btn-primary btn-full">Submit Application</button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Already have an account? <a href="{{ path('app_login') }}">Log in here</a></p>
+            </div>
+        </div>
+    </div>
+{% endblock %}

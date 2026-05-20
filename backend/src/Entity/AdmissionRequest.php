@@ -3,10 +3,11 @@
 namespace App\Entity;
 
 use App\Enum\RequestStatus;
+use App\Repository\AdmissionRequestRepository;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: AdmissionRequestRepository::class)]
 #[ORM\Table(name: 'admission_requests')]
 class AdmissionRequest
 {

@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Enum\AdmissionStatus;
+use App\Enum\AssignmentStatus;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -218,5 +219,15 @@ class Student
     public function getComplaints(): Collection
     {
         return $this->complaints;
+    }
+
+    public function getRoom(): ?Room
+    {
+        foreach ($this->roomAssignments as $assignment) {
+            if ($assignment->getStatus() === AssignmentStatus::Active) {
+                return $assignment->getRoom();
+            }
+        }
+        return null;
     }
 }

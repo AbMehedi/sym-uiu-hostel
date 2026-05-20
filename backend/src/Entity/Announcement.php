@@ -27,6 +27,9 @@ class Announcement
     #[ORM\Column(name: 'target_block', length: 50, nullable: true)]
     private ?string $targetBlock = null;
 
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $category = 'General';
+
     #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
     private DateTimeImmutable $createdAt;
 
@@ -91,5 +94,17 @@ class Announcement
     public function getCreatedAt(): DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getCategory(): ?string
+    {
+        return $this->category;
+    }
+
+    public function setCategory(?string $category): self
+    {
+        $this->category = $category;
+
+        return $this;
     }
 }

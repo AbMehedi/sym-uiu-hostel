@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>{% block title %}Welcome!{% endblock %} - UIU Hostel Management</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
+        <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+        {% block stylesheets %}{% endblock %}
+    </head>
+    <body>
+        <div class="dashboard-wrapper">
+            <aside class="sidebar">
+                <div class="sidebar-logo">
+                    <h2>UIU <span>HMS</span></h2>
+                    <p>Supervisor Portal</p>
+                </div>
+                <ul class="sidebar-nav">
+                    <li><a href="{{ path('supervisor_dashboard') }}" class="{{ app.request.attributes.get('_route') == 'supervisor_dashboard' ? 'active' : '' }}">🏠 Dashboard</a></li>
+                    <li><a href="{{ path('supervisor_students') }}" class="{{ app.request.attributes.get('_route') == 'supervisor_students' ? 'active' : '' }}">🎓 Students</a></li>
+                    <li><a href="{{ path('supervisor_complaints') }}" class="{{ app.request.attributes.get('_route') starts with 'supervisor_complaint' ? 'active' : '' }}">📋 Complaints</a></li>
+                    <li><a href="{{ path('supervisor_room_changes') }}" class="{{ app.request.attributes.get('_route') starts with 'supervisor_room_change' ? 'active' : '' }}">🔄 Room Changes</a></li>
+                    <li><a href="{{ path('supervisor_announcements') }}" class="{{ app.request.attributes.get('_route') == 'supervisor_announcements' ? 'active' : '' }}">📢 Announcements</a></li>
+                </ul>
+                <div class="sidebar-bottom">
+                    <a href="{{ path('app_logout') }}" class="logout-btn">Log Out</a>
+                </div>
+            </aside>
+
+            <main class="dashboard-main">
+                {% block body %}{% endblock %}
+            </main>
+        </div>
+        {% block javascripts %}
+            <script>
+                // Sidebar unread badge logic can be added here if needed
+            </script>
+        {% endblock %}
+    </body>
+</html>

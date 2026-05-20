@@ -1,0 +1,124 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Complaints & Maintenance{% endblock %}
+
+{% block body %}
+    <!-- Top Header -->
+    <header class="dashboard-header">
+        <div>
+            <h1>Complaints & Maintenance</h1>
+            <p class="date-display">Track student issues, update statuses, and log repair costs.</p>
+        </div>
+    </header>
+
+    <!-- Quick Stats Row -->
+    <div class="dashboard-stats stats-row-margin">
+        <div class="stat-card danger">
+            <div class="stat-title">Pending Issues</div>
+            <div class="stat-value">5</div>
+        </div>
+        <div class="stat-card occupied">
+            <div class="stat-title">Resolved (This Month)</div>
+            <div class="stat-value">42</div>
+        </div>
+        <div class="stat-card vacant">
+            <div class="stat-title">Total Spent (This Month)</div>
+            <div class="stat-value">৳ 12,500</div>
+        </div>
+    </div>
+
+    <!-- Interactive Master-Detail Grid (Pure CSS No-JS Version) -->
+    <div class="css-interactive-wrapper">
+        
+        {% for complaint in complaints %}
+            <input type="radio" name="comp-select" id="comp-{{ complaint.id }}" class="hidden-radio" {{ loop.first ? 'checked' : '' }}>
+        {% endfor %}
+
+        <div class="dashboard-grid">
+            
+            <!-- LEFT CONTAINER: Complaints List -->
+            <div class="dashboard-box">
+                <div class="box-header">
+                    <h3>Active Complaints</h3>
+                    <div class="nav-buttons">
+                        <select class="form-control form-control-sm">
+                            <option>All Types</option>
+                            <option>Plumbing</option>
+                            <option>Electricity</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- CSS Grid Table -->
+                <div class="css-table">
+                    <div class="css-thead">
+                        <div class="css-th">Room</div>
+                        <div class="css-th">Subject</div>
+                        <div class="css-th">Status</div>
+                    </div>
+                    <div class="css-tbody">
+                        {% for complaint in complaints %}
+                         <label for="comp-{{ complaint.id }}" class="css-tr clickable-row" id="label-comp-{{ complaint.id }}">
+                             <div class="css-td"><strong>{{ complaint.room ? complaint.room.roomNumber : 'N/A' }}</strong></div>
+                             <div class="css-td">{{ complaint.subject }}</div>
+                             <div class="css-td"><span class="status {{ complaint.status|lower|replace({' ': '-'}) }} status-sm">{{ complaint.status }}</span></div>
+                         </label>
+                         {% endfor %}
+                     </div>
+                 </div>
+             </div>
+ 
+             <!-- RIGHT CONTAINER: Dynamic Complaint Details -->
+             <div class="dashboard-box right-container">
+                 <div class="box-header profile-section-header">
+                     <h3>Complaint Details</h3>
+                     <span class="text-muted">Ticket ID: #CMP-892</span>
+                 </div>
+ 
+                 {% for complaint in complaints %}
+                 <div class="profile-view" id="view-comp-{{ complaint.id }}">
+                     <div class="complaint-header">
+                         <h2 class="complaint-title">{{ complaint.subject }}</h2>
+                         <p class="complaint-meta">Type: <strong class="text-primary">{{ complaint.category.value }}</strong> • {{ complaint.room ? complaint.room.hostelBlock : 'N/A' }}, Room {{ complaint.room ? complaint.room.roomNumber : 'N/A' }}</p>
+                         <p class="complaint-meta">Submitted by: <strong>{{ complaint.student ? complaint.student.user.name : 'N/A' }} (ID: {{ complaint.student ? complaint.student.studentNumber : 'N/A' }})</strong> on {{ complaint.createdAt|date('M d, Y') }}</p>
+                     </div>
+ 
+                     <h4 class="profile-subheading">Description</h4>
+                     <div class="complaint-desc-box">
+                         "{{ complaint.description }}"
+                     </div>
+ 
+                     {% if complaint.photoUrl %}
+                     <h4 class="profile-subheading">Attached Photo</h4>
+                     <div class="complaint-photo">
+                         <img src="{{ asset('uploads/complaints/' ~ complaint.photoUrl) }}" alt="Complaint photo">
+                     </div>
+                     {% endif %}
+ 
+                     <h4 class="profile-subheading">Update Status & Cost</h4>
+                     <div class="form-grid complaint-update-box">
+                         <div class="form-group">
+                             <label>Current Status</label>
+                             <select class="form-control">
+                                 <option {{ complaint.status == 'Pending' ? 'selected' : '' }}>Pending</option>
+                                 <option {{ complaint.status == 'In Progress' ? 'selected' : '' }}>In Progress</option>
+                                 <option {{ complaint.status == 'Resolved' ? 'selected' : '' }}>Resolved</option>
+                             </select>
+                         </div>
+                         <div class="form-group">
+                             <label>Repair Cost (৳ BDT)</label>
+                             <input type="number" class="form-control" placeholder="Enter cost amount" value="{{ complaint.cost }}">
+                         </div>
+                     </div>
+                 </div>
+                {% endfor %}
+
+                <!-- Universal Action Button -->
+                <div class="profile-footer footer-margin">
+                    <button class="btn btn-primary">Save Changes & Log Cost</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -31,7 +31,7 @@ class RoleVoter extends Voter
         return match ($attribute) {
             'ROLE_ADMIN' => $user->getRole() === Role::Admin,
             'ROLE_SUPERVISOR' => $user->getRole() === Role::Supervisor || $user->getRole() === Role::Admin,
-            'ROLE_STUDENT' => true,
+            'ROLE_STUDENT' => $user->getRole() === Role::Student,
             default => false,
         };
     }

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>{% block title %}Welcome!{% endblock %}</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text></svg>">
+        {% block stylesheets %}
+            <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+        {% endblock %}
+
+        {% block javascripts %}
+        {% endblock %}
+    </head>
+    <body>
+        <div class="dashboard-wrapper">
+            
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="sidebar-logo">
+                    <h2>UIU <span>HMS</span></h2>
+                    <p>Student Portal</p>
+                </div>
+
+                <ul class="sidebar-nav">
+                    <li><a href="{{ path('student_dashboard') }}" class="{{ app.request.attributes.get('_route') == 'student_dashboard' ? 'active' : '' }}">🏠 Dashboard Overview</a></li>
+                    <li><a href="{{ path('student_complaints') }}" class="{{ app.request.attributes.get('_route') == 'student_complaints' ? 'active' : '' }}">📋 My Complaints</a></li>
+                    <li><a href="{{ path('student_room_change') }}" class="{{ app.request.attributes.get('_route') == 'student_room_change' ? 'active' : '' }}">🔄 Room Change Request</a></li>
+                    <li>
+                        <a href="{{ path('student_announcements') }}" class="{{ app.request.attributes.get('_route') == 'student_announcements' ? 'active' : '' }}">📢 Announcements
+                            <span class="nav-notif-dot" id="ann-notif-dot" style="display:none;"></span>
+                        </a>
+                    </li>
+                    <li><a href="{{ path('student_chat_supervisor') }}" class="{{ app.request.attributes.get('_route') == 'student_chat_supervisor' ? 'active' : '' }}">💬 Chat with Supervisor</a></li>
+                    <li><a href="{{ path('student_chat_roommate') }}" class="{{ app.request.attributes.get('_route') == 'student_chat_roommate' ? 'active' : '' }}">🛏️ Chat with Roommate</a></li>
+                </ul>
+
+                <div class="sidebar-bottom">
+                    <a href="{{ path('app_logout') }}" class="logout-btn">Log Out</a>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="dashboard-main">
+                {% block body %}{% endblock %}
+            </main>
+        </div>
+    </body>
+</html>

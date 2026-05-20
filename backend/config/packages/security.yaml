@@ -1,7 +1,9 @@
 security:
     # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
     password_hashers:
-        App\Entity\User: 'auto'
+        App\Entity\User:
+            algorithm: bcrypt
+            cost: 4   # Low cost for fast dev logins. Use 'auto' (cost 13) in production.
 
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:

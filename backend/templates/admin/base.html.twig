@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>{% block title %}Welcome!{% endblock %}</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text></svg>">
+        {% block stylesheets %}
+            <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+        {% endblock %}
+
+        {% block javascripts %}
+        {% endblock %}
+    </head>
+    <body>
+        <div class="dashboard-wrapper">
+            
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="sidebar-logo">
+                    <h2>UIU <span>HMS</span></h2>
+                    <p class="">Admin Portal</p>
+                </div>
+                
+                <ul class="sidebar-nav">
+                    <li><a href="{{ path('admin_dashboard') }}" class="{{ app.request.attributes.get('_route') == 'admin_dashboard' ? 'active' : '' }}">Dashboard Overview</a></li>
+                    <li><a href="{{ path('admin_supervisors') }}" class="{{ app.request.attributes.get('_route') starts with 'admin_supervisor' ? 'active' : '' }}">Supervisor Management</a></li>
+                    <li><a href="{{ path('admin_rooms') }}" class="{{ app.request.attributes.get('_route') starts with 'admin_room' ? 'active' : '' }}">Room Management</a></li>
+                    <li><a href="{{ path('admin_students') }}" class="{{ app.request.attributes.get('_route') == 'admin_students' ? 'active' : '' }}">Students</a></li>
+                    <li><a href="{{ path('admin_admission_requests') }}" class="{{ app.request.attributes.get('_route') starts with 'admin_admission' ? 'active' : '' }}">Admission Requests</a></li>
+                    <li><a href="{{ path('admin_complaints') }}" class="{{ app.request.attributes.get('_route') == 'admin_complaints' ? 'active' : '' }}">Complaints & Costs</a></li>
+                    <li><a href="{{ path('admin_reports') }}" class="{{ app.request.attributes.get('_route') == 'admin_reports' ? 'active' : '' }}">Reports & PDF Export</a></li>
+                </ul>
+
+                <div class="sidebar-bottom">
+                    <a href="{{ path('app_logout') }}" class="logout-btn">Log Out</a>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="dashboard-main">
+                {% block body %}{% endblock %}
+            </main>
+        </div>
+    </body>
+</html>

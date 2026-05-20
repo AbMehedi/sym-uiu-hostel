@@ -1,0 +1,276 @@
+{% extends 'student/base.html.twig' %}
+
+{% block title %}Student Dashboard{% endblock %}
+
+{% block body %}
+    <!-- Top Header -->
+    <header class="dashboard-header">
+        <div>
+            <h1>Welcome, {{ app.user.name }}</h1>
+            <p class="date-display" id="current-date">Loading date...</p>
+        </div>
+        <div class="admin-profile">
+            <div class="avatar stu-avatar"></div>
+            <span>Student — Room {{ app.user.student.room ? app.user.student.room.roomNumber : 'N/A' }}</span>
+        </div>
+    </header>
+
+    <!-- Room Info Banner -->
+    <div class="block-info-banner room-info-banner">
+        <div class="block-info-item">
+            <span class="block-info-label">Room Number</span>
+            <span class="block-info-value stu-value">{{ app.user.student.room ? app.user.student.room.roomNumber : 'N/A' }}</span>
+        </div>
+        <div class="block-info-divider"></div>
+        <div class="block-info-item">
+            <span class="block-info-label">Room Type</span>
+            <span class="block-info-value stu-value">{{ app.user.student.room ? app.user.student.room.capacity ~ ' Sharing' : 'N/A' }}</span>
+        </div>
+        <div class="block-info-divider"></div>
+        <div class="block-info-item">
+            <span class="block-info-label">Block</span>
+            <span class="block-info-value stu-value">{{ app.user.student.room ? app.user.student.room.hostelBlock : 'N/A' }}</span>
+        </div>
+        <div class="block-info-divider"></div>
+        <div class="block-info-item">
+            <span class="block-info-label">Supervisor</span>
+            <span class="block-info-value stu-value" style="font-size:1.1rem;">N/A</span>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <div class="stat-title">My Complaints</div>
+            <div class="stat-value">{{ totalComplaints }}</div>
+        </div>
+        <div class="stat-card danger">
+            <div class="stat-title">Pending</div>
+            <div class="stat-value">{{ pendingComplaints }}</div>
+        </div>
+        <div class="stat-card vacant">
+            <div class="stat-title">In Progress</div>
+            <div class="stat-value">{{ inProgressComplaints }}</div>
+        </div>
+        <div class="stat-card occupied">
+            <div class="stat-title">Resolved</div>
+            <div class="stat-value">{{ resolvedComplaints }}</div>
+        </div>
+    </div>
+
+    <!-- Dashboard Grid -->
+    <div class="dashboard-grid stu-dash-grid">
+
+        <!-- Roommate Info Box -->
+        <div class="dashboard-box">
+            <div class="box-header">
+                <h3>My Roommate{{ roommates|length != 1 ? 's' : '' }}</h3>
+                <a href="{{ path('student_chat_roommate') }}" class="btn-link">Chat →</a>
+            </div>
+            {% if roommates is empty %}
+                <div style="text-align:center;padding:30px;color:#64748b;">
+                    {% if admissionStatus and admissionStatus.value == 'approved' %}
+                        🛏️ You have no roommates yet (single occupancy or room not assigned).
+                    {% else %}
+                        ⏳ Admission {{ admissionStatus ? admissionStatus.value : 'pending' }}. Room will be assigned after approval.
+                    {% endif %}
+                </div>
+            {% else %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Avatar</th>
+                            <th>Name</th>
+                            <th>Student ID</th>
+                            <th>Phone</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for roommate in roommates %}
+                        <tr>
+                            <td>
+                                <div class="roommate-avatar" style="width:36px;height:36px;font-size:0.85rem;">
+                                    {{ roommate.user.name|slice(0,2)|upper }}
+                                </div>
+                            </td>
+                            <td style="color:white;font-weight:500;">{{ roommate.user.name }}</td>
+                            <td>{{ roommate.studentNumber }}</td>
+                            <td>{{ roommate.phone ?? '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
+
+        <!-- My Recent Complaints -->
+        <div class="dashboard-box">
+            <div class="box-header">
+                <h3>My Recent Complaints</h3>
+                <a href="{{ path('student_complaints') }}" class="btn-link">View All →</a>
+            </div>
+            {% if recentComplaints is empty %}
+                <div style="text-align:center;padding:30px;color:#64748b;">No complaints submitted yet.</div>
+            {% else %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Type</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for complaint in recentComplaints %}
+                        <tr>
+                            <td>{{ complaint.subject }}</td>
+                            <td><span class="type-badge {{ complaint.category.value }}">{{ complaint.category.value|capitalize }}</span></td>
+                            <td>{{ complaint.createdAt|date('M j, Y') }}</td>
+                            <td>
+                                {% if complaint.status.value == 'pending' %}
+                                    <span class="status pending">Pending</span>
+                                {% elseif complaint.status.value == 'in_progress' %}
+                                    <span class="status in-progress">In Progress</span>
+                                {% else %}
+                                    <span class="status resolved">Resolved</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
+
+        <!-- Latest Announcements (full-width) -->
+        <div class="dashboard-box announcement-box stu-announcement-box">
+            <div class="box-header">
+                <h3>Latest Announcements</h3>
+                <a href="{{ path('student_announcements') }}" class="btn-link">View All →</a>
+            </div>
+            <div class="announcement-list">
+                {% for ann in recentAnnouncements %}
+                <div class="announcement-item">
+                    <div class="announcement-meta">
+                        <span class="announcement-date">{{ ann.createdAt|date('M j, Y') }}</span>
+                    </div>
+                    <h4 class="announcement-title">{{ ann.title }}</h4>
+                    <p class="announcement-body">{{ ann.body }}</p>
+                </div>
+                {% else %}
+                <div style="text-align:center;padding:30px;color:#64748b;">No announcements yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div> <!-- End Dashboard Grid -->
+
+    <!-- ── Roommate Detail Modal ── -->
+    <div class="modal-overlay" id="roommate-modal-overlay" onclick="closeRoommateModal(event)">
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="roommate-modal-title">
+            <div class="modal-header">
+                <h3 id="roommate-modal-title">Roommate Profile</h3>
+                <button class="modal-close-btn" onclick="closeRoommateModal()" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+                    <div class="roommate-avatar" style="width:60px;height:60px;font-size:1.4rem;">SR</div>
+                    <div>
+                        <h4 style="margin:0 0 4px 0;font-size:1.1rem;color:white;">Sakib Rahman</h4>
+                        <span style="font-size:0.85rem;color:#94a3b8;">Room A-205 · Block A</span>
+                    </div>
+                </div>
+                <div class="modal-detail-grid">
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Student ID</span>
+                        <span class="modal-detail-value">011201456</span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Department</span>
+                        <span class="modal-detail-value">CSE</span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Phone</span>
+                        <span class="modal-detail-value">+880 1712-345678</span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Email</span>
+                        <span class="modal-detail-value">sakib@uiu.ac.bd</span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Batch</span>
+                        <span class="modal-detail-value">53rd</span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Joined</span>
+                        <span class="modal-detail-value">Jan 2024</span>
+                    </div>
+                </div>
+
+                <!-- Documents Section -->
+                <div style="border-top:1px solid #1f2937;padding-top:16px;margin-top:16px;">
+                    <p class="roommate-docs-label" style="margin-bottom:12px;">Submitted Documents</p>
+                    <div class="roommate-doc-list">
+                        <a href="#" class="stu-doc-item">
+                            <span class="stu-doc-icon">📄</span>
+                            <span>National ID Card</span>
+                        </a>
+                        <a href="#" class="stu-doc-item">
+                            <span class="stu-doc-icon">📄</span>
+                            <span>Student ID Card</span>
+                        </a>
+                        <a href="#" class="stu-doc-item">
+                            <span class="stu-doc-icon">📄</span>
+                            <span>Parent / Guardian ID</span>
+                        </a>
+                        <a href="#" class="stu-doc-item">
+                            <span class="stu-doc-icon">📄</span>
+                            <span>Medical Certificate</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="closeRoommateModal()">Close</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        // Live date display
+        const dateEl = document.getElementById('current-date');
+        const now = new Date();
+        dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        // Roommate modal
+        function openRoommateModal() {
+            document.getElementById('roommate-modal-overlay').classList.add('active');
+        }
+        function closeRoommateModal(e) {
+            if (e && e.target !== document.getElementById('roommate-modal-overlay')) return;
+            document.getElementById('roommate-modal-overlay').classList.remove('active');
+        }
+
+        // ── Announcement unread badge on sidebar ──
+        (function initSidebarBadge() {
+            const TOTAL_ANN = 5;
+            const readIds   = JSON.parse(localStorage.getItem('hms_read_ann') || '[]');
+            const unread    = TOTAL_ANN - readIds.length;
+            const dot       = document.getElementById('ann-notif-dot');
+            if (dot && unread > 0) {
+                dot.style.display = 'inline-flex';
+                dot.textContent   = unread;
+            }
+        })();
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(el => el.classList.remove('active'));
+            }
+        });
+    </script>
+{% endblock %}

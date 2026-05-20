@@ -80,6 +80,18 @@ class Room
         return $this;
     }
 
+    public function getHostelBlock(): string
+    {
+        return $this->block;
+    }
+
+    public function setHostelBlock(string $hostelBlock): self
+    {
+        $this->block = $hostelBlock;
+
+        return $this;
+    }
+
     public function getFloor(): int
     {
         return $this->floor;

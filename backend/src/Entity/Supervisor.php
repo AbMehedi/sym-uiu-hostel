@@ -79,6 +79,18 @@ class Supervisor
         return $this;
     }
 
+    public function getHostelBlock(): ?string
+    {
+        return $this->blockAssigned;
+    }
+
+    public function setHostelBlock(?string $hostelBlock): self
+    {
+        $this->blockAssigned = $hostelBlock;
+
+        return $this;
+    }
+
     public function getPhone(): ?string
     {
         return $this->phone;

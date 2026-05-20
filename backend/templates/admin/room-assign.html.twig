@@ -1,0 +1,151 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Student Allocation{% endblock %}
+
+{% block body %}
+    <!-- Top Header -->
+    <header class="dashboard-header">
+        <div>
+            <h1>Student Allocation</h1>
+            <p class="date-display">Assign approved students to available hostel rooms.</p>
+        </div>
+        <div>
+            <a href="{{ path('admin_rooms') }}" class="btn btn-outline">Back to Room Management</a>
+        </div>
+    </header>
+
+    <!-- Flash Messages -->
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div style="margin-bottom:16px;padding:12px 20px;border-radius:8px;
+                background:{{ type == 'success' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }};
+                color:{{ type == 'success' ? '#10b981' : '#ef4444' }};
+                border:1px solid {{ type == 'success' ? '#10b981' : '#ef4444' }};">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    <div class="dashboard-grid">
+
+        <!-- Quick Assignment Form -->
+        <div class="dashboard-box">
+            <div class="box-header">
+                <h3>Assign Room</h3>
+            </div>
+            <form class="auth-form" action="{{ path('admin_room_assign_new') }}" method="POST">
+                <div class="form-group">
+                    <label for="studentId">Select Approved Student (No Room)</label>
+                    <select id="studentId" name="studentId" class="form-control" required>
+                        <option value="" disabled selected>Choose a student...</option>
+                        {% for student in approvedStudents %}
+                            <option value="{{ student.id }}">
+                                {{ student.user.name }} ({{ student.studentNumber }})
+                            </option>
+                        {% else %}
+                            <option disabled>No approved students without a room</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="roomId">Available Rooms (Showing Vacancies)</label>
+                    <select id="roomId" name="roomId" class="form-control" required>
+                        <option value="" disabled selected>Choose room...</option>
+                        {% for room in availableRooms %}
+                            <option value="{{ room.id }}">
+                                Room {{ room.roomNumber }} — Block {{ room.block }}
+                                ({{ room.capacity - room.currentOccupancy }} bed{{ (room.capacity - room.currentOccupancy) != 1 ? 's' : '' }} available)
+                            </option>
+                        {% else %}
+                            <option disabled>No available rooms</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">Confirm Assignment</button>
+            </form>
+        </div>
+
+        <!-- Summary -->
+        <div class="dashboard-box">
+            <div class="box-header">
+                <h3>Assignment Queue</h3>
+                <span class="status pending">{{ approvedStudents|length }} Waiting</span>
+            </div>
+            {% if approvedStudents is empty %}
+                <div style="text-align:center;padding:30px;color:#64748b;">
+                    ✅ All approved students have been assigned to rooms.
+                </div>
+            {% else %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Admitted On</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in approvedStudents %}
+                        <tr>
+                            <td>{{ student.studentNumber }}</td>
+                            <td style="color:white;font-weight:500;">{{ student.user.name }}</td>
+                            <td>{{ student.admissionDate ? student.admissionDate|date('M j, Y') : '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
+    </div>
+
+    <br><br>
+
+    <!-- Current Allocations Table -->
+    <div class="dashboard-box">
+        <div class="box-header">
+            <h3>Current Room Allocations</h3>
+            <span class="badge-count" style="background:#334155;">{{ assignments|length }} Active</span>
+        </div>
+
+        {% if assignments is empty %}
+            <div style="text-align:center;padding:30px;color:#64748b;">No active room assignments yet.</div>
+        {% else %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Room Info</th>
+                        <th>Student Details</th>
+                        <th>Student ID</th>
+                        <th>Assigned On</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assignment in assignments %}
+                    <tr>
+                        <td>
+                            <strong>Block {{ assignment.room.block }} — {{ assignment.room.roomNumber }}</strong>
+                            <span style="color:#64748b;font-size:0.8rem;display:block;">
+                                {{ assignment.room.currentOccupancy }}/{{ assignment.room.capacity }} occupied
+                            </span>
+                        </td>
+                        <td style="color:white;font-weight:500;">{{ assignment.student.user.name }}</td>
+                        <td>{{ assignment.student.studentNumber }}</td>
+                        <td>{{ assignment.assignedDate|date('M j, Y') }}</td>
+                        <td>
+                            <form method="POST" action="{{ path('admin_room_assign_revoke', {id: assignment.id}) }}" style="display:inline;">
+                                <button type="submit" class="btn-action reject"
+                                        onclick="return confirm('Revoke room assignment for {{ assignment.student.user.name }}?')">
+                                    Revoke
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+{% endblock %}

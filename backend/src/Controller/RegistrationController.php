@@ -7,7 +7,6 @@ use App\Entity\User;
 use App\Enum\Role;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -15,60 +14,64 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class RegistrationController extends AbstractController
 {
-    #[Route('/register', name: 'app_register')]
+    #[Route('/register', name: 'app_register', methods: ['GET', 'POST'])]
     public function register(
         Request $request,
-        EntityManagerInterface $entityManager,
-        UserPasswordHasherInterface $passwordHasher
+        UserPasswordHasherInterface $passwordHasher,
+        EntityManagerInterface $entityManager
     ): Response {
-        if (!$request->isMethod('POST')) {
-            return new JsonResponse([
-                'message' => 'Send a POST request to register a student account.',
-                'required_fields' => ['name', 'email', 'studentNumber', 'password'],
-                'optional_fields' => ['phone', 'emergencyContact'],
-            ], Response::HTTP_METHOD_NOT_ALLOWED);
-        }
+        if ($request->isMethod('POST')) {
+            $firstName = trim((string) $request->request->get('firstName'));
+            $lastName = trim((string) $request->request->get('lastName'));
+            $studentId = trim((string) $request->request->get('studentId'));
+            $email = trim((string) $request->request->get('email'));
+            $phone = trim((string) $request->request->get('phone'));
+            $password = (string) $request->request->get('password');
+            $confirmPassword = (string) $request->request->get('confirmPassword');
 
-        $data = $request->request->all();
-        if ($data === []) {
-            $decoded = json_decode((string) $request->getContent(), true);
-            if (is_array($decoded)) {
-                $data = $decoded;
+            if ($firstName === '' || $lastName === '' || $studentId === '' || $email === '' || $password === '') {
+                $this->addFlash('error', 'Please fill in all required fields.');
+                return $this->redirectToRoute('app_register');
             }
+
+            if ($password !== $confirmPassword) {
+                $this->addFlash('error', 'Passwords do not match.');
+                return $this->redirectToRoute('app_register');
+            }
+
+            // Check if email or student ID already exists
+            $existingUser = $entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
+            if ($existingUser) {
+                $this->addFlash('error', 'An account with this email already exists.');
+                return $this->redirectToRoute('app_register');
+            }
+
+            $existingStudent = $entityManager->getRepository(Student::class)->findOneBy(['studentNumber' => $studentId]);
+            if ($existingStudent) {
+                $this->addFlash('error', 'A student with this Student ID is already registered.');
+                return $this->redirectToRoute('app_register');
+            }
+
+            $user = new User();
+            $user->setName($firstName . ' ' . $lastName);
+            $user->setEmail($email);
+            $user->setRole(Role::Student);
+            $user->setPasswordHash($passwordHasher->hashPassword($user, $password));
+
+            $student = new Student();
+            $student->setUser($user);
+            $student->setStudentNumber($studentId);
+            $student->setPhone($phone ?: null);
+
+            $entityManager->persist($user);
+            $entityManager->persist($student);
+            $entityManager->flush();
+
+            $this->addFlash('success', 'Registration submitted successfully! You can now log in.');
+            return $this->redirectToRoute('app_login');
         }
 
-        $name = trim((string) ($data['name'] ?? ''));
-        $email = trim((string) ($data['email'] ?? ''));
-        $studentNumber = trim((string) ($data['studentNumber'] ?? ''));
-        $password = (string) ($data['password'] ?? $data['plainPassword'] ?? '');
-
-        if ($name === '' || $email === '' || $studentNumber === '' || $password === '') {
-            return new JsonResponse([
-                'message' => 'Missing required fields.',
-                'required_fields' => ['name', 'email', 'studentNumber', 'password'],
-            ], Response::HTTP_BAD_REQUEST);
-        }
-
-        $user = (new User())
-            ->setName($name)
-            ->setEmail($email)
-            ->setRole(Role::Student);
-
-        $user->setPasswordHash($passwordHasher->hashPassword($user, $password));
-
-        $student = (new Student())
-            ->setUser($user)
-            ->setStudentNumber($studentNumber)
-            ->setPhone(($data['phone'] ?? null) ?: null)
-            ->setEmergencyContact(($data['emergencyContact'] ?? null) ?: null);
-
-        $entityManager->persist($user);
-        $entityManager->persist($student);
-        $entityManager->flush();
-
-        return new JsonResponse([
-            'message' => 'Registration complete.',
-            'user_id' => $user->getId(),
-        ], Response::HTTP_CREATED);
+        return $this->render('registration/register.html.twig');
     }
 }
+

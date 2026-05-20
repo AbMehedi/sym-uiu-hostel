@@ -27,6 +27,10 @@ class Complaint
     #[ORM\JoinColumn(name: 'room_id', nullable: false, onDelete: 'RESTRICT')]
     private ?Room $room = null;
 
+
+    #[ORM\Column(length: 150, nullable: true)]
+    private ?string $subject = null;
+
     #[ORM\Column(enumType: ComplaintCategory::class)]
     private ComplaintCategory $category;
 
@@ -127,10 +131,20 @@ class Complaint
         return $this;
     }
 
-    public function getStatus(): ComplaintStatus
+    public function getStatus(): string
+    {
+        return match($this->status) {
+            ComplaintStatus::Pending    => 'Pending',
+            ComplaintStatus::InProgress => 'In Progress',
+            ComplaintStatus::Resolved   => 'Resolved',
+        };
+    }
+
+    public function getStatusEnum(): ComplaintStatus
     {
         return $this->status;
     }
+
 
     public function setStatus(ComplaintStatus $status): self
     {
@@ -197,5 +211,26 @@ class Complaint
     public function getRepairCosts(): Collection
     {
         return $this->repairCosts;
+    }
+
+    public function getSubject(): ?string
+    {
+        return $this->subject;
+    }
+
+    public function setSubject(?string $subject): self
+    {
+        $this->subject = $subject;
+
+        return $this;
+    }
+
+    public function getCost(): float
+    {
+        $total = 0.0;
+        foreach ($this->repairCosts as $repairCost) {
+            $total += (float)$repairCost->getAmount();
+        }
+        return $total;
     }
 }

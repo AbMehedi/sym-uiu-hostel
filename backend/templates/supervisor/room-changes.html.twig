@@ -1,0 +1,146 @@
+{% extends 'supervisor/base.html.twig' %}
+
+{% block title %}Room Change Requests{% endblock %}
+
+{% block body %}
+    <!-- Top Header -->
+    <header class="dashboard-header">
+        <div>
+            <h1>Room Change Requests</h1>
+            <p class="date-display">Review and action student room transfer applications.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <span class="badge-count" style="background:#f59e0b;">{{ pendingRequests|length }} Pending</span>
+        </div>
+    </header>
+
+    <!-- Flash Messages -->
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div style="margin-bottom:16px;padding:12px 20px;border-radius:8px;
+                background:{{ type == 'success' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }};
+                color:{{ type == 'success' ? '#10b981' : '#ef4444' }};
+                border:1px solid {{ type == 'success' ? '#10b981' : '#ef4444' }};">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    <!-- Pending Requests -->
+    <div class="dashboard-box" style="margin-bottom:30px;">
+        <div class="box-header" style="margin-bottom:20px;">
+            <h3>🕐 Pending Room Change Requests</h3>
+            <span class="badge-count">{{ pendingRequests|length }}</span>
+        </div>
+
+        {% if pendingRequests is empty %}
+            <div style="text-align:center;padding:40px;color:#64748b;">
+                🎉 No pending room change requests.
+            </div>
+        {% else %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Student ID</th>
+                        <th>Current Room</th>
+                        <th>Requested Room</th>
+                        <th>Requested Room Availability</th>
+                        <th>Reason</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in pendingRequests %}
+                    <tr>
+                        <td style="color:white;font-weight:500;">{{ req.student.user.name }}</td>
+                        <td>{{ req.student.studentNumber }}</td>
+                        <td>
+                            <strong>{{ req.currentRoom.roomNumber }}</strong>
+                            <span style="color:#64748b;font-size:0.8rem;display:block;">Block {{ req.currentRoom.block }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ req.requestedRoom.roomNumber }}</strong>
+                            <span style="color:#64748b;font-size:0.8rem;display:block;">Block {{ req.requestedRoom.block }}</span>
+                        </td>
+                        <td>
+                            {% set available = req.requestedRoom.capacity - req.requestedRoom.currentOccupancy %}
+                            {% if available > 0 %}
+                                <span class="status resolved">{{ available }} bed{{ available > 1 ? 's' : '' }} free</span>
+                            {% else %}
+                                <span class="status reject">Full</span>
+                            {% endif %}
+                        </td>
+                        <td style="color:#94a3b8;font-size:0.85rem;max-width:180px;">{{ req.reason ?? '—' }}</td>
+                        <td>
+                            <div style="display:flex;gap:8px;">
+                                <form method="POST" action="{{ path('supervisor_room_change_approve', {id: req.id}) }}" style="display:inline;">
+                                    <button type="submit" class="btn-action approve"
+                                            onclick="return confirm('Approve room change for {{ req.student.user.name }}?\n\nThis will physically move them from Room {{ req.currentRoom.roomNumber }} to Room {{ req.requestedRoom.roomNumber }}.')">
+                                        ✓ Approve
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ path('supervisor_room_change_reject', {id: req.id}) }}" style="display:inline;">
+                                    <button type="submit" class="btn-action reject"
+                                            onclick="return confirm('Reject this room change request?')">
+                                        ✗ Reject
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+
+    <!-- All Requests History -->
+    <div class="dashboard-box">
+        <div class="box-header" style="margin-bottom:20px;">
+            <h3>📋 All Room Change Requests</h3>
+            <span class="badge-count" style="background:#334155;">{{ allRequests|length }}</span>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>From Room</th>
+                    <th>To Room</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th>Reviewed By</th>
+                    <th>Reviewed At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in allRequests %}
+                <tr>
+                    <td style="color:white;font-weight:500;">{{ req.student.user.name }}</td>
+                    <td>{{ req.currentRoom.roomNumber }}</td>
+                    <td>{{ req.requestedRoom.roomNumber }}</td>
+                    <td style="color:#94a3b8;font-size:0.85rem;max-width:200px;">{{ req.reason ?? '—' }}</td>
+                    <td>
+                        {% if req.status.value == 'pending' %}
+                            <span class="status pending">Pending</span>
+                        {% elseif req.status.value == 'approved' %}
+                            <span class="status resolved">Approved</span>
+                        {% elseif req.status.value == 'rejected' %}
+                            <span class="status reject">Rejected</span>
+                        {% else %}
+                            <span class="status">{{ req.status.value|capitalize }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ req.reviewedBy ? req.reviewedBy.user.name : '—' }}</td>
+                    <td>{{ req.reviewedAt ? req.reviewedAt|date('M j, Y') : '—' }}</td>
+                </tr>
+                {% endfor %}
+                {% if allRequests is empty %}
+                <tr>
+                    <td colspan="7" style="text-align:center;padding:30px;color:#64748b;">No room change requests found.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

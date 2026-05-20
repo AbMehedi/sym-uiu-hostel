@@ -1,6 +1,6 @@
 when@dev:
     web_profiler:
-        toolbar: true
+        toolbar: false   # Disabled to avoid extra /_wdt/ round-trip per page. Enable when debugging.
 
     framework:
         profiler:

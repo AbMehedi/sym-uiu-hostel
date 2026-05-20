@@ -1,0 +1,98 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block body %}
+    <!-- Top Header -->
+    <header class="dashboard-header">
+        <div>
+            <h1>Welcome, {{ app.user.name }}</h1>
+            <p class="date-display" id="current-date">Loading date...</p>
+        </div>
+        <div class="admin-profile">
+            <div class="avatar">A</div>
+            <span>System Admin</span>
+        </div>
+    </header>
+
+    <!-- Live Statistics Cards -->
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <div class="stat-title">Total Rooms</div>
+            <div class="stat-value">{{ totalRooms }}</div>
+        </div>
+        <div class="stat-card occupied">
+            <div class="stat-title">Occupied Rooms</div>
+            <div class="stat-value">{{ occupiedRooms }}</div>
+        </div>
+        <div class="stat-card vacant">
+            <div class="stat-title">Vacant Rooms</div>
+            <div class="stat-value">{{ vacantRooms }}</div>
+        </div>
+        <div class="stat-card danger">
+            <div class="stat-title">Pending Complaints</div>
+            <div class="stat-value">{{ pendingComplaints }}</div>
+        </div>
+    </div>
+
+    <!-- Dashboard Tables Grid -->
+    <div class="dashboard-grid">
+        
+        <!-- Pending Admissions Summary -->
+        <div class="dashboard-box">
+            <div class="box-header">
+                <h3>Pending Admissions</h3>
+                <a href="{{ path('admin_admission_requests') }}" class="btn-link">View All →</a>
+            </div>
+            <div style="padding:20px;text-align:center;">
+                <div style="font-size:3rem;font-weight:700;color:#f59e0b;">{{ pendingAdmissions }}</div>
+                <p style="color:#94a3b8;margin:8px 0 20px;">Students awaiting admission approval</p>
+                <a href="{{ path('admin_admission_requests') }}" class="btn btn-primary" style="display:inline-block;">
+                    Review Applications
+                </a>
+            </div>
+        </div>
+
+        <!-- Recent Complaints Table -->
+        <div class="dashboard-box">
+            <div class="box-header">
+                <h3>Recent Complaints</h3>
+                <a href="{{ path('admin_complaints') }}" class="btn-link">View All →</a>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Room</th>
+                        <th>Issue</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Block A - 102</td>
+                        <td>Water Leakage</td>
+                        <td><span class="status pending">Pending</span></td>
+                    </tr>
+                    <tr>
+                        <td>Block B - 205</td>
+                        <td>Broken Fan</td>
+                        <td><span class="status in-progress">In Progress</span></td>
+                    </tr>
+                    <tr>
+                        <td>Block A - 105</td>
+                        <td>Wifi Issue</td>
+                        <td><span class="status resolved">Resolved</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div> <!-- End Dashboard Grid -->
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        const dateEl = document.getElementById('current-date');
+        if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    </script>
+{% endblock %}

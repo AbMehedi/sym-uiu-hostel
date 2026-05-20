@@ -1,0 +1,280 @@
+{% extends 'supervisor/base.html.twig' %}
+
+{% block title %}Complaints Management{% endblock %}
+
+{% block body %}
+    <header class="dashboard-header">
+        <div>
+            <h1>{{ app.user.supervisor ? app.user.supervisor.hostelBlock : 'My Block' }} — Complaints</h1>
+            <p class="date-display">View and resolve complaints for your block students</p>
+        </div>
+        <div class="admin-profile">
+            <div class="avatar sup-avatar"></div>
+            <span>{{ app.user.supervisor ? app.user.supervisor.hostelBlock : '' }} Supervisor</span>
+        </div>
+    </header>
+
+    <!-- Summary Cards -->
+    <div class="dashboard-stats">
+        <div class="stat-card danger">
+            <div class="stat-title">Pending</div>
+            <div class="stat-value" id="count-pending">{{ complaints|filter(c => c.status == 'Pending')|length }}</div>
+        </div>
+        <div class="stat-card vacant">
+            <div class="stat-title">In Progress</div>
+            <div class="stat-value" id="count-inprogress">{{ complaints|filter(c => c.status == 'In Progress')|length }}</div>
+        </div>
+        <div class="stat-card occupied">
+            <div class="stat-title">Resolved</div>
+            <div class="stat-value" id="count-resolved">{{ complaints|filter(c => c.status == 'Resolved')|length }}</div>
+        </div>
+        <div class="stat-card neutral">
+            <div class="stat-title">Total</div>
+            <div class="stat-value" id="count-total">{{ complaints|length }}</div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <input type="text" id="complaint-search" class="search-input" placeholder="🔍  Search by room, subject, or type…" oninput="filterComplaints()">
+        <span class="filter-label">Type:</span>
+        <select id="type-filter" class="filter-select" onchange="filterComplaints()">
+            <option value="">All Types</option>
+            <option value="Plumbing">Plumbing</option>
+            <option value="Electricity">Electricity</option>
+            <option value="Cleaning">Cleaning</option>
+            <option value="Noise">Noise</option>
+            <option value="Other">Other</option>
+        </select>
+        <span class="filter-label">Status:</span>
+        <select id="status-filter" class="filter-select" onchange="filterComplaints()">
+            <option value="">All Statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Resolved">Resolved</option>
+        </select>
+    </div>
+
+    <!-- Complaints Table -->
+    <div class="dashboard-box full-width-box">
+        <div class="box-header">
+            <h3>All Block Complaints</h3>
+        </div>
+        <table class="data-table" id="complaints-table">
+            <thead>
+                <tr>
+                    <th>Room</th>
+                    <th>Student</th>
+                    <th>Type</th>
+                    <th>Subject</th>
+                    <th>Cost (BDT)</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="complaints-tbody">
+                {% for complaint in complaints %}
+                <tr data-id="{{ complaint.id }}" data-type="{{ complaint.category.value }}" data-status="{{ complaint.status }}" data-room="{{ complaint.room ? complaint.room.roomNumber : 'N/A' }}" data-subject="{{ complaint.subject }}" data-student="{{ complaint.student ? complaint.student.user.name : 'N/A' }}" data-desc="{{ complaint.description }}" data-cost="{{ complaint.cost }}">
+                    <td><span class="room-badge">{{ complaint.room ? complaint.room.roomNumber : 'N/A' }}</span></td>
+                    <td>{{ complaint.student ? complaint.student.user.name : 'N/A' }}</td>
+                    <td><span class="type-badge {{ complaint.category.value|lower }}">{{ complaint.category.value }}</span></td>
+                    <td>{{ complaint.subject }}</td>
+                    <td>{{ complaint.cost }}</td>
+                    <td class="comp-status-cell"><span class="status {{ complaint.status|lower|replace({' ': '-'}) }}">{{ complaint.status }}</span></td>
+                    <td><button class="btn-action approve" onclick="openComplaintModal(this)">View</button></td>
+                </tr>
+                {% endfor %}
+                <tr id="no-results-row" style="display:none;">
+                    <td colspan="7" style="text-align:center; padding:30px; color:#64748b;">
+                        🔍 No complaints match your current filter. Try adjusting the search or filters.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast" style="display:none;">Status updated successfully!</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <!-- ── Complaint Detail Modal ── -->
+    <div class="modal-overlay" id="complaint-modal-overlay" onclick="closeComplaintModal(event)">
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="complaint-modal-title">
+            <div class="modal-header">
+                <h3 id="complaint-modal-title">Complaint Detail</h3>
+                <button class="modal-close-btn" onclick="closeComplaintModal()" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-detail-grid">
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Room</span>
+                        <span class="modal-detail-value" id="cm-room"></span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Student</span>
+                        <span class="modal-detail-value" id="cm-student"></span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Type</span>
+                        <span class="modal-detail-value" id="cm-type"></span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Estimated Cost</span>
+                        <span class="modal-detail-value" id="cm-cost"></span>
+                    </div>
+                    <div class="modal-detail-item" style="grid-column: 1 / -1;">
+                        <span class="modal-detail-label">Subject</span>
+                        <span class="modal-detail-value" id="cm-subject"></span>
+                    </div>
+                    <div class="modal-detail-item" style="grid-column: 1 / -1;">
+                        <span class="modal-detail-label">Full Description</span>
+                        <p class="modal-detail-value" id="cm-desc" style="color:#94a3b8;line-height:1.6;margin:0;"></p>
+                    </div>
+                    <div class="modal-detail-item" style="grid-column: 1 / -1;">
+                        <span class="modal-detail-label">Current Status</span>
+                        <span id="cm-status-badge"></span>
+                    </div>
+                </div>
+
+                <!-- Status Update -->
+                <div style="margin-top: 20px; border-top: 1px solid #1f2937; padding-top: 20px;">
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label for="cm-new-status" style="font-size:0.82rem;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;display:block;margin-bottom:8px;">Update Status</label>
+                        <select id="cm-new-status" class="form-control announce-input">
+                            <option value="Pending">Pending</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Resolved">Resolved</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cm-notes" style="font-size:0.82rem;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;display:block;margin-bottom:8px;">Supervisor Notes</label>
+                        <textarea id="cm-notes" class="form-control announce-input notes-textarea" rows="3" placeholder="Add resolution notes or comments…" maxlength="400"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeComplaintModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveComplaintChanges()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let activeComplaintRow = null;
+
+        function openComplaintModal(btn) {
+            activeComplaintRow = btn.closest('tr');
+            const d = activeComplaintRow.dataset;
+            document.getElementById('cm-room').textContent    = d.room;
+            document.getElementById('cm-student').textContent = d.student;
+            document.getElementById('cm-type').textContent    = d.type;
+            document.getElementById('cm-cost').textContent    = 'BDT ' + d.cost;
+            document.getElementById('cm-subject').textContent = d.subject;
+            document.getElementById('cm-desc').textContent    = d.desc;
+
+            const classMap = { 'Pending': 'pending', 'In Progress': 'in-progress', 'Resolved': 'resolved' };
+            document.getElementById('cm-status-badge').innerHTML = `<span class="status ${classMap[d.status]}">${d.status}</span>`;
+            document.getElementById('cm-new-status').value = d.status;
+            document.getElementById('cm-notes').value = '';
+
+            document.getElementById('complaint-modal-overlay').classList.add('active');
+        }
+
+        function closeComplaintModal(e) {
+            if (e && e.target !== document.getElementById('complaint-modal-overlay')) return;
+            document.getElementById('complaint-modal-overlay').classList.remove('active');
+            activeComplaintRow = null;
+        }
+
+        function saveComplaintChanges() {
+            if (!activeComplaintRow) return;
+            const newStatus = document.getElementById('cm-new-status').value;
+            const notes = document.getElementById('cm-notes').value.trim();
+            const classMap  = { 'Pending': 'pending', 'In Progress': 'in-progress', 'Resolved': 'resolved' };
+            const id = activeComplaintRow.dataset.id;
+
+            fetch(`/supervisor/complaints/update/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    status: newStatus,
+                    notes: notes
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update row data
+                    activeComplaintRow.dataset.status = newStatus;
+                    activeComplaintRow.querySelector('.comp-status-cell').innerHTML = `<span class="status ${classMap[newStatus]}">${newStatus}</span>`;
+
+                    updateCounts();
+                    filterComplaints();
+
+                    document.getElementById('complaint-modal-overlay').classList.remove('active');
+                    activeComplaintRow = null;
+
+                    const toast = document.getElementById('toast');
+                    toast.style.display = 'block';
+                    setTimeout(() => toast.style.display = 'none', 2500);
+                } else {
+                    alert('Error saving changes: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('An error occurred. Please try again.');
+            });
+        }
+
+        function updateCounts() {
+            const rows = document.querySelectorAll('#complaints-tbody tr:not(#no-results-row)');
+            let pending = 0, inProgress = 0, resolved = 0;
+            rows.forEach(row => {
+                const s = row.dataset.status;
+                if (s === 'Pending') pending++;
+                else if (s === 'In Progress') inProgress++;
+                else if (s === 'Resolved') resolved++;
+            });
+            document.getElementById('count-pending').textContent   = pending;
+            document.getElementById('count-inprogress').textContent = inProgress;
+            document.getElementById('count-resolved').textContent  = resolved;
+            document.getElementById('count-total').textContent     = rows.length;
+        }
+
+        function filterComplaints() {
+            const query       = document.getElementById('complaint-search').value.toLowerCase();
+            const typeFilter  = document.getElementById('type-filter').value;
+            const statusFilter = document.getElementById('status-filter').value;
+            const rows        = document.querySelectorAll('#complaints-tbody tr:not(#no-results-row)');
+            let visible = 0;
+
+            rows.forEach(row => {
+                const room    = row.dataset.room.toLowerCase();
+                const subject = row.dataset.subject.toLowerCase();
+                const type    = row.dataset.type;
+                const status  = row.dataset.status;
+
+                const matchSearch = room.includes(query) || subject.includes(query) || type.toLowerCase().includes(query);
+                const matchType   = typeFilter === '' || type === typeFilter;
+                const matchStatus = statusFilter === '' || status === statusFilter;
+
+                row.style.display = (matchSearch && matchType && matchStatus) ? '' : 'none';
+                if (matchSearch && matchType && matchStatus) visible++;
+            });
+
+            document.getElementById('no-results-row').style.display = visible === 0 ? '' : 'none';
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(el => el.classList.remove('active'));
+            }
+        });
+    </script>
+{% endblock %}

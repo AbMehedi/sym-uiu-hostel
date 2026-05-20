@@ -1,0 +1,211 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Supervisor Management{% endblock %}
+
+{% block body %}
+    <!-- Top Header -->
+    <header class="dashboard-header">
+        <div>
+            <h1>Supervisor Management</h1>
+            <p class="date-display">Assign, reassign, and manage block supervisors.</p>
+        </div>
+        <button class="btn btn-primary" onclick="document.getElementById('add-supervisor').scrollIntoView({behavior: 'smooth'})">
+            + Add New Supervisor
+        </button>
+    </header>
+
+    <!-- Current Supervisors Grid -->
+    <div class="dashboard-box" style="margin-bottom: 40px; background: transparent; border: none; box-shadow: none; padding: 0;">
+        <h3 style="margin-bottom: 20px;">Active Supervisors</h3>
+        <div class="supervisor-grid">
+            
+            {% for supervisor in supervisors %}
+            <div class="supervisor-card" id="sup-card-{{ supervisor.id }}">
+                <div class="supervisor-header">
+                    <div class="supervisor-avatar"></div>
+                    <span class="badge" style="background-color: #dbeafe; color: #1d4ed8;">{{ supervisor.hostelBlock }}</span>
+                </div>
+                <div class="supervisor-info">
+                    <h4>{{ supervisor.user.name }}</h4>
+                    <p>ID: SUP-{{ supervisor.id }}</p>
+                    <p>📞 {{ supervisor.phone }}</p>
+                    <p id="stu-badge-{{ supervisor.id }}" class="sup-student-count" style="display:none;"></p>
+                </div>
+                <div class="supervisor-actions">
+                    <button class="btn-action approve" onclick="openAssignTask({{ supervisor.id }}, '{{ supervisor.user.name|e('js') }}')">Assign Task</button>
+                    <form method="POST" action="{{ path('admin_supervisors_delete', {id: supervisor.id}) }}" style="display:inline;">
+                        <button type="submit" class="btn-action reject"
+                                onclick="return confirm('Remove supervisor {{ supervisor.user.name|e('js') }}? This will permanently delete their account.')">Remove</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+
+        </div>
+    </div>
+
+    <!-- Assigned Tasks Table -->
+    <div class="dashboard-box" style="margin-bottom: 40px;">
+        <div class="box-header" style="margin-bottom: 20px;">
+            <h3>My Assigned Tasks</h3>
+            <span class="badge-count" id="task-count">0</span>
+        </div>
+        <table class="data-table" id="tasks-table">
+            <thead>
+                <tr>
+                    <th>Supervisor</th>
+                    <th>Task</th>
+                    <th>Priority</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="tasks-tbody">
+                <tr id="tasks-empty-row">
+                    <td colspan="5" style="text-align:center; padding:30px; color:#64748b;">
+                        📋 No tasks assigned yet. Use the "Assign Task" button above to get started.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add New Supervisor Form -->
+    <div id="add-supervisor" class="dashboard-box">
+        <div class="box-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 25px;">
+            <h3>Add New Supervisor</h3>
+            <p class="text-muted" style="font-size: 0.85rem; color: #64748b;">Register a new supervisor and assign them to a block.</p>
+        </div>
+        
+        <form class="auth-form" action="{{ path('admin_supervisors_new') }}" method="POST">
+            <div class="form-grid">
+                <!-- Full Name -->
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" class="form-control" placeholder="e.g. Rafiqul Hasan" required>
+                </div>
+
+                <!-- Phone Number -->
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" name="phone" class="form-control" placeholder="01XXX XXXXXX">
+                </div>
+
+                <!-- Block -->
+                <div class="form-group">
+                    <label for="block">Assign to Block</label>
+                    <select id="block" name="block" class="form-control" required>
+                        <option value="" disabled selected>Select a Block...</option>
+                        <option value="A">Block A (Premium)</option>
+                        <option value="B">Block B (Standard)</option>
+                        <option value="C">Block C (Economy)</option>
+                    </select>
+                </div>
+
+                <!-- Email -->
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" class="form-control" placeholder="supervisor@hostel.edu" required>
+                </div>
+            </div>
+
+            <!-- File Uploads (Photo & NID) -->
+            <div class="form-grid" style="margin-top: 15px;">
+                <div class="form-group file-upload-group">
+                    <label for="photoUpload">Upload Supervisor Photo</label>
+                    <input type="file" id="photoUpload" class="form-control file-input" accept="image/jpeg, image/png" required>
+                </div>
+
+                <div class="form-group file-upload-group">
+                    <label for="nidUpload">Upload NID Document</label>
+                    <input type="file" id="nidUpload" class="form-control file-input" accept=".pdf, image/jpeg, image/png" required>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div style="margin-top: 25px; text-align: right;">
+                <button type="submit" class="btn btn-primary">Create Supervisor Account</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- MODALS AND SCRIPTS -->
+    {% include 'admin/supervisor_modals.html.twig' %}
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        // ── Task Modal ──
+        let currentSupId = null;
+
+        function openAssignTask(supId, supName) {
+            currentSupId = supId;
+            document.getElementById('task-supervisor-id').value = supId;
+            document.getElementById('task-supervisor-name').textContent = supName;
+            document.getElementById('task-modal-overlay').classList.add('active');
+            // Set min date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('task-due').min = today;
+        }
+
+        function closeTaskModal(e) {
+            if (e && e.target !== document.getElementById('task-modal-overlay')) return;
+            document.getElementById('task-modal-overlay').classList.remove('active');
+            document.getElementById('task-form').reset();
+        }
+
+        // ── Student Modal ──
+        function openAssignStudent(supId, supName, badgeId) {
+            currentStudentBadgeId = badgeId;
+            document.getElementById('assign-sup-name').textContent = supName;
+            // Uncheck all
+            document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('select-all-students').checked = false;
+            document.getElementById('student-modal-overlay').classList.add('active');
+        }
+
+        function closeStudentModal(e) {
+            if (e && e.target !== document.getElementById('student-modal-overlay')) return;
+            document.getElementById('student-modal-overlay').classList.remove('active');
+        }
+
+        function toggleAllStudents(masterCb) {
+            document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = masterCb.checked);
+        }
+
+        function confirmStudentAssignment() {
+            const selected = document.querySelectorAll('.student-checkbox:checked');
+            if (selected.length === 0) {
+                showToast('Please select at least one student.', true);
+                return;
+            }
+            if (currentStudentBadgeId) {
+                const badge = document.getElementById(currentStudentBadgeId);
+                badge.style.display = 'block';
+                badge.innerHTML = `👥 ${selected.length} Student${selected.length > 1 ? 's' : ''} Assigned`;
+                badge.style.color = '#10b981';
+                badge.style.fontWeight = '600';
+                badge.style.fontSize = '0.85rem';
+            }
+            document.getElementById('student-modal-overlay').classList.remove('active');
+            showToast(`${selected.length} student(s) assigned successfully!`);
+        }
+
+        // ── Toast ──
+        function showToast(msg, isError = false) {
+            const t = document.getElementById('admin-toast');
+            t.textContent = (isError ? '⚠️ ' : '✅ ') + msg;
+            t.style.backgroundColor = isError ? '#ef4444' : '#10b981';
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 2800);
+        }
+
+        // Close modals on Escape key
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(el => el.classList.remove('active'));
+            }
+        });
+    </script>
+{% endblock %}
