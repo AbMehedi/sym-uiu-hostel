@@ -1,0 +1,34 @@
+services:
+  php:
+    build:
+      context: ./backend
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    working_dir: /app
+    command: php -S 0.0.0.0:8000
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: hostel_db
+      MYSQL_USER: hostel_user
+      MYSQL_PASSWORD: secret
+    ports:
+      - "3307:3306"   # 3307 on host avoids XAMPP conflict
+    volumes:
+      - db_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+
+volumes:
+  db_data:
