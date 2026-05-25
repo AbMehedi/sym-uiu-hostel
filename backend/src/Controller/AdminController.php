@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\RepairCost;
 use App\Entity\Room;
 use App\Entity\RoomAssignment;
 use App\Entity\Supervisor;
@@ -9,12 +10,14 @@ use App\Entity\SupervisorTask;
 use App\Entity\User;
 use App\Enum\AdmissionStatus;
 use App\Enum\AssignmentStatus;
+use App\Enum\ComplaintCategory;
 use App\Enum\RequestStatus;
 use App\Enum\Role;
 use App\Enum\RoomStatus;
 use App\Enum\TaskStatus;
 use App\Repository\AdmissionRequestRepository;
 use App\Repository\ComplaintRepository;
+use App\Repository\RepairCostRepository;
 use App\Repository\ReportRepository;
 use App\Repository\RoomChangeRequestRepository;
 use App\Repository\RoomRepository;
@@ -54,12 +57,13 @@ class AdminController extends AbstractController
         }
 
         return $this->render('admin/dashboard.html.twig', [
-            'totalRooms'       => count($rooms),
-            'occupiedRooms'    => $occupied,
-            'vacantRooms'      => $vacant,
-            'totalStudents'    => count($studentRepo->findAll()),
-            'pendingComplaints'=> count($complaintRepo->findBy(['status' => \App\Enum\ComplaintStatus::Pending])),
-            'pendingAdmissions'=> count($admissionRepo->findPending()),
+            'totalRooms'        => count($rooms),
+            'occupiedRooms'     => $occupied,
+            'vacantRooms'       => $vacant,
+            'totalStudents'     => count($studentRepo->findAll()),
+            'pendingComplaints' => count($complaintRepo->findBy(['status' => \App\Enum\ComplaintStatus::Pending])),
+            'pendingAdmissions' => count($admissionRepo->findPending()),
+            'recentComplaints'  => $complaintRepo->findRecent(5),
         ]);
     }
 
@@ -385,11 +389,96 @@ class AdminController extends AbstractController
     // ─── Reports ──────────────────────────────────────────────────────────────
 
     #[Route('/reports', name: 'admin_reports')]
-    public function reports(ReportRepository $repo): Response
-    {
+    public function reports(
+        Request $request,
+        ComplaintRepository $complaintRepo,
+        RepairCostRepository $repairCostRepo,
+    ): Response {
+        // Build per-category stats from live DB data
+        $countByCategory        = $complaintRepo->findCountByCategory();
+        $countByCategoryStatus  = $complaintRepo->findCountByCategoryAndStatus();
+        $costByCategory         = $repairCostRepo->findTotalByCategory();
+        $grandTotal             = $repairCostRepo->findGrandTotal();
+
+        // Build a unified stats array keyed by category enum value
+        $categoryStats = [];
+        foreach (ComplaintCategory::cases() as $cat) {
+            $key = $cat->value;
+            $categoryStats[$key] = [
+                'label'    => ucfirst($key),
+                'category' => $cat,
+                'total'    => $countByCategory[$key] ?? 0,
+                'resolved' => 0,
+                'pending'  => 0,
+                'cost'     => $costByCategory[$key] ?? 0.0,
+            ];
+        }
+        foreach ($countByCategoryStatus as $row) {
+            $key    = $row['category'];
+            $status = $row['status'];
+            $total  = (int) $row['total'];
+            if (!isset($categoryStats[$key])) {
+                continue;
+            }
+            if ($status === 'resolved') {
+                $categoryStats[$key]['resolved'] += $total;
+            } else {
+                $categoryStats[$key]['pending'] += $total;
+            }
+        }
+
+        // Current month label for display
+        $monthLabel = (new DateTimeImmutable())->format('F Y');
+
         return $this->render('admin/reports.html.twig', [
-            'reports' => $repo->findAll(),
+            'categoryStats' => $categoryStats,
+            'grandTotal'    => $grandTotal,
+            'monthLabel'    => $monthLabel,
         ]);
+    }
+
+    // ─── Repair Costs ─────────────────────────────────────────────────────────
+
+    #[Route('/repair-costs/new', name: 'admin_repair_cost_new', methods: ['POST'])]
+    public function repairCostNew(
+        Request $request,
+        EntityManagerInterface $em,
+    ): Response {
+        $complaintId  = (int) $request->request->get('complaintId');
+        $amount       = $request->request->get('amount');
+        $description  = trim((string) $request->request->get('description', ''));
+        $costDateStr  = $request->request->get('costDate', date('Y-m-d'));
+
+        $complaint = $em->getRepository(\App\Entity\Complaint::class)->find($complaintId);
+        if (!$complaint || !$amount) {
+            $this->addFlash('error', 'Invalid complaint or amount.');
+            return $this->redirectToRoute('admin_complaints');
+        }
+
+        $repairCost = new RepairCost();
+        $repairCost->setComplaint($complaint);
+        $repairCost->setAmount((string) $amount);
+        $repairCost->setDescription($description ?: null);
+        $repairCost->setCostDate(new DateTimeImmutable($costDateStr));
+        $repairCost->setRecordedBy($this->getUser());
+
+        $em->persist($repairCost);
+        $em->flush();
+
+        $this->addFlash('success', 'Repair cost of ৳' . number_format((float)$amount, 2) . ' recorded.');
+        return $this->redirectToRoute('admin_complaints');
+    }
+
+    #[Route('/repair-costs/{id}/delete', name: 'admin_repair_cost_delete', methods: ['POST'])]
+    public function repairCostDelete(int $id, EntityManagerInterface $em): Response
+    {
+        $rc = $em->getRepository(RepairCost::class)->find($id);
+        if ($rc) {
+            $em->remove($rc);
+            $em->flush();
+            $this->addFlash('success', 'Repair cost entry removed.');
+        }
+        return $this->redirectToRoute('admin_complaints');
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────

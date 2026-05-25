@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Monthly Complaint Log</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #1e293b; padding: 30px; }
+        .header { text-align: center; margin-bottom: 24px; border-bottom: 3px solid #7c3aed; padding-bottom: 16px; }
+        .header h1 { font-size: 22px; color: #4c1d95; font-weight: bold; margin-bottom: 4px; }
+        .header p { font-size: 11px; color: #64748b; }
+        .meta-row { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 11px; color: #64748b; }
+        .section-title { font-size: 13px; font-weight: bold; color: #4c1d95; margin-bottom: 10px; border-left: 4px solid #7c3aed; padding-left: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        thead { background: #ede9fe; }
+        th { padding: 7px 8px; text-align: left; font-size: 10px; color: #4c1d95; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 1px solid #c4b5fd; }
+        td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; font-size: 10px; }
+        tr:nth-child(even) td { background: #faf5ff; }
+        .badge { padding: 2px 6px; border-radius: 8px; font-size: 9px; font-weight: bold; }
+        .badge-pending { background: #fef3c7; color: #92400e; }
+        .badge-progress { background: #dbeafe; color: #1e40af; }
+        .badge-resolved { background: #dcfce7; color: #166534; }
+        .summary-table { background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 6px; }
+        .summary-table th { background: #7c3aed; color: white; }
+        .total-row td { font-weight: bold; background: #ede9fe !important; }
+        .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 UIU Hostel Management System</h1>
+        <p>Monthly Complaint Log &amp; Cost Report — {{ monthLabel }}</p>
+    </div>
+
+    <div class="meta-row">
+        <span><strong>Period:</strong> {{ monthLabel }}</span>
+        <span><strong>Generated:</strong> {{ generatedAt|date('d M Y, H:i') }}</span>
+        <span><strong>Total Complaints:</strong> {{ complaints|length }}</span>
+    </div>
+
+    <!-- Category Summary Table -->
+    <div class="section-title">Category Summary &amp; Cost Breakdown</div>
+    <table class="summary-table">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Total</th>
+                <th>Resolved</th>
+                <th>Pending / In Progress</th>
+                <th>Repair Cost (BDT)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set grandTotal = 0 %}
+            {% for key, stat in categoryStats %}
+            {% if stat.total > 0 %}
+            <tr>
+                <td><strong>{{ key|capitalize }}</strong></td>
+                <td>{{ stat.total }}</td>
+                <td>{{ stat.resolved }}</td>
+                <td>{{ stat.pending }}</td>
+                <td>৳ {{ stat.cost|number_format(2, '.', ',') }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="4" style="text-align:right;">Grand Total:</td>
+                <td>৳ {{ grandTotal|number_format(2, '.', ',') }}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- Detailed Complaint Log -->
+    <div class="section-title">Detailed Complaint Register</div>
+    {% if complaints is empty %}
+    <p style="text-align:center;color:#94a3b8;padding:20px 0;">No complaints recorded for {{ monthLabel }}.</p>
+    {% else %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Student</th>
+                <th>Room</th>
+                <th>Category</th>
+                <th>Subject</th>
+                <th>Status</th>
+                <th>Repair Cost</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for i, c in complaints %}
+            <tr>
+                <td>{{ i + 1 }}</td>
+                <td>{{ c.createdAt|date('d M') }}</td>
+                <td>{{ c.student.user.name }}</td>
+                <td>{{ c.room ? c.room.roomNumber : '—' }}</td>
+                <td>{{ c.category.value|capitalize }}</td>
+                <td>{{ c.subject ?? c.description|slice(0, 40) ~ '…' }}</td>
+                <td>
+                    {% if c.status == 'Resolved' %}
+                        <span class="badge badge-resolved">Resolved</span>
+                    {% elseif c.status == 'In Progress' %}
+                        <span class="badge badge-progress">In Progress</span>
+                    {% else %}
+                        <span class="badge badge-pending">Pending</span>
+                    {% endif %}
+                </td>
+                <td>{% if c.cost > 0 %}৳ {{ c.cost|number_format(2, '.', ',') }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <div class="footer">
+        UIU Hostel Management System &bull; Confidential &bull; Generated on {{ generatedAt|date('d M Y') }}
+    </div>
+</body>
+</html>
