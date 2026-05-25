@@ -3,6 +3,8 @@
 namespace App\Repository;
 
 use App\Entity\RepairCost;
+use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -47,6 +49,20 @@ class RepairCostRepository extends ServiceEntityRepository
     {
         $total = $this->createQueryBuilder('rc')
             ->select('SUM(rc.amount)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (float) ($total ?? 0);
+    }
+
+    public function findTotalBetween(DateTimeInterface $start, DateTimeInterface $end): float
+    {
+        $total = $this->createQueryBuilder('rc')
+            ->select('SUM(rc.amount)')
+            ->andWhere('rc.costDate >= :start')
+            ->andWhere('rc.costDate < :end')
+            ->setParameter('start', DateTimeImmutable::createFromInterface($start))
+            ->setParameter('end', DateTimeImmutable::createFromInterface($end))
             ->getQuery()
             ->getSingleScalarResult();
 

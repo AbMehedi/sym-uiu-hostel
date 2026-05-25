@@ -123,14 +123,15 @@
                     </thead>
                     <tbody>
                         {% for complaint in recentComplaints %}
+                        {% set statusValue = complaint.status.value is defined ? complaint.status.value : complaint.status|lower %}
                         <tr>
                             <td>{{ complaint.subject }}</td>
                             <td><span class="type-badge {{ complaint.category.value }}">{{ complaint.category.value|capitalize }}</span></td>
                             <td>{{ complaint.createdAt|date('M j, Y') }}</td>
                             <td>
-                                {% if complaint.status.value == 'pending' %}
+                                {% if statusValue == 'pending' %}
                                     <span class="status pending">Pending</span>
-                                {% elseif complaint.status.value == 'in_progress' %}
+                                {% elseif statusValue == 'in_progress' %}
                                     <span class="status in-progress">In Progress</span>
                                 {% else %}
                                     <span class="status resolved">Resolved</span>

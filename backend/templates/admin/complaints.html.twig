@@ -15,15 +15,15 @@
     <div class="dashboard-stats stats-row-margin">
         <div class="stat-card danger">
             <div class="stat-title">Pending Issues</div>
-            <div class="stat-value">5</div>
+            <div class="stat-value">{{ pendingCount }}</div>
         </div>
         <div class="stat-card occupied">
             <div class="stat-title">Resolved (This Month)</div>
-            <div class="stat-value">42</div>
+            <div class="stat-value">{{ resolvedThisMonth }}</div>
         </div>
         <div class="stat-card vacant">
             <div class="stat-title">Total Spent (This Month)</div>
-            <div class="stat-value">৳ 12,500</div>
+            <div class="stat-value">৳ {{ totalSpentThisMonth|number_format(0, '.', ',') }}</div>
         </div>
     </div>
 

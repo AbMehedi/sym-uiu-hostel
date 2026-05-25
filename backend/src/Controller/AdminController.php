@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Enum\AdmissionStatus;
 use App\Enum\AssignmentStatus;
 use App\Enum\ComplaintCategory;
+use App\Enum\ComplaintStatus;
 use App\Enum\RequestStatus;
 use App\Enum\Role;
 use App\Enum\RoomStatus;
@@ -70,20 +71,22 @@ class AdminController extends AbstractController
     // ─── Students ─────────────────────────────────────────────────────────────
 
     #[Route('/students', name: 'admin_students')]
-    public function students(StudentRepository $repo): Response
+    public function students(StudentRepository $studentRepository): Response
     {
+        $students = $studentRepository->findBy([], ['id' => 'DESC']);
         return $this->render('admin/students.html.twig', [
-            'students' => $repo->findAll(),
+            'students' => $students,
         ]);
     }
 
     // ─── Rooms ────────────────────────────────────────────────────────────────
 
     #[Route('/rooms', name: 'admin_rooms')]
-    public function rooms(RoomRepository $repo): Response
+    public function rooms(RoomRepository $roomRepository): Response
     {
+        $rooms = $roomRepository->findBy([], ['id' => 'DESC']);
         return $this->render('admin/rooms.html.twig', [
-            'rooms' => $repo->findAll(),
+            'rooms' => $rooms,
         ]);
     }
 
@@ -211,10 +214,11 @@ class AdminController extends AbstractController
     // ─── Supervisors ──────────────────────────────────────────────────────────
 
     #[Route('/supervisors', name: 'admin_supervisors')]
-    public function supervisors(SupervisorRepository $repo): Response
+    public function supervisors(SupervisorRepository $supervisorRepository): Response
     {
+        $supervisors = $supervisorRepository->findBy([], ['id' => 'DESC']);
         return $this->render('admin/supervisors.html.twig', [
-            'supervisors' => $repo->findAll(),
+            'supervisors' => $supervisors,
         ]);
     }
 
@@ -379,10 +383,23 @@ class AdminController extends AbstractController
     // ─── Complaints ───────────────────────────────────────────────────────────
 
     #[Route('/complaints', name: 'admin_complaints')]
-    public function complaints(ComplaintRepository $repo): Response
+    public function complaints(
+        ComplaintRepository $complaintRepository,
+        RepairCostRepository $repairCostRepository,
+    ): Response
     {
+        $complaints = $complaintRepository->findBy([], ['id' => 'DESC']);
+        $startOfMonth = new DateTimeImmutable('first day of this month midnight');
+        $startOfNextMonth = $startOfMonth->modify('first day of next month midnight');
+
+        $pendingCount = $complaintRepository->countByStatus(ComplaintStatus::Pending);
+        $resolvedThisMonth = $complaintRepository->countResolvedBetween($startOfMonth, $startOfNextMonth);
+        $totalSpentThisMonth = $repairCostRepository->findTotalBetween($startOfMonth, $startOfNextMonth);
         return $this->render('admin/complaints.html.twig', [
-            'complaints' => $repo->findAll(),
+            'complaints' => $complaints,
+            'pendingCount' => $pendingCount,
+            'resolvedThisMonth' => $resolvedThisMonth,
+            'totalSpentThisMonth' => $totalSpentThisMonth,
         ]);
     }
 

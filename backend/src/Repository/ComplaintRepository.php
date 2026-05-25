@@ -3,6 +3,9 @@
 namespace App\Repository;
 
 use App\Entity\Complaint;
+use App\Enum\ComplaintStatus;
+use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -65,5 +68,33 @@ class ComplaintRepository extends ServiceEntityRepository
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
+    }
+
+    public function countByStatus(ComplaintStatus $status): int
+    {
+        $count = $this->createQueryBuilder('c')
+            ->select('COUNT(c.id)')
+            ->andWhere('c.status = :status')
+            ->setParameter('status', $status)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (int) $count;
+    }
+
+    public function countResolvedBetween(DateTimeInterface $start, DateTimeInterface $end): int
+    {
+        $count = $this->createQueryBuilder('c')
+            ->select('COUNT(c.id)')
+            ->andWhere('c.status = :status')
+            ->andWhere('c.resolvedAt >= :start')
+            ->andWhere('c.resolvedAt < :end')
+            ->setParameter('status', ComplaintStatus::Resolved)
+            ->setParameter('start', DateTimeImmutable::createFromInterface($start))
+            ->setParameter('end', DateTimeImmutable::createFromInterface($end))
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (int) $count;
     }
 }
