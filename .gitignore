@@ -1,0 +1,28 @@
+# OS files
+.DS_Store
+Thumbs.db
+db_data/
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Environment local files
+.env.local
+.env.*.local
+
+# Symfony files from backend if they escape or need root-level safety
+/backend/var/
+/backend/vendor/
+/backend/.env.local
+/backend/.env.*.local
+/backend/public/bundles/
+/backend/public/assets/
+/backend/assets/vendor/
+/backend/.phpunit.cache/
+/backend/phpunit.xml
