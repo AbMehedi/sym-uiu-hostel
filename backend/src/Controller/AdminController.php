@@ -45,17 +45,20 @@ class AdminController extends AbstractController
         StudentRepository $studentRepo,
         ComplaintRepository $complaintRepo,
         AdmissionRequestRepository $admissionRepo,
+        RepairCostRepository $repairCostRepo,
     ): Response {
         $rooms = $roomRepo->findAll();
         $occupied = 0;
         $vacant   = 0;
         foreach ($rooms as $room) {
-            if ($room->getCurrentOccupancy() >= $room->getCapacity()) {
+            if ($room->isFull()) {
                 $occupied++;
             } else {
                 $vacant++;
             }
         }
+
+        $totalRepairCost = $repairCostRepo->findGrandTotal();
 
         return $this->render('admin/dashboard.html.twig', [
             'totalRooms'        => count($rooms),
@@ -65,6 +68,7 @@ class AdminController extends AbstractController
             'pendingComplaints' => count($complaintRepo->findBy(['status' => \App\Enum\ComplaintStatus::Pending])),
             'pendingAdmissions' => count($admissionRepo->findPending()),
             'recentComplaints'  => $complaintRepo->findRecent(5),
+            'totalRepairCost'   => $totalRepairCost,
         ]);
     }
 
@@ -112,13 +116,44 @@ class AdminController extends AbstractController
     public function roomsDelete(int $id, EntityManagerInterface $em, RoomRepository $repo): Response
     {
         $room = $repo->find($id);
-        if ($room && $room->getCurrentOccupancy() === 0) {
+        if ($room && $room->getActualOccupancy() === 0) {
             $em->remove($room);
             $em->flush();
             $this->addFlash('success', 'Room deleted.');
         } else {
             $this->addFlash('error', 'Cannot delete an occupied room.');
         }
+        return $this->redirectToRoute('admin_rooms');
+    }
+
+    #[Route('/rooms/{id}/photo', name: 'admin_room_photo', methods: ['POST'])]
+    public function roomPhoto(
+        int $id,
+        Request $request,
+        RoomRepository $roomRepo,
+        EntityManagerInterface $em,
+    ): Response {
+        $room = $roomRepo->find($id);
+        if (!$room) {
+            $this->addFlash('error', 'Room not found.');
+            return $this->redirectToRoute('admin_rooms');
+        }
+
+        /** @var \Symfony\Component\HttpFoundation\File\UploadedFile|null $file */
+        $file = $request->files->get('photo');
+        if (!$file) {
+            $this->addFlash('error', 'No photo uploaded.');
+            return $this->redirectToRoute('admin_rooms');
+        }
+
+        $uploadsDir = $this->getParameter('kernel.project_dir') . '/public/uploads/rooms';
+        $filename   = 'room-' . $room->getId() . '-' . bin2hex(random_bytes(4)) . '.' . $file->guessExtension();
+        $file->move($uploadsDir, $filename);
+
+        $room->setPhotoPath('/uploads/rooms/' . $filename);
+        $em->flush();
+
+        $this->addFlash('success', 'Room photo updated.');
         return $this->redirectToRoute('admin_rooms');
     }
 
@@ -130,11 +165,17 @@ class AdminController extends AbstractController
         RoomRepository $roomRepo,
         EntityManagerInterface $em,
     ): Response {
-        // Students who are approved but have no active room assignment
-        $approvedStudents = array_filter($studentRepo->findAll(), fn($s) => $s->getAdmissionStatus() === AdmissionStatus::Approved && $s->getRoom() === null);
-        $availableRooms   = array_filter($roomRepo->findAll(), fn($r) => $r->getCurrentOccupancy() < $r->getCapacity());
+        // Approved students with no active room assignment
+        $approvedStudents = array_filter(
+            $studentRepo->findAll(),
+            fn($s) => $s->getAdmissionStatus() === AdmissionStatus::Approved && $s->getRoom() === null
+        );
+        // Rooms that are not full (using computed occupancy)
+        $availableRooms = array_filter(
+            $roomRepo->findAll(),
+            fn($r) => !$r->isFull()
+        );
 
-        // All active assignments for the table
         $allAssignments = $em->getRepository(RoomAssignment::class)->findBy(['status' => AssignmentStatus::Active]);
 
         return $this->render('admin/room-assign.html.twig', [
@@ -162,17 +203,20 @@ class AdminController extends AbstractController
             return $this->redirectToRoute('admin_room_assign');
         }
 
-        if ($room->getCurrentOccupancy() >= $room->getCapacity()) {
+        // Use computed isFull() — never relies on the stored counter
+        if ($room->isFull()) {
             $this->addFlash('error', 'Selected room is already full.');
             return $this->redirectToRoute('admin_room_assign');
         }
 
-        // Deactivate any existing assignment
+        // Deactivate any existing assignment for this student
         foreach ($student->getRoomAssignments() as $existing) {
             if ($existing->getStatus() === AssignmentStatus::Active) {
                 $existing->setStatus(AssignmentStatus::Vacated);
                 $existing->setVacatedDate(new DateTimeImmutable());
-                $existing->getRoom()->setCurrentOccupancy(max(0, $existing->getRoom()->getCurrentOccupancy() - 1));
+                // Recalculate old room after vacating (flush will sync the collection)
+                $em->flush(); // flush before recalculate so collection reflects vacated state
+                $existing->getRoom()->recalculateOccupancy();
             }
         }
 
@@ -183,12 +227,11 @@ class AdminController extends AbstractController
         $assignment->setAssignedDate(new DateTimeImmutable());
         $assignment->setStatus(AssignmentStatus::Active);
 
-        $room->setCurrentOccupancy($room->getCurrentOccupancy() + 1);
-        if ($room->getCurrentOccupancy() >= $room->getCapacity()) {
-            $room->setStatus(RoomStatus::Full);
-        }
-
         $em->persist($assignment);
+        $em->flush(); // persist first so the new assignment is in the collection
+
+        // Recalculate occupancy from the actual DB state
+        $room->recalculateOccupancy();
         $em->flush();
 
         $this->addFlash('success', $student->getUser()->getName() . ' assigned to Room ' . $room->getRoomNumber() . '.');
@@ -202,9 +245,8 @@ class AdminController extends AbstractController
         if ($assignment && $assignment->getStatus() === AssignmentStatus::Active) {
             $assignment->setStatus(AssignmentStatus::Vacated);
             $assignment->setVacatedDate(new DateTimeImmutable());
-            $room = $assignment->getRoom();
-            $room->setCurrentOccupancy(max(0, $room->getCurrentOccupancy() - 1));
-            $room->setStatus(RoomStatus::Available);
+            $em->flush(); // flush first so collection reflects vacated state
+            $assignment->getRoom()->recalculateOccupancy();
             $em->flush();
             $this->addFlash('success', 'Room assignment revoked.');
         }
@@ -280,6 +322,18 @@ class AdminController extends AbstractController
 
     // ─── Tasks ────────────────────────────────────────────────────────────────
 
+    #[Route('/tasks', name: 'admin_tasks')]
+    public function tasks(SupervisorRepository $supervisorRepo, EntityManagerInterface $em): Response
+    {
+        $supervisors = $supervisorRepo->findBy([], ['id' => 'ASC']);
+        $tasks       = $em->getRepository(SupervisorTask::class)->findBy([], ['id' => 'DESC']);
+
+        return $this->render('admin/tasks.html.twig', [
+            'supervisors' => $supervisors,
+            'tasks'       => $tasks,
+        ]);
+    }
+
     #[Route('/tasks/new', name: 'admin_tasks_new', methods: ['POST'])]
     public function tasksNew(
         Request $request,
@@ -294,7 +348,7 @@ class AdminController extends AbstractController
         $supervisor = $supRepo->find($supervisorId);
         if (!$supervisor || !$title) {
             $this->addFlash('error', 'Supervisor and task title are required.');
-            return $this->redirectToRoute('admin_supervisors');
+            return $this->redirectToRoute('admin_tasks');
         }
 
         $task = new SupervisorTask();
@@ -311,7 +365,19 @@ class AdminController extends AbstractController
         $em->flush();
 
         $this->addFlash('success', "Task \"{$title}\" assigned to " . $supervisor->getUser()->getName() . '.');
-        return $this->redirectToRoute('admin_supervisors');
+        return $this->redirectToRoute('admin_tasks');
+    }
+
+    #[Route('/tasks/{id}/delete', name: 'admin_tasks_delete', methods: ['POST'])]
+    public function tasksDelete(int $id, EntityManagerInterface $em): Response
+    {
+        $task = $em->getRepository(SupervisorTask::class)->find($id);
+        if ($task) {
+            $em->remove($task);
+            $em->flush();
+            $this->addFlash('success', 'Task removed.');
+        }
+        return $this->redirectToRoute('admin_tasks');
     }
 
     // ─── Admission Requests (HP-2) ────────────────────────────────────────────

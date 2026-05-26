@@ -24,19 +24,39 @@
             
             {% for room in rooms %}
             <div class="admin-room-card">
-                <div class="room-photo">Room Photo</div>
+                {# Photo area — show uploaded photo or gradient placeholder #}
+                {% if room.photoPath %}
+                    <img src="{{ asset(room.photoPath) }}" alt="Room {{ room.roomNumber }}"
+                         style="width:100%;height:140px;object-fit:cover;border-radius:10px 10px 0 0;">
+                {% else %}
+                    <div style="width:100%;height:140px;background:linear-gradient(135deg,#1e3a5f,#0f172a);border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:center;">
+                        <span style="font-size:2rem;">🚪</span>
+                    </div>
+                {% endif %}
+
                 <div class="room-card-body">
                     <div class="room-card-header">
                         <h4>Room {{ room.roomNumber }}</h4>
-                         <span class="status {{ room.currentOccupancy == room.capacity ? 'reject' : (room.currentOccupancy > 0 ? 'in-progress' : 'resolved') }}" style="font-size: 0.75rem;">
-                             {{ room.currentOccupancy == room.capacity ? 'Full' : (room.currentOccupancy > 0 ? 'Available' : 'Vacant') }}
-                             ({{ room.currentOccupancy }}/{{ room.capacity }})
+                         <span class="status {{ room.isFull ? 'reject' : (room.actualOccupancy > 0 ? 'in-progress' : 'resolved') }}" style="font-size: 0.75rem;">
+                             {{ room.isFull ? 'Full' : (room.actualOccupancy > 0 ? 'Available' : 'Vacant') }}
+                             ({{ room.actualOccupancy }}/{{ room.capacity }})
                          </span>
                      </div>
-                     <p class="room-meta">{{ room.hostelBlock }} • Floor {{ room.floor }}</p>
+                     <p class="room-meta">{{ room.hostelBlock }} &bull; Floor {{ room.floor }}</p>
                      <p class="room-desc">{{ room.roomType ?? 'Standard Room' }}</p>
-                    <div class="room-actions">
-                        {% if room.currentOccupancy == 0 %}
+
+                    {# Photo Upload Form #}
+                    <details style="margin-top:8px;">
+                        <summary style="font-size:.8rem;color:#64748b;cursor:pointer;">📷 Upload Photo</summary>
+                        <form method="post" action="{{ path('admin_room_photo', {id: room.id}) }}"
+                              enctype="multipart/form-data" style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+                            <input type="file" name="photo" accept="image/*" required style="font-size:.78rem;color:#94a3b8;">
+                            <button type="submit" class="btn btn-primary" style="font-size:.78rem;padding:4px 10px;">Upload</button>
+                        </form>
+                    </details>
+
+                    <div class="room-actions" style="margin-top:10px;">
+                        {% if room.actualOccupancy == 0 %}
                         <form method="POST" action="{{ path('admin_rooms_delete', {id: room.id}) }}" style="display:inline;">
                             <button type="submit" class="btn-action reject" style="font-size:0.75rem;"
                                     onclick="return confirm('Delete Room {{ room.roomNumber }}?')">Delete</button>

@@ -177,9 +177,8 @@ class SupervisorController extends AbstractController
             if ($assignment->getStatus() === AssignmentStatus::Active) {
                 $assignment->setStatus(AssignmentStatus::Vacated);
                 $assignment->setVacatedDate(new DateTimeImmutable());
-                $oldRoom = $assignment->getRoom();
-                $oldRoom->setCurrentOccupancy(max(0, $oldRoom->getCurrentOccupancy() - 1));
-                $oldRoom->setStatus(RoomStatus::Available);
+                $em->flush(); // flush so the collection reflects the vacated state
+                $assignment->getRoom()->recalculateOccupancy();
             }
         }
 
@@ -189,16 +188,14 @@ class SupervisorController extends AbstractController
         $newAssignment->setAssignedDate(new DateTimeImmutable());
         $newAssignment->setStatus(AssignmentStatus::Active);
 
-        $requestedRoom->setCurrentOccupancy($requestedRoom->getCurrentOccupancy() + 1);
-        if ($requestedRoom->getCurrentOccupancy() >= $requestedRoom->getCapacity()) {
-            $requestedRoom->setStatus(RoomStatus::Full);
-        }
-
         $rcRequest->setStatus(RequestStatus::Approved);
         $rcRequest->setReviewedBy($supervisor);
         $rcRequest->setReviewedAt(new DateTimeImmutable());
 
         $em->persist($newAssignment);
+        $em->flush(); // persist new assignment first so collection is accurate
+
+        $requestedRoom->recalculateOccupancy();
         $em->flush();
 
         $this->addFlash('success', $student->getUser()->getName() . '\'s room change approved!');

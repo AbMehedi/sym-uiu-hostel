@@ -10,10 +10,19 @@
             <p class="date-display" id="current-date">Loading date...</p>
         </div>
         <div class="admin-profile">
-            <div class="avatar">A</div>
+            <div class="avatar">{{ app.user.name|first|upper }}</div>
             <span>System Admin</span>
         </div>
     </header>
+
+    <!-- Flash Messages -->
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ type }}" style="margin:0 0 16px;padding:12px 20px;border-radius:8px;background:{% if type=='success' %}#064e3b{% elseif type=='error' %}#7f1d1d{% else %}#1e3a5f{% endif %};color:#fff;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endfor %}
 
     <!-- Live Statistics Cards -->
     <div class="dashboard-stats">
@@ -22,22 +31,42 @@
             <div class="stat-value">{{ totalRooms }}</div>
         </div>
         <div class="stat-card occupied">
-            <div class="stat-title">Occupied Rooms</div>
+            <div class="stat-title">Full Rooms</div>
             <div class="stat-value">{{ occupiedRooms }}</div>
         </div>
         <div class="stat-card vacant">
-            <div class="stat-title">Vacant Rooms</div>
+            <div class="stat-title">Available Rooms</div>
             <div class="stat-value">{{ vacantRooms }}</div>
         </div>
+        <div class="stat-card">
+            <div class="stat-title">Total Students</div>
+            <div class="stat-value">{{ totalStudents }}</div>
+        </div>
         <div class="stat-card danger">
-            <div class="stat-title">Pending Complaints</div>
+            <div class="stat-title">Open Complaints</div>
             <div class="stat-value">{{ pendingComplaints }}</div>
         </div>
+        <div class="stat-card">
+            <div class="stat-title">Pending Admissions</div>
+            <div class="stat-value" style="color:#f59e0b;">{{ pendingAdmissions }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Total Repair Cost</div>
+            <div class="stat-value" style="font-size:1.4rem;">৳{{ totalRepairCost|number_format(2) }}</div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;">
+        <a href="{{ path('admin_admission_requests') }}" class="btn btn-primary">Review Admissions</a>
+        <a href="{{ path('admin_room_assign') }}"        class="btn btn-primary">Assign Rooms</a>
+        <a href="{{ path('admin_tasks') }}"              class="btn btn-primary">Manage Tasks</a>
+        <a href="{{ path('admin_reports') }}"            class="btn btn-primary">View Reports</a>
     </div>
 
     <!-- Dashboard Tables Grid -->
     <div class="dashboard-grid">
-        
+
         <!-- Pending Admissions Summary -->
         <div class="dashboard-box">
             <div class="box-header">
@@ -46,47 +75,47 @@
             </div>
             <div style="padding:20px;text-align:center;">
                 <div style="font-size:3rem;font-weight:700;color:#f59e0b;">{{ pendingAdmissions }}</div>
-                <p style="color:#94a3b8;margin:8px 0 20px;">Students awaiting admission approval</p>
+                <p style="color:#94a3b8;margin:8px 0 20px;">Students awaiting approval</p>
                 <a href="{{ path('admin_admission_requests') }}" class="btn btn-primary" style="display:inline-block;">
                     Review Applications
                 </a>
             </div>
         </div>
 
-        <!-- Recent Complaints Table -->
+        <!-- Recent Complaints — real data -->
         <div class="dashboard-box">
             <div class="box-header">
                 <h3>Recent Complaints</h3>
                 <a href="{{ path('admin_complaints') }}" class="btn-link">View All →</a>
             </div>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Room</th>
-                        <th>Issue</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Block A - 102</td>
-                        <td>Water Leakage</td>
-                        <td><span class="status pending">Pending</span></td>
-                    </tr>
-                    <tr>
-                        <td>Block B - 205</td>
-                        <td>Broken Fan</td>
-                        <td><span class="status in-progress">In Progress</span></td>
-                    </tr>
-                    <tr>
-                        <td>Block A - 105</td>
-                        <td>Wifi Issue</td>
-                        <td><span class="status resolved">Resolved</span></td>
-                    </tr>
-                </tbody>
-            </table>
+            {% if recentComplaints is empty %}
+                <p style="padding:20px;color:#64748b;text-align:center;">No complaints yet.</p>
+            {% else %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Room</th>
+                            <th>Issue</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in recentComplaints %}
+                        <tr>
+                            <td>{{ c.room ? c.room.roomNumber : '—' }}</td>
+                            <td>{{ c.subject }}</td>
+                            <td>
+                                <span class="status {{ c.status|lower|replace({' ':'-'}) }}">
+                                    {{ c.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
         </div>
-    </div> <!-- End Dashboard Grid -->
+    </div>
 {% endblock %}
 
 {% block javascripts %}

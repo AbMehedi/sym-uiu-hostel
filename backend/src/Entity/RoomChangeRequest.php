@@ -40,6 +40,9 @@ class RoomChangeRequest
     #[ORM\Column(name: 'reviewed_at', type: 'datetime_immutable', nullable: true)]
     private ?DateTimeImmutable $reviewedAt = null;
 
+    #[ORM\Column(name: 'requested_at', type: 'datetime_immutable')]
+    private DateTimeImmutable $requestedAt;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -125,6 +128,18 @@ class RoomChangeRequest
     public function setReviewedAt(?DateTimeImmutable $reviewedAt): self
     {
         $this->reviewedAt = $reviewedAt;
+
+        return $this;
+    }
+
+    public function getRequestedAt(): DateTimeImmutable
+    {
+        return $this->requestedAt;
+    }
+
+    public function setRequestedAt(DateTimeImmutable $requestedAt): self
+    {
+        $this->requestedAt = $requestedAt;
 
         return $this;
     }

@@ -24,11 +24,12 @@
                 <ul class="sidebar-nav">
                     <li><a href="{{ path('admin_dashboard') }}" class="{{ app.request.attributes.get('_route') == 'admin_dashboard' ? 'active' : '' }}">Dashboard Overview</a></li>
                     <li><a href="{{ path('admin_supervisors') }}" class="{{ app.request.attributes.get('_route') starts with 'admin_supervisor' ? 'active' : '' }}">Supervisor Management</a></li>
+                    <li><a href="{{ path('admin_tasks') }}" class="{{ app.request.attributes.get('_route') starts with 'admin_task' ? 'active' : '' }}">Task Management</a></li>
                     <li><a href="{{ path('admin_rooms') }}" class="{{ app.request.attributes.get('_route') starts with 'admin_room' ? 'active' : '' }}">Room Management</a></li>
                     <li><a href="{{ path('admin_students') }}" class="{{ app.request.attributes.get('_route') == 'admin_students' ? 'active' : '' }}">Students</a></li>
                     <li><a href="{{ path('admin_admission_requests') }}" class="{{ app.request.attributes.get('_route') starts with 'admin_admission' ? 'active' : '' }}">Admission Requests</a></li>
-                    <li><a href="{{ path('admin_complaints') }}" class="{{ app.request.attributes.get('_route') == 'admin_complaints' ? 'active' : '' }}">Complaints & Costs</a></li>
-                    <li><a href="{{ path('admin_reports') }}" class="{{ app.request.attributes.get('_route') == 'admin_reports' ? 'active' : '' }}">Reports & PDF Export</a></li>
+                    <li><a href="{{ path('admin_complaints') }}" class="{{ app.request.attributes.get('_route') == 'admin_complaints' ? 'active' : '' }}">Complaints &amp; Costs</a></li>
+                    <li><a href="{{ path('admin_reports') }}" class="{{ app.request.attributes.get('_route') == 'admin_reports' ? 'active' : '' }}">Reports &amp; PDF Export</a></li>
                 </ul>
 
                 <div class="sidebar-bottom">
