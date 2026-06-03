@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Student;
+use App\Enum\AssignmentStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -15,4 +16,44 @@ class StudentRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Student::class);
     }
+
+    /**
+     * Returns all students whose active RoomAssignment is in a given block.
+     * Uses a JOIN on room_assignments → rooms so we only match ACTIVE assignments.
+     *
+     * @return Student[]
+     */
+    public function findByBlock(string $block): array
+    {
+        return $this->createQueryBuilder('s')
+            ->join('s.roomAssignments', 'ra')
+            ->join('ra.room', 'r')
+            ->where('ra.status = :status')
+            ->andWhere('r.block = :block')
+            ->setParameter('status', AssignmentStatus::Active)
+            ->setParameter('block', $block)
+            ->orderBy('s.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Returns all students whose active RoomAssignment is for a specific room.
+     *
+     * @return Student[]
+     */
+    public function findByRoom(int $roomId): array
+    {
+        return $this->createQueryBuilder('s')
+            ->join('s.roomAssignments', 'ra')
+            ->join('ra.room', 'r')
+            ->where('ra.status = :status')
+            ->andWhere('r.id = :roomId')
+            ->setParameter('status', AssignmentStatus::Active)
+            ->setParameter('roomId', $roomId)
+            ->orderBy('s.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }
+

@@ -60,10 +60,63 @@ class SupervisorController extends AbstractController
     // ─── Students ─────────────────────────────────────────────────────────────
 
     #[Route('/students', name: 'supervisor_students')]
-    public function students(StudentRepository $repo): Response
-    {
+    public function students(
+        Request $request,
+        StudentRepository $studentRepo,
+        EntityManagerInterface $em
+    ): Response {
+        /** @var \App\Entity\User $user */
+        $user       = $this->getUser();
+        $supervisor = $user->getSupervisor();
+        $block      = $supervisor?->getBlockAssigned() ?? '';
+
+        // All students in this block (active assignment only)
+        $students = $block ? $studentRepo->findByBlock($block) : [];
+
+        // Build list of unique room numbers in this block for the filter dropdown
+        $rooms = [];
+        foreach ($students as $student) {
+            $room = $student->getRoom();
+            if ($room && !isset($rooms[$room->getId()])) {
+                $rooms[$room->getId()] = $room->getRoomNumber();
+            }
+        }
+        asort($rooms);
+
         return $this->render('supervisor/students.html.twig', [
-            'students' => $repo->findAll(),
+            'students'   => $students,
+            'rooms'      => $rooms,          // [ roomId => roomNumber ] for filter dropdown
+            'supervisor' => $supervisor,
+            'block'      => $block,
+        ]);
+    }
+
+    #[Route('/students/{id}', name: 'supervisor_student_detail', requirements: ['id' => '\d+'])]
+    public function studentDetail(int $id, StudentRepository $studentRepo): Response
+    {
+        /** @var \App\Entity\User $user */
+        $user       = $this->getUser();
+        $supervisor = $user->getSupervisor();
+        $block      = $supervisor?->getBlockAssigned() ?? '';
+
+        $student = $studentRepo->find($id);
+
+        // Guard: student must exist and must be in the supervisor's block
+        if (!$student) {
+            $this->addFlash('error', 'Student not found.');
+            return $this->redirectToRoute('supervisor_students');
+        }
+
+        $room = $student->getRoom();
+        if (!$room || $room->getBlock() !== $block) {
+            $this->addFlash('error', 'Access denied — student is not in your block.');
+            return $this->redirectToRoute('supervisor_students');
+        }
+
+        return $this->render('supervisor/student-detail.html.twig', [
+            'student'    => $student,
+            'room'       => $room,
+            'supervisor' => $supervisor,
         ]);
     }
 
