@@ -78,7 +78,12 @@
                     <td><span class="room-badge">{{ complaint.room ? complaint.room.roomNumber : 'N/A' }}</span></td>
                     <td>{{ complaint.student ? complaint.student.user.name : 'N/A' }}</td>
                     <td><span class="type-badge {{ complaint.category.value|lower }}">{{ complaint.category.value }}</span></td>
-                    <td>{{ complaint.subject }}</td>
+                    <td>
+                        {{ complaint.subject }}
+                        {% if complaint.photoUrl %}
+                            <span title="Has photo attachment" style="margin-left:6px; font-size:0.85rem;">📎</span>
+                        {% endif %}
+                    </td>
                     <td>{{ complaint.cost }}</td>
                     <td class="comp-status-cell"><span class="status {{ complaint.status|lower|replace({' ': '-'}) }}">{{ complaint.status }}</span></td>
                     <td><button class="btn-action approve" onclick="openComplaintModal(this)">View</button></td>
@@ -136,10 +141,11 @@
                         <span class="modal-detail-label">Current Status</span>
                         <span id="cm-status-badge"></span>
                     </div>
-                    <div class="modal-detail-item" style="grid-column: 1 / -1;" id="cm-photo-wrapper">
-                        <span class="modal-detail-label">Attached Photo</span>
-                        <div style="margin-top: 8px; background: rgba(30, 41, 59, 0.4); border: 1px solid #1e293b; border-radius: 8px; padding: 10px; display: inline-block;">
-                            <img id="cm-photo" src="" alt="Complaint photo attachment" style="max-width: 100%; max-height: 300px; border-radius: 6px; object-fit: contain;">
+                    <div class="modal-detail-item" id="cm-photo-wrapper" style="grid-column: 1 / -1; display: none;">
+                        <span class="modal-detail-label">📎 Attached Photo</span>
+                        <div style="margin-top: 8px; background: rgba(30, 41, 59, 0.4); border: 1px solid #1e293b; border-radius: 8px; padding: 10px;">
+                            <img id="cm-photo" src="" alt="Complaint photo attachment" style="max-width: 100%; max-height: 300px; border-radius: 6px; object-fit: contain; display:block;">
+                            <a id="cm-photo-link" href="" target="_blank" style="display:block; margin-top:8px; font-size:0.82rem; color:var(--primary-color);">Open full image in new tab ↗</a>
                         </div>
                     </div>
                 </div>
@@ -188,11 +194,14 @@
             // Show or hide the photo attachment
             const photoWrapper = document.getElementById('cm-photo-wrapper');
             const photoEl = document.getElementById('cm-photo');
+            const photoLink = document.getElementById('cm-photo-link');
             if (d.photo && d.photo.trim() !== '') {
                 photoEl.src = d.photo;
+                photoLink.href = d.photo;
                 photoWrapper.style.display = '';
             } else {
                 photoEl.src = '';
+                photoLink.href = '';
                 photoWrapper.style.display = 'none';
             }
 
