@@ -35,17 +35,25 @@ class SupervisorController extends AbstractController
         StudentRepository $studentRepo,
         ComplaintRepository $complaintRepo,
         RoomChangeRequestRepository $roomChangeRepo,
+        AnnouncementRepository $announcementRepo,
     ): Response {
         /** @var \App\Entity\User $user */
         $user       = $this->getUser();
         $supervisor = $user->getSupervisor();
 
+        $pendingRequests = $roomChangeRepo->findBy(['status' => RequestStatus::Pending], ['id' => 'DESC']);
+        $recentComplaints = $complaintRepo->findBy([], ['createdAt' => 'DESC'], 5);
+        $recentAnnouncements = $announcementRepo->findBy([], ['createdAt' => 'DESC'], 3);
+
         return $this->render('supervisor/dashboard.html.twig', [
             'totalStudents'       => count($studentRepo->findAll()),
             'pendingComplaints'   => count($complaintRepo->findBy(['status' => ComplaintStatus::Pending])),
             'inProgressComplaints'=> count($complaintRepo->findBy(['status' => ComplaintStatus::InProgress])),
-            'pendingRoomChanges'  => count($roomChangeRepo->findPending()),
+            'pendingRoomChanges'  => count($pendingRequests),
             'supervisor'          => $supervisor,
+            'pendingRequests'     => $pendingRequests,
+            'recentComplaints'    => $recentComplaints,
+            'recentAnnouncements' => $recentAnnouncements,
         ]);
     }
 
@@ -65,7 +73,7 @@ class SupervisorController extends AbstractController
     public function complaints(ComplaintRepository $repo): Response
     {
         return $this->render('supervisor/complaints.html.twig', [
-            'complaints' => $repo->findAll(),
+            'complaints' => $repo->findBy([], ['createdAt' => 'DESC']),
         ]);
     }
 

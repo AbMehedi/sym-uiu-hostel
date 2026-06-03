@@ -2,9 +2,12 @@
 
 namespace App\Controller;
 
+use App\Entity\AdmissionRequest;
 use App\Entity\Student;
 use App\Entity\User;
+use App\Enum\RequestStatus;
 use App\Enum\Role;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -63,15 +66,28 @@ class RegistrationController extends AbstractController
             $student->setStudentNumber($studentId);
             $student->setPhone($phone ?: null);
 
+            $admissionRequest = new AdmissionRequest();
+            $admissionRequest->setStudent($student);
+            $admissionRequest->setRequestedDate(new DateTimeImmutable());
+            $admissionRequest->setStatus(RequestStatus::Pending);
+            $admissionRequest->setPreferredRoomType('Double Sharing');
+
             $entityManager->persist($user);
             $entityManager->persist($student);
+            $entityManager->persist($admissionRequest);
             $entityManager->flush();
 
-            $this->addFlash('success', 'Registration submitted successfully! You can now log in.');
-            return $this->redirectToRoute('app_login');
+            $this->addFlash('success', 'Registration submitted successfully! Your application is pending review.');
+            return $this->redirectToRoute('app_register_pending');
         }
 
         return $this->render('registration/register.html.twig');
+    }
+
+    #[Route('/register/pending', name: 'app_register_pending')]
+    public function pending(): Response
+    {
+        return $this->render('registration/pending.html.twig');
     }
 }
 

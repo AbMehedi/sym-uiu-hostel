@@ -132,4 +132,18 @@ class ChatRepository extends ServiceEntityRepository
 
         return $result;
     }
+
+    /**
+     * Count unread messages sent from $from to $to.
+     */
+    public function countUnread(User $from, User $to): int
+    {
+        return (int) $this->createQueryBuilder('m')
+            ->select('COUNT(m.id)')
+            ->where('m.sender = :from AND m.receiver = :to AND m.isRead = false')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }

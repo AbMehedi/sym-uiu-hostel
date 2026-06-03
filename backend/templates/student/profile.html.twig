@@ -1,0 +1,118 @@
+{% extends 'student/base.html.twig' %}
+
+{% block title %}My Profile{% endblock %}
+
+{% block body %}
+    <header class="dashboard-header">
+        <div>
+            <h1>My Profile</h1>
+            <p class="date-display">View and update your personal information</p>
+        </div>
+        <div class="admin-profile">
+            <div class="avatar stu-avatar"></div>
+            <span>Room {{ app.user.student.room ? app.user.student.room.roomNumber : 'N/A' }}</span>
+        </div>
+    </header>
+
+    <div class="profile-layout">
+
+        {# ── Left: Profile Card ── #}
+        <div class="dashboard-box profile-card">
+            <div class="profile-avatar-wrap">
+                <div class="profile-avatar-lg">
+                    {{ app.user.name|slice(0,2)|upper }}
+                </div>
+                <h2 class="profile-name">{{ app.user.name }}</h2>
+                <span class="profile-badge {{ student.admissionStatus.value }}">
+                    {{ student.admissionStatus.value|capitalize }}
+                </span>
+            </div>
+
+            <div class="profile-info-list">
+                <div class="profile-info-item">
+                    <span class="profile-info-label">📧 Email</span>
+                    <span class="profile-info-value">{{ app.user.email }}</span>
+                </div>
+                <div class="profile-info-item">
+                    <span class="profile-info-label">🪪 Student ID</span>
+                    <span class="profile-info-value">{{ student.studentNumber }}</span>
+                </div>
+                <div class="profile-info-item">
+                    <span class="profile-info-label">🏠 Room</span>
+                    <span class="profile-info-value">
+                        {% if student.room %}
+                            {{ student.room.roomNumber }} — Block {{ student.room.block }}, Floor {{ student.room.floor }}
+                        {% else %}
+                            Not assigned
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="profile-info-item">
+                    <span class="profile-info-label">📅 Joined</span>
+                    <span class="profile-info-value">
+                        {{ student.admissionDate ? student.admissionDate|date('d M Y') : '—' }}
+                    </span>
+                </div>
+                <div class="profile-info-item">
+                    <span class="profile-info-label">👤 Account Created</span>
+                    <span class="profile-info-value">{{ app.user.createdAt|date('d M Y') }}</span>
+                </div>
+            </div>
+        </div>
+
+        {# ── Right: Edit Form ── #}
+        <div class="dashboard-box profile-edit-box">
+            <div class="box-header">
+                <h3>Edit Information</h3>
+            </div>
+            <form method="post" action="{{ path('student_profile') }}" class="announce-form">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text"
+                           class="form-control announce-input"
+                           value="{{ app.user.name }}"
+                           disabled
+                           style="opacity:0.55;cursor:not-allowed;"
+                           title="Name can only be changed by admin">
+                    <small style="color:#64748b;">Contact admin to update your name.</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email"
+                           class="form-control announce-input"
+                           value="{{ app.user.email }}"
+                           disabled
+                           style="opacity:0.55;cursor:not-allowed;">
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">📱 Phone Number</label>
+                    <input type="tel"
+                           id="phone"
+                           name="phone"
+                           class="form-control announce-input"
+                           value="{{ student.phone ?? '' }}"
+                           placeholder="+880 1XXXXXXXXX"
+                           maxlength="20">
+                </div>
+
+                <div class="form-group">
+                    <label for="emergencyContact">🆘 Emergency Contact</label>
+                    <input type="text"
+                           id="emergencyContact"
+                           name="emergencyContact"
+                           class="form-control announce-input"
+                           value="{{ student.emergencyContact ?? '' }}"
+                           placeholder="Name and phone number of a guardian"
+                           maxlength="150">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">
+                    💾 Save Changes
+                </button>
+            </form>
+        </div>
+
+    </div>
+{% endblock %}

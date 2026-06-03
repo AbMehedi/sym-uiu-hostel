@@ -4,6 +4,7 @@ namespace App\Command;
 
 use App\Entity\AdmissionRequest;
 use App\Entity\Announcement;
+use App\Entity\ChatMessage;
 use App\Entity\Complaint;
 use App\Entity\ComplaintUpdate;
 use App\Entity\RepairCost;
@@ -87,6 +88,12 @@ class SeedDbCommand extends Command
             ['C-201', 'C-Block', 2, 2, 'Double'],
             ['C-202', 'C-Block', 2, 3, 'Triple'],
             ['C-203', 'C-Block', 2, 1, 'Single'],
+            ['D-101', 'D-Block', 1, 2, 'Double'],
+            ['D-102', 'D-Block', 1, 3, 'Triple'],
+            ['D-103', 'D-Block', 1, 1, 'Single'],
+            ['D-201', 'D-Block', 2, 2, 'Double'],
+            ['D-202', 'D-Block', 2, 3, 'Triple'],
+            ['D-203', 'D-Block', 2, 1, 'Single'],
         ];
 
         /** @var Room[] $rooms */
@@ -112,6 +119,7 @@ class SeedDbCommand extends Command
             ['supervisor.a@hostel.com', 'Rahman Ahmed',    'A-Block', '01711-000001'],
             ['supervisor.b@hostel.com', 'Nadia Hossain',   'B-Block', '01711-000002'],
             ['supervisor.c@hostel.com', 'Karim Uddin',     'C-Block', '01711-000003'],
+            ['supervisor.d@hostel.com', 'Tariq Rahman',    'D-Block', '01711-000004'],
         ];
 
         /** @var Supervisor[] $supervisors */
@@ -151,6 +159,10 @@ class SeedDbCommand extends Command
             ['student10@hostel.com', 'Jakir Hossain',    'STU010', AdmissionStatus::Pending,   '01812-001010'],
             ['student11@hostel.com', 'Keya Sultana',     'STU011', AdmissionStatus::Pending,   '01812-001011'],
             ['student12@hostel.com', 'Limon Mia',        'STU012', AdmissionStatus::Rejected,  '01812-001012'],
+            ['student13@hostel.com', 'Mina Akter',       'STU013', AdmissionStatus::Approved,  '01812-001013'],
+            ['student14@hostel.com', 'Nizam Uddin',      'STU014', AdmissionStatus::Approved,  '01812-001014'],
+            ['student15@hostel.com', 'Omar Faruq',       'STU015', AdmissionStatus::Approved,  '01812-001015'],
+            ['student16@hostel.com', 'Priya Roy',        'STU016', AdmissionStatus::Approved,  '01812-001016'],
         ];
 
         /** @var Student[] $students */
@@ -199,7 +211,7 @@ class SeedDbCommand extends Command
         $this->em->persist($arRejected);
 
         // Also create approved admission requests for approved students
-        foreach (['STU001','STU002','STU003','STU004','STU005','STU006','STU007','STU008'] as $num) {
+        foreach (['STU001','STU002','STU003','STU004','STU005','STU006','STU007','STU008','STU013','STU014','STU015','STU016'] as $num) {
             $ar2 = new AdmissionRequest();
             $ar2->setStudent($students[$num]);
             $ar2->setStatus(RequestStatus::Approved);
@@ -221,10 +233,14 @@ class SeedDbCommand extends Command
             ['STU002', 'A-101'],  // same room as STU001 (double)
             ['STU003', 'A-102'],
             ['STU004', 'A-102'],
+            ['STU013', 'A-102'],  // triple room full
             ['STU005', 'B-101'],
             ['STU006', 'B-102'],
             ['STU007', 'C-101'],
             ['STU008', 'C-102'],
+            ['STU014', 'C-102'],  // roommates with STU008
+            ['STU015', 'D-101'],
+            ['STU016', 'D-101'],  // roommates
         ];
 
         foreach ($assignments as [$sNum, $rNum]) {
@@ -416,17 +432,49 @@ class SeedDbCommand extends Command
 
         $this->em->flush();
 
+        // ── 13. Chat Messages ────────────────────────────────────────────────
+        $io->section('Creating Chat Messages');
+
+        $chatData = [
+            // Roommate chat: STU001 & STU002 (Room A-101)
+            [$students['STU001']->getUser(), $students['STU002']->getUser(), 'Hey roomie, are you in the room?', '-2 hours', true],
+            [$students['STU002']->getUser(), $students['STU001']->getUser(), 'Yeah, just studying. Why?', '-1 hours 55 minutes', true],
+            [$students['STU001']->getUser(), $students['STU002']->getUser(), 'Can you unlock the door? I forgot my keys.', '-1 hours 50 minutes', true],
+            [$students['STU002']->getUser(), $students['STU001']->getUser(), 'Got it, opening now.', '-1 hours 49 minutes', true],
+
+            // Student-Supervisor chat: STU001 & A-Block Supervisor
+            [$students['STU001']->getUser(), $supervisors['A-Block']->getUser(), 'Hello sir, the water tap in A-101 is still leaking.', '-1 days', true],
+            [$supervisors['A-Block']->getUser(), $students['STU001']->getUser(), 'I have escalated it to the plumber. They will come tomorrow.', '-23 hours', false],
+
+            // Roommate chat: STU015 & STU016 (Room D-101)
+            [$students['STU015']->getUser(), $students['STU016']->getUser(), 'Did you pay the mess bill yet?', '-3 days', true],
+            [$students['STU016']->getUser(), $students['STU015']->getUser(), 'Not yet, doing it tonight.', '-2 days', false],
+        ];
+
+        foreach ($chatData as [$sender, $receiver, $msgText, $dateStr, $isRead]) {
+            $msg = new ChatMessage();
+            $msg->setSender($sender);
+            $msg->setReceiver($receiver);
+            $msg->setMessage($msgText);
+            $msg->setSentAt(new DateTimeImmutable($dateStr));
+            $msg->setIsRead($isRead);
+            $this->em->persist($msg);
+        }
+
+        $this->em->flush();
+
         $io->success([
             'Database seeded successfully!',
             '  Admin:        admin@hostel.com / password',
-            '  Supervisors:  supervisor.a@hostel.com, supervisor.b@hostel.com, supervisor.c@hostel.com / password',
-            '  Students:     student1@hostel.com … student12@hostel.com / password',
-            '  Rooms:        18 across A/B/C blocks',
+            '  Supervisors:  supervisor.a@hostel.com ... supervisor.d@hostel.com / password',
+            '  Students:     student1@hostel.com … student16@hostel.com / password',
+            '  Rooms:        24 across A/B/C/D blocks',
             '  Complaints:   8 (Pending/InProgress/Resolved)',
             '  Repair costs: 5 entries',
             '  Room changes: 3 (Pending/Approved/Rejected)',
             '  Tasks:        4 assigned to supervisors',
             '  Announcements:3 (one per block)',
+            '  Chats:        8 messages between roommates & supervisors',
         ]);
 
         return Command::SUCCESS;

@@ -68,16 +68,19 @@
             </div>
             <div id="complaints-list">
                 {% for complaint in complaints %}
-                <div class="announcement-card complaint-card" data-status="{{ complaint.status }}" data-subject="{{ complaint.subject|lower }}">
+                <div class="announcement-card complaint-card" data-status="{{ complaint.status }}" data-subject="{{ complaint.subject|lower }}" style="cursor: pointer;" onclick="window.location.href='{{ path('student_complaint_detail', {id: complaint.id}) }}'">
                     <div class="announcement-card-header">
                         <span class="ann-category-badge {{ complaint.status|lower|replace({' ': '-'}) }}">{{ complaint.status }}</span>
                         <span class="ann-date">{{ complaint.createdAt|date('M d, Y') }}</span>
                     </div>
                     <h4 class="ann-card-title">{{ complaint.subject }}</h4>
                     <p class="ann-card-body">{{ complaint.description }}</p>
-                    <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
-                        <span class="type-badge {{ complaint.category.value|lower }}">{{ complaint.category.value }}</span>
-                        <span style="font-size:0.8rem;color:#64748b;">Room {{ complaint.room ? complaint.room.roomNumber : 'N/A' }}</span>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span class="type-badge {{ complaint.category.value|lower }}">{{ complaint.category.value }}</span>
+                            <span style="font-size:0.8rem;color:#64748b;">Room {{ complaint.room ? complaint.room.roomNumber : 'N/A' }}</span>
+                        </div>
+                        <a href="{{ path('student_complaint_detail', {id: complaint.id}) }}" class="btn-link" style="font-size:0.85rem;" onclick="event.stopPropagation();">Track Status &rarr;</a>
                     </div>
                 </div>
                 {% endfor %}

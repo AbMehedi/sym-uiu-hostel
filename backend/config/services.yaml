@@ -7,6 +7,21 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    hostel_rules:
+        - "Keep noise down after 10 PM — be mindful of neighbouring rooms."
+        - "Visitors are only allowed in the common room between 8 AM – 9 PM."
+        - "Smoking, alcohol, and illegal substances are strictly prohibited inside the hostel."
+        - "Inform the supervisor in advance if you need to enter after 10 PM."
+        - "Each resident is personally responsible for keeping their room clean."
+        - "Report any maintenance issue on the portal promptly — don't delay."
+        - "Monthly rent must be paid by the 5th of each month."
+        - "No pets are allowed anywhere on the hostel premises."
+        - "Changing rooms without admin approval is strictly not allowed."
+        - "Leave common areas clean after use."
+    hostel_contact:
+        phone: "+880-2-8837538"
+        email: "hostel@uiu.ac.bd"
+        address: "Madani Avenue, Natun Bazar, Badda, Dhaka-1212"
 
 services:
     # default configuration for services in *this* file

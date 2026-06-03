@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Application Pending - UIU Hostel Management System{% endblock %}
+
+{% block body %}
+    <!-- Simplified Navbar -->
+    <nav class="navbar">
+        <a href="{{ path('app_home') }}" class="logo">
+            <h2>UIU <span>HMS</span></h2>
+        </a>
+        <a href="{{ path('app_home') }}" class="btn btn-outline">Back to Home</a>
+    </nav>
+
+    <div class="auth-container">
+        <div class="auth-card" style="text-align: center;">
+            <div class="auth-header">
+                <div style="font-size: 3.5rem; margin-bottom: 20px;">⏳</div>
+                <h2 style="color: #f59e0b; margin-bottom: 10px;">Application Under Review</h2>
+                <p>Thank you for submitting your hostel admission application!</p>
+            </div>
+
+            <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px; padding: 20px; margin: 24px 0; text-align: left;">
+                <h4 style="color: white; margin-bottom: 10px; font-size: 0.95rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Application Status</h4>
+                <p style="margin-bottom: 8px; font-size: 0.9rem; color: #cbd5e1;"><strong>Status:</strong> <span style="color: #f59e0b;">Pending Review</span></p>
+                <p style="margin-bottom: 8px; font-size: 0.9rem; color: #cbd5e1;"><strong>Submitted Date:</strong> {{ "now"|date('F j, Y') }}</p>
+                <p style="margin-bottom: 0; font-size: 0.9rem; color: #cbd5e1;"><strong>Expected Response:</strong> Within 2-3 business days.</p>
+            </div>
+
+            <p style="font-size: 0.88rem; color: #94a3b8; margin-bottom: 24px; line-height: 1.6;">
+                Our administrators are currently reviewing your documents (NID / student records). Once approved, you will be registered to select rooms and log in to the student portal.
+            </p>
+
+            <a href="{{ path('app_login') }}" class="btn btn-primary btn-full">Go to Login</a>
+        </div>
+    </div>
+{% endblock %}

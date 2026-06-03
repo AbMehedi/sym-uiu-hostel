@@ -454,7 +454,7 @@ class AdminController extends AbstractController
         RepairCostRepository $repairCostRepository,
     ): Response
     {
-        $complaints = $complaintRepository->findBy([], ['id' => 'DESC']);
+        $complaints = $complaintRepository->findBy([], ['createdAt' => 'DESC']);
         $startOfMonth = new DateTimeImmutable('first day of this month midnight');
         $startOfNextMonth = $startOfMonth->modify('first day of next month midnight');
 

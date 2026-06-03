@@ -43,6 +43,11 @@ class RoomChangeRequest
     #[ORM\Column(name: 'requested_at', type: 'datetime_immutable')]
     private DateTimeImmutable $requestedAt;
 
+    public function __construct()
+    {
+        $this->requestedAt = new DateTimeImmutable();
+    }
+
     public function getId(): ?int
     {
         return $this->id;

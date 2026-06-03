@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Repair Cost Statistics Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #1e293b; padding: 30px; }
+        .header { text-align: center; margin-bottom: 24px; border-bottom: 3px solid #ef4444; padding-bottom: 16px; }
+        .header h1 { font-size: 22px; color: #7f1d1d; font-weight: bold; margin-bottom: 4px; }
+        .header p { font-size: 11px; color: #64748b; }
+        .meta-row { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 11px; color: #64748b; }
+        .section-title { font-size: 13px; font-weight: bold; color: #7f1d1d; margin-bottom: 10px; border-left: 4px solid #ef4444; padding-left: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        thead { background: #fee2e2; }
+        th { padding: 7px 8px; text-align: left; font-size: 10px; color: #7f1d1d; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 1px solid #fca5a5; }
+        td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; font-size: 10px; }
+        tr:nth-child(even) td { background: #fff5f5; }
+        .summary-table { background: #fff5f5; border: 1px solid #fca5a5; border-radius: 6px; }
+        .summary-table th { background: #ef4444; color: white; }
+        .total-row td { font-weight: bold; background: #fee2e2 !important; }
+        .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 UIU Hostel Management System</h1>
+        <p>Repair Cost Statistics Report</p>
+    </div>
+
+    <div class="meta-row">
+        <span><strong>From:</strong> {{ from|date('d M Y') }} &nbsp; <strong>To:</strong> {{ to|date('d M Y') }}</span>
+        <span><strong>Generated:</strong> {{ generatedAt|date('d M Y, H:i') }}</span>
+        <span><strong>Total Cost:</strong> ৳ {{ grandTotal|number_format(2, '.', ',') }}</span>
+    </div>
+
+    <!-- Category Summary -->
+    <div class="section-title">Category-wise Cost Summary</div>
+    <table class="summary-table">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Total Repair Cost (BDT)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cat, cost in categoryCosts %}
+            {% if cost > 0 or true %}
+            <tr>
+                <td><strong>{{ cat|capitalize }}</strong></td>
+                <td>৳ {{ cost|number_format(2, '.', ',') }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td>Grand Total:</td>
+                <td>৳ {{ grandTotal|number_format(2, '.', ',') }}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- Supervisor Performance Breakdown -->
+    <div class="section-title">Supervisor Cost Performance</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Supervisor Name</th>
+                <th>Resolved Complaints Count</th>
+                <th>Total Spent (BDT)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for name, stats in supervisorCosts %}
+            <tr>
+                <td><strong>{{ name }}</strong></td>
+                <td>{{ stats.count }}</td>
+                <td>৳ {{ stats.cost|number_format(2, '.', ',') }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3" style="text-align:center;color:#94a3b8;">No supervisor expenses found in this range.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Detailed Expense Register -->
+    <div class="section-title">Detailed Repair Expense Register</div>
+    {% if repairCosts is empty %}
+        <p style="text-align:center;color:#94a3b8;padding:20px 0;">No individual repair expenses recorded in this period.</p>
+    {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Complaint Subject</th>
+                    <th>Assigned To</th>
+                    <th>Cost (BDT)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i, rc in repairCosts %}
+                <tr>
+                    <td>{{ i + 1 }}</td>
+                    <td>{{ rc.costDate|date('d M Y') }}</td>
+                    <td>{{ rc.complaint ? rc.complaint.category.value|capitalize : '—' }}</td>
+                    <td>{{ rc.complaint ? rc.complaint.subject : rc.description|slice(0, 45) }}</td>
+                    <td>{{ (rc.complaint and rc.complaint.assignedTo) ? rc.complaint.assignedTo.user.name : 'Unassigned' }}</td>
+                    <td>৳ {{ rc.amount|number_format(2, '.', ',') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    <div class="footer">
+        UIU Hostel Management System &bull; Administrative Report &bull; Generated on {{ generatedAt|date('d M Y') }}
+    </div>
+</body>
+</html>
