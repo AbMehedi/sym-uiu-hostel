@@ -341,44 +341,44 @@ class SupervisorController extends AbstractController
     // ─── Chat (Student ↔ Supervisor) ──────────────────────────────────────────
 
     #[Route('/chat', name: 'supervisor_chat')]
-    public function chat(ChatRepository $chatRepo): Response
-    {
-        /** @var \App\Entity\User $user */
-        $user          = $this->getUser();
-        $conversations = $chatRepo->findStudentConversations($user);
+    public function chat(
+        Request $request,
+        ChatRepository $chatRepo,
+        EntityManagerInterface $em
+    ): Response {
+        /** @var \App\Entity\User $supervisorUser */
+        $supervisorUser = $this->getUser();
+        $conversations  = $chatRepo->findStudentConversations($supervisorUser);
+
+        // Check if a specific partner is requested via ?partner query param
+        $partnerId = (int) $request->query->get('partner', 0);
+        $activeContact = null;
+        $messages = [];
+        $lastId = 0;
+
+        if ($partnerId > 0) {
+            $partnerUser = $em->getRepository(\App\Entity\User::class)->find($partnerId);
+            if ($partnerUser) {
+                $activeContact = $partnerUser;
+                $messages = $chatRepo->findConversation($supervisorUser, $partnerUser, 50);
+
+                // Mark unread messages as read
+                foreach ($messages as $msg) {
+                    if ($msg->getReceiver() === $supervisorUser && !$msg->isRead()) {
+                        $msg->setIsRead(true);
+                    }
+                }
+                $em->flush();
+
+                $lastId = count($messages) > 0 ? end($messages)->getId() : 0;
+            }
+        }
 
         return $this->render('supervisor/chat.html.twig', [
             'conversations' => $conversations,
-        ]);
-    }
-
-    #[Route('/chat/{studentId}', name: 'supervisor_chat_conversation', requirements: ['studentId' => '\d+'])]
-    public function chatConversation(int $studentId, ChatRepository $chatRepo, EntityManagerInterface $em): Response
-    {
-        /** @var \App\Entity\User $supervisorUser */
-        $supervisorUser = $this->getUser();
-        $studentUser    = $em->getRepository(\App\Entity\User::class)->find($studentId);
-
-        if (!$studentUser) {
-            $this->addFlash('error', 'Student not found.');
-            return $this->redirectToRoute('supervisor_chat');
-        }
-
-        $messages = $chatRepo->findConversation($supervisorUser, $studentUser, 50);
-
-        foreach ($messages as $msg) {
-            if ($msg->getReceiver() === $supervisorUser && !$msg->isRead()) {
-                $msg->setIsRead(true);
-            }
-        }
-        $em->flush();
-
-        $lastId = count($messages) > 0 ? end($messages)->getId() : 0;
-
-        return $this->render('supervisor/chat-conversation.html.twig', [
-            'partner'  => $studentUser,
-            'messages' => $messages,
-            'lastId'   => $lastId,
+            'activeContact' => $activeContact,
+            'messages'      => $messages,
+            'lastId'        => $lastId,
         ]);
     }
 

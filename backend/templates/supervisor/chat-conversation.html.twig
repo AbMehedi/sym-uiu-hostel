@@ -1,0 +1,227 @@
+{% extends 'supervisor/base.html.twig' %}
+
+{% block title %}Chat with {{ partner.name }}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('css/chat-premium.css') }}?v={{ date().timestamp }}">
+    <style>
+        .dashboard-main {
+            padding: 0 !important;
+            height: 100vh !important;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<main class="dashboard-main" style="padding:0; display:flex; flex-direction:column;">
+    
+    <!-- Chat Header with Back Button -->
+    <div style="display: flex; align-items: center; gap: 12px; padding: 20px 30px; border-bottom: 1px solid #e2e8f0; background: white; flex-shrink: 0;">
+        <a href="{{ path('supervisor_chat') }}" class="back-link" style="display: inline-flex; align-items: center; gap: 6px; color: #0369a1; text-decoration: none; font-weight: 500;">
+            ← Back to Messages
+        </a>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="chat-container dashboard-box" style="padding:0; margin:0; flex:1; display:flex; flex-direction:column; border:none; border-radius:0;">
+
+        <!-- Chat Header -->
+        <div class="chat-header-bar">
+            <div class="chat-header-left">
+                <div class="avatar" style="width:44px;height:44px;font-size:1rem;background-color:#8b5cf6;">
+                    {{ partner.name|slice(0,2)|upper }}
+                </div>
+                <div class="chat-header-info">
+                    <h4>{{ partner.name }}</h4>
+                    <span class="chat-online-dot"></span>
+                    <span class="chat-status-text">Student</span>
+                </div>
+            </div>
+            <div class="chat-header-right">
+                <span class="chat-tag">🔒 Private Chat</span>
+            </div>
+        </div>
+
+        <!-- Messages Area -->
+        <div class="chat-messages" id="msg-area" style="flex:1;">
+            {% if messages is empty %}
+                <div class="messenger-no-msgs">
+                    <span>👋</span>
+                    <p>No messages yet. Start the conversation!</p>
+                </div>
+            {% else %}
+                {% for msg in messages %}
+                    {% set isMine = msg.sender.id == app.user.id %}
+                    <div class="chat-msg-row {{ isMine ? 'sent' : 'received' }}">
+                        {% if not isMine %}
+                            <div class="msg-avatar" style="width:36px;height:36px;font-size:0.9rem;background-color:#8b5cf6;">
+                                {{ msg.sender.name|slice(0,2)|upper }}
+                            </div>
+                        {% endif %}
+                        <div class="msg-column">
+                            <div class="msg-bubble {{ isMine ? 'msg-sent' : 'msg-received' }}">
+                                {{ msg.message }}
+                            </div>
+                            <span class="msg-time {{ isMine ? 'msg-time-right' : '' }}">
+                                {{ msg.sentAt|date('M j, H:i') }}
+                                {% if isMine %}
+                                    <span class="msg-status-ticks {{ msg.isRead ? 'read' : 'unread' }}">✓✓</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Input Bar -->
+        <div class="chat-input-bar" style="flex-shrink: 0;">
+            <textarea id="msg-input" 
+                      class="chat-textarea" 
+                      placeholder="Type a message…" 
+                      rows="1"
+                      oninput="autoGrow(this); toggleSend(this.value)"
+                      onkeydown="handleEnter(event)"></textarea>
+            <button class="chat-send-btn" id="send-btn" disabled onclick="sendMessage()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+        </div>
+
+    </div>
+
+</main>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        const PARTNER_ID = {{ partner.id }};
+        const PARTNER_NAME = '{{ partner.name|e('js') }}';
+        const PARTNER_INITIALS = '{{ partner.name|slice(0,2)|upper }}';
+        const SEND_URL   = '/supervisor/chat/' + PARTNER_ID + '/send';
+        const POLL_URL   = '/supervisor/chat/' + PARTNER_ID + '/poll';
+
+        let lastId = {{ lastId ?? 0 }};
+
+        // ── Auto-resize textarea ────────────────────────────────────────────
+        function autoGrow(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+        }
+
+        function toggleSend(value) {
+            const btn = document.getElementById('send-btn');
+            if (btn) btn.disabled = value.trim() === '';
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // ── Send message ────────────────────────────────────────────────────────
+        function sendMessage() {
+            const input = document.getElementById('msg-input');
+            const text  = input.value.trim();
+            if (!text) return;
+
+            const btn = document.getElementById('send-btn');
+            btn.disabled = true;
+
+            fetch(SEND_URL, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ message: text }),
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.id) {
+                    appendBubble(data.message, data.sentAt, true);
+                    lastId = data.id;
+                    input.value = '';
+                    input.style.height = 'auto';
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+            });
+        }
+
+        // ── Append a message bubble ─────────────────────────────────────────
+        function appendBubble(text, time, mine) {
+            const area = document.getElementById('msg-area');
+            if (!area) return;
+
+            // Remove empty-state placeholder if present
+            const placeholder = area.querySelector('.messenger-no-msgs');
+            if (placeholder) placeholder.remove();
+
+            const row = document.createElement('div');
+            row.className = 'chat-msg-row ' + (mine ? 'sent' : 'received');
+
+            if (mine) {
+                row.innerHTML = `
+                    <div class="msg-column">
+                        <div class="msg-bubble msg-sent">${escHtml(text)}</div>
+                        <span class="msg-time msg-time-right">
+                            ${escHtml(time)}
+                            <span class="msg-status-ticks unread">✓✓</span>
+                        </span>
+                    </div>
+                `;
+            } else {
+                row.innerHTML = `
+                    <div class="msg-avatar" style="width:36px;height:36px;font-size:0.9rem;background-color:#8b5cf6;">
+                        ${escHtml(PARTNER_INITIALS)}
+                    </div>
+                    <div class="msg-column">
+                        <div class="msg-bubble msg-received">${escHtml(text)}</div>
+                        <span class="msg-time">${escHtml(time)}</span>
+                    </div>
+                `;
+            }
+
+            area.appendChild(row);
+            area.scrollTop = area.scrollHeight;
+            const btn = document.getElementById('send-btn');
+            if (btn) btn.disabled = false;
+        }
+
+        // ── Polling for new messages ────────────────────────────────────────
+        function pollMessages() {
+            fetch(POLL_URL + '?after=' + lastId)
+                .then(r => r.json())
+                .then(msgs => {
+                    msgs.forEach(msg => {
+                        if (!msg.mine) {
+                            appendBubble(msg.message, msg.sentAt, false);
+                        }
+                        lastId = msg.id;
+                    });
+                })
+                .catch(() => {});
+        }
+
+        // Auto-scroll to bottom on load
+        window.addEventListener('load', () => {
+            const area = document.getElementById('msg-area');
+            if (area) area.scrollTop = area.scrollHeight;
+        });
+
+        // Poll every 3 seconds
+        setInterval(pollMessages, 3000);
+
+        // ── HTML Escape ─────────────────────────────────────────────────────
+        function escHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+{% endblock %}
