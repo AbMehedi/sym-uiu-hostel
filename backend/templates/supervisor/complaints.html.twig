@@ -74,7 +74,7 @@
             </thead>
             <tbody id="complaints-tbody">
                 {% for complaint in complaints %}
-                <tr data-id="{{ complaint.id }}" data-type="{{ complaint.category.value }}" data-status="{{ complaint.status }}" data-room="{{ complaint.room ? complaint.room.roomNumber : 'N/A' }}" data-subject="{{ complaint.subject }}" data-student="{{ complaint.student ? complaint.student.user.name : 'N/A' }}" data-desc="{{ complaint.description }}" data-cost="{{ complaint.cost }}">
+                <tr data-id="{{ complaint.id }}" data-type="{{ complaint.category.value }}" data-status="{{ complaint.status }}" data-room="{{ complaint.room ? complaint.room.roomNumber : 'N/A' }}" data-subject="{{ complaint.subject }}" data-student="{{ complaint.student ? complaint.student.user.name : 'N/A' }}" data-desc="{{ complaint.description }}" data-cost="{{ complaint.cost }}" data-photo="{{ complaint.photoUrl ? complaint.photoUrl : '' }}">
                     <td><span class="room-badge">{{ complaint.room ? complaint.room.roomNumber : 'N/A' }}</span></td>
                     <td>{{ complaint.student ? complaint.student.user.name : 'N/A' }}</td>
                     <td><span class="type-badge {{ complaint.category.value|lower }}">{{ complaint.category.value }}</span></td>
@@ -136,6 +136,12 @@
                         <span class="modal-detail-label">Current Status</span>
                         <span id="cm-status-badge"></span>
                     </div>
+                    <div class="modal-detail-item" style="grid-column: 1 / -1;" id="cm-photo-wrapper">
+                        <span class="modal-detail-label">Attached Photo</span>
+                        <div style="margin-top: 8px; background: rgba(30, 41, 59, 0.4); border: 1px solid #1e293b; border-radius: 8px; padding: 10px; display: inline-block;">
+                            <img id="cm-photo" src="" alt="Complaint photo attachment" style="max-width: 100%; max-height: 300px; border-radius: 6px; object-fit: contain;">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Status Update -->
@@ -178,6 +184,17 @@
             document.getElementById('cm-status-badge').innerHTML = `<span class="status ${classMap[d.status]}">${d.status}</span>`;
             document.getElementById('cm-new-status').value = d.status;
             document.getElementById('cm-notes').value = '';
+
+            // Show or hide the photo attachment
+            const photoWrapper = document.getElementById('cm-photo-wrapper');
+            const photoEl = document.getElementById('cm-photo');
+            if (d.photo && d.photo.trim() !== '') {
+                photoEl.src = d.photo;
+                photoWrapper.style.display = '';
+            } else {
+                photoEl.src = '';
+                photoWrapper.style.display = 'none';
+            }
 
             document.getElementById('complaint-modal-overlay').classList.add('active');
         }
