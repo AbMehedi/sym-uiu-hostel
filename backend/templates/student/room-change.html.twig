@@ -48,7 +48,23 @@
             <form class="announce-form" id="rc-form" onsubmit="submitRoomChange(event)">
                 <div class="form-group">
                     <label>Current Room</label>
-                    <input type="text" class="form-control announce-input" value="{{ app.user.student.room ? app.user.student.room.roomNumber : 'N/A' }}" readonly style="opacity:0.6;cursor:not-allowed;">
+                    <input type="text" class="form-control announce-input" value="{{ currentRoom ? currentRoom.roomNumber : 'N/A' }}" readonly style="opacity:0.6;cursor:not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label for="rc-preferred-room">Preferred Room <span style="color:#ef4444;">*</span></label>
+                    <select id="rc-preferred-room" class="form-control announce-input" required>
+                        <option value="">— Select a Room —</option>
+                        {% for room in availableRooms %}
+                            <option value="{{ room.id }}"
+                                    data-block="{{ room.block }}"
+                                    data-free="{{ room.capacity - room.actualOccupancy }}">
+                                Room {{ room.roomNumber }} — Block {{ room.block }}
+                                ({{ room.capacity - room.actualOccupancy }} bed{{ (room.capacity - room.actualOccupancy) != 1 ? 's' : '' }} free)
+                            </option>
+                        {% else %}
+                            <option value="" disabled>No available rooms at this time</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="rc-reason">Reason for Change <span style="color:#ef4444;">*</span></label>
@@ -85,6 +101,12 @@
                         <span class="ann-date">{{ request.reviewedAt ? request.reviewedAt|date('M d, Y') : 'Pending' }}</span>
                     </div>
                     <h4 class="ann-card-title">{{ request.reason }}</h4>
+                    <div style="font-size:0.82rem;color:#64748b;margin-top:4px;">
+                        {{ request.currentRoom ? 'From Room ' ~ request.currentRoom.roomNumber : '' }}
+                        {% if request.requestedRoom %}
+                            → Room {{ request.requestedRoom.roomNumber }} (Block {{ request.requestedRoom.block }})
+                        {% endif %}
+                    </div>
                     <div class="rc-supervisor-note">
                         <span class="rc-note-label">Supervisor Note:</span>
                         <span class="rc-note-text" style="color:#94a3b8;">
@@ -119,9 +141,16 @@
             e.preventDefault();
             if (hasPending) return;
 
-            const reason  = document.getElementById('rc-reason').value;
-            const details = document.getElementById('rc-details').value.trim();
-            const dateStr = new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+            const roomId   = document.getElementById('rc-preferred-room').value;
+            const reason   = document.getElementById('rc-reason').value;
+            const details  = document.getElementById('rc-details').value.trim();
+            const roomText = document.getElementById('rc-preferred-room').selectedOptions[0]?.text ?? '';
+            const dateStr  = new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+
+            if (!roomId) {
+                alert('Please select a preferred room.');
+                return;
+            }
 
             fetch('{{ path('student_room_change') }}', {
                 method: 'POST',
@@ -130,7 +159,8 @@
                     'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: JSON.stringify({
-                    reason: reason,
+                    roomId:  parseInt(roomId),
+                    reason:  reason,
                     details: details
                 })
             })
@@ -145,7 +175,8 @@
                             <span class="ann-category-badge general">Pending</span>
                             <span class="ann-date">${dateStr}</span>
                         </div>
-                        <h4 class="ann-card-title">${reason}</h4>
+                        <h4 class="ann-card-title">${reason}: ${details.slice(0,60)}${details.length>60?'…':''}</h4>
+                        <div style="font-size:0.82rem;color:#64748b;margin-top:4px;">→ ${data.requestedRoom ? 'Room ' + data.requestedRoom : roomText}</div>
                         <div class="rc-supervisor-note"><span class="rc-note-label">Supervisor Note:</span><span class="rc-note-text" style="color:#64748b;">Awaiting review…</span></div>
                     `;
                     const hist = document.getElementById('rc-history');
@@ -167,7 +198,7 @@
                     document.getElementById('rc-char').textContent = '0';
                     document.getElementById('no-rc-msg').style.display = 'none';
                 } else {
-                    alert('Error submitting request: ' + data.message);
+                    alert('Error: ' + data.message);
                 }
             })
             .catch(err => {

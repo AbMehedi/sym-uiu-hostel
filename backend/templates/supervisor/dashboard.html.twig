@@ -23,13 +23,8 @@
         </div>
         <div class="block-info-divider"></div>
         <div class="block-info-item">
-            <span class="block-info-label">Total Rooms</span>
-            <span class="block-info-value">30</span>
-        </div>
-        <div class="block-info-divider"></div>
-        <div class="block-info-item">
             <span class="block-info-label">Total Students</span>
-            <span class="block-info-value">58</span>
+            <span class="block-info-value">{{ totalStudents }}</span>
         </div>
         <div class="block-info-divider"></div>
         <div class="block-info-item">
@@ -42,19 +37,19 @@
     <div class="dashboard-stats">
         <div class="stat-card danger">
             <div class="stat-title">Pending Complaints</div>
-            <div class="stat-value">4</div>
+            <div class="stat-value">{{ pendingComplaints }}</div>
         </div>
         <div class="stat-card vacant">
             <div class="stat-title">In Progress</div>
-            <div class="stat-value">2</div>
+            <div class="stat-value">{{ inProgressComplaints }}</div>
         </div>
         <div class="stat-card">
             <div class="stat-title">Room Change Requests</div>
-            <div class="stat-value" id="pending-rc-count">3</div>
+            <div class="stat-value" id="pending-rc-count">{{ pendingRoomChanges }}</div>
         </div>
         <div class="stat-card occupied">
             <div class="stat-title">Resolved This Month</div>
-            <div class="stat-value">11</div>
+            <div class="stat-value">{{ resolvedThisMonth }}</div>
         </div>
     </div>
 
@@ -188,17 +183,6 @@
                     <div class="modal-detail-item" style="grid-column: 1 / -1;">
                         <span class="modal-detail-label">Reason</span>
                         <span class="modal-detail-value" id="rc-m-reason"></span>
-                    </div>
-                    <div class="modal-detail-item" style="grid-column: 1 / -1;">
-                        <span class="modal-detail-label">Attached Notes / Documents</span>
-                        <div style="display:flex;gap:10px;margin-top:6px;">
-                            <a href="#" class="stu-doc-item" style="text-decoration:none;">
-                                <span class="stu-doc-icon">📄</span><span>Medical Certificate.pdf</span>
-                            </a>
-                            <a href="#" class="stu-doc-item" style="text-decoration:none;">
-                                <span class="stu-doc-icon">📄</span><span>Room Preference Form.pdf</span>
-                            </a>
-                        </div>
                     </div>
                 </div>
             </div>

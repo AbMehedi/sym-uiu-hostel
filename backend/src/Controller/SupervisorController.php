@@ -41,19 +41,33 @@ class SupervisorController extends AbstractController
         $user       = $this->getUser();
         $supervisor = $user->getSupervisor();
 
-        $pendingRequests = $roomChangeRepo->findBy(['status' => RequestStatus::Pending], ['id' => 'DESC']);
-        $recentComplaints = $complaintRepo->findBy([], ['createdAt' => 'DESC'], 5);
+        $pendingRequests     = $roomChangeRepo->findBy(['status' => RequestStatus::Pending], ['id' => 'DESC']);
+        $recentComplaints    = $complaintRepo->findBy([], ['createdAt' => 'DESC'], 5);
         $recentAnnouncements = $announcementRepo->findBy([], ['createdAt' => 'DESC'], 3);
 
+        // Resolved complaints in the current calendar month
+        $monthStart = new DateTimeImmutable('first day of this month 00:00:00');
+        $monthEnd   = new DateTimeImmutable('last day of this month 23:59:59');
+        $resolvedThisMonth = count($complaintRepo->createQueryBuilder('c')
+            ->where('c.status = :status')
+            ->andWhere('c.resolvedAt BETWEEN :start AND :end')
+            ->setParameter('status', ComplaintStatus::Resolved)
+            ->setParameter('start', $monthStart)
+            ->setParameter('end', $monthEnd)
+            ->getQuery()
+            ->getResult()
+        );
+
         return $this->render('supervisor/dashboard.html.twig', [
-            'totalStudents'       => count($studentRepo->findAll()),
-            'pendingComplaints'   => count($complaintRepo->findBy(['status' => ComplaintStatus::Pending])),
-            'inProgressComplaints'=> count($complaintRepo->findBy(['status' => ComplaintStatus::InProgress])),
-            'pendingRoomChanges'  => count($pendingRequests),
-            'supervisor'          => $supervisor,
-            'pendingRequests'     => $pendingRequests,
-            'recentComplaints'    => $recentComplaints,
-            'recentAnnouncements' => $recentAnnouncements,
+            'totalStudents'        => count($studentRepo->findAll()),
+            'pendingComplaints'    => count($complaintRepo->findBy(['status' => ComplaintStatus::Pending])),
+            'inProgressComplaints' => count($complaintRepo->findBy(['status' => ComplaintStatus::InProgress])),
+            'pendingRoomChanges'   => count($pendingRequests),
+            'resolvedThisMonth'    => $resolvedThisMonth,
+            'supervisor'           => $supervisor,
+            'pendingRequests'      => $pendingRequests,
+            'recentComplaints'     => $recentComplaints,
+            'recentAnnouncements'  => $recentAnnouncements,
         ]);
     }
 
@@ -123,10 +137,28 @@ class SupervisorController extends AbstractController
     // ─── Complaints ───────────────────────────────────────────────────────────
 
     #[Route('/complaints', name: 'supervisor_complaints')]
-    public function complaints(ComplaintRepository $repo): Response
+    public function complaints(ComplaintRepository $repo, EntityManagerInterface $em): Response
     {
+        /** @var \App\Entity\User $user */
+        $user       = $this->getUser();
+        $supervisor = $user->getSupervisor();
+        $block      = $supervisor?->getBlockAssigned() ?? '';
+
+        // Scope complaints to rooms in the supervisor's block only
+        if ($block) {
+            $complaints = $repo->createQueryBuilder('c')
+                ->join('c.room', 'r')
+                ->where('r.block = :block')
+                ->setParameter('block', $block)
+                ->orderBy('c.createdAt', 'DESC')
+                ->getQuery()
+                ->getResult();
+        } else {
+            $complaints = $repo->findBy([], ['createdAt' => 'DESC']);
+        }
+
         return $this->render('supervisor/complaints.html.twig', [
-            'complaints' => $repo->findBy([], ['createdAt' => 'DESC']),
+            'complaints' => $complaints,
         ]);
     }
 
@@ -148,14 +180,18 @@ class SupervisorController extends AbstractController
             'Resolved'    => ComplaintStatus::Resolved,
         ];
 
+        $statusChanged = false;
         if (isset($statusMap[$newStatusStr])) {
+            if ($complaint->getStatusEnum() !== $statusMap[$newStatusStr]) {
+                $statusChanged = true;
+            }
             $complaint->setStatus($statusMap[$newStatusStr]);
         }
 
-        if (!empty($notes)) {
+        if (!empty($notes) || $statusChanged) {
             $update = new \App\Entity\ComplaintUpdate();
             $update->setComplaint($complaint);
-            $update->setNote($notes);
+            $update->setNote(!empty($notes) ? $notes : null);
             $update->setUpdatedBy($this->getUser());
             $update->setStatus($complaint->getStatusEnum());
             $em->persist($update);
@@ -163,6 +199,9 @@ class SupervisorController extends AbstractController
 
         if ($newStatusStr === 'Resolved') {
             $complaint->setResolvedAt(new DateTimeImmutable());
+        } else {
+            // Clear resolvedAt if reverting from Resolved back to Pending/InProgress
+            $complaint->setResolvedAt(null);
         }
 
         $em->flush();
@@ -199,7 +238,13 @@ class SupervisorController extends AbstractController
         }
 
         return $this->render('supervisor/announcements.html.twig', [
-            'announcements' => $repo->findBy([], ['createdAt' => 'DESC']),
+            'announcements' => $repo->createQueryBuilder('a')
+                ->where('a.targetBlock = :block OR a.targetBlock = :general')
+                ->setParameter('block', $supervisor?->getBlockAssigned() ?? '')
+                ->setParameter('general', 'General')
+                ->orderBy('a.createdAt', 'DESC')
+                ->getQuery()
+                ->getResult(),
         ]);
     }
 
@@ -229,7 +274,7 @@ class SupervisorController extends AbstractController
         $student       = $rcRequest->getStudent();
         $requestedRoom = $rcRequest->getRequestedRoom();
 
-        if ($requestedRoom->getCurrentOccupancy() >= $requestedRoom->getCapacity()) {
+        if ($requestedRoom->getActualOccupancy() >= $requestedRoom->getCapacity()) {
             $this->addFlash('error', 'The requested room is already full. Cannot approve.');
             return $this->redirectToRoute('supervisor_room_changes');
         }

@@ -60,58 +60,83 @@
 
         {# Right Column: Timeline Updates #}
         <div class="dashboard-box" style="padding: 25px;">
-            <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 1.2rem; color: white;">Progress Timeline</h3>
+            <h3 style="font-size: 1.05rem; color: #94a3b8; border-bottom: 1px solid #1e293b; padding-bottom: 10px; margin-bottom: 20px;">Update History</h3>
 
-            {% if updates is empty %}
-                <div style="position: relative; padding-left: 30px; border-left: 2px solid #1e293b; margin-left: 10px; padding-bottom: 20px;">
-                    <div style="position: absolute; left: -6px; top: 0; width: 10px; height: 10px; border-radius: 50%; background: #ef4444; border: 2px solid #0e121b;"></div>
-                    <h4 style="margin: 0; color: white; font-size: 0.95rem;">Complaint Filed</h4>
-                    <span style="font-size: 0.8rem; color: #64748b;">{{ complaint.createdAt|date('M d, Y - h:i A') }}</span>
-                    <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #cbd5e1;">Your complaint has been submitted successfully and is awaiting assignment to a supervisor.</p>
-                </div>
-            {% else %}
-                <div style="display: flex; flex-direction: column; gap: 0;">
-                    {% for update in updates %}
-                        <div style="position: relative; padding-left: 30px; border-left: 2px solid var(--primary-color); margin-left: 10px; padding-bottom: 25px;">
-                            {# Check if last iteration to hide bottom border #}
-                            {% if loop.last %}
-                                <div style="position: absolute; left: -2px; bottom: 0; top: 12px; width: 2px; background: #0e121b; z-index: 1;"></div>
-                            {% endif %}
-                            
-                            {# Status bullet indicator #}
-                            {% set updateStatus = update.status.value %}
-                            {% if updateStatus == 'pending' %}
-                                <div style="position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #ef4444; border: 2px solid #0e121b; z-index: 2;"></div>
-                            {% elseif updateStatus == 'in_progress' %}
-                                <div style="position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #f59e0b; border: 2px solid #0e121b; z-index: 2;"></div>
-                            {% else %}
-                                <div style="position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #10b981; border: 2px solid #0e121b; z-index: 2;"></div>
-                            {% endif %}
+            <div style="display: flex; flex-direction: column; gap: 0;">
+                {# If Resolved, inject a synthetic Resolved node if not in updates #}
+                {% set hasResolvedUpdate = false %}
+                {% set hasInProgressUpdate = false %}
+                {% for u in updates %}
+                    {% if u.status.value == 'resolved' %}{% set hasResolvedUpdate = true %}{% endif %}
+                    {% if u.status.value == 'in_progress' %}{% set hasInProgressUpdate = true %}{% endif %}
+                {% endfor %}
 
-                            <h4 style="margin: 0; color: white; font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center;">
-                                <span>Status Updated to: {{ update.status.value|capitalize }}</span>
-                            </h4>
-                            <span style="font-size: 0.8rem; color: #64748b; display: block; margin-top: 2px;">
-                                By {{ update.updatedBy.name }} &bull; {{ update.updatedAt|date('M d, Y @ h:i A') }}
-                            </span>
-                            {% if update.note %}
-                                <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #cbd5e1; background: rgba(30, 41, 59, 0.3); border-radius: 6px; padding: 10px; border: 1px solid #1e293b;">
-                                    {{ update.note }}
-                                </p>
-                            {% endif %}
-                        </div>
-                    {% endfor %}
-                    
-                    {# Add base creation event at the bottom #}
-                    <div style="position: relative; padding-left: 30px; border-left: 2px solid var(--primary-color); margin-left: 10px; padding-bottom: 0;">
-                        <div style="position: absolute; left: -2px; bottom: 0; top: 0; width: 2px; background: #0e121b; z-index: 1;"></div>
-                        <div style="position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #475569; border: 2px solid #0e121b; z-index: 2;"></div>
-                        <h4 style="margin: 0; color: white; font-size: 0.95rem;">Complaint Filed</h4>
-                        <span style="font-size: 0.8rem; color: #64748b; display: block; margin-top: 2px;">{{ complaint.createdAt|date('M d, Y @ h:i A') }}</span>
-                        <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #cbd5e1;">Complaint submitted by you.</p>
+                {% set currentStatus = complaint.statusEnum.value %}
+
+                {# Synthetic Resolved Node #}
+                {% if currentStatus == 'resolved' and not hasResolvedUpdate %}
+                    <div style="position: relative; padding-left: 30px; border-left: 2px solid var(--primary-color); margin-left: 10px; padding-bottom: 25px;">
+                        <div style="position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #10b981; border: 2px solid #0e121b; z-index: 2;"></div>
+                        <h4 style="margin: 0; color: white; font-size: 0.95rem;">Status Updated to: Resolved</h4>
+                        <span style="font-size: 0.8rem; color: #64748b; display: block; margin-top: 2px;">
+                            {{ complaint.resolvedAt ? complaint.resolvedAt|date('M d, Y @ h:i A') : 'Recently' }}
+                        </span>
+                        <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #cbd5e1; background: rgba(30, 41, 59, 0.3); border-radius: 6px; padding: 10px; border: 1px solid #1e293b;">
+                            The issue has been marked as resolved by a supervisor.
+                        </p>
                     </div>
+                {% endif %}
+
+                {# Synthetic In Progress Node #}
+                {% if (currentStatus == 'in_progress' or currentStatus == 'resolved') and not hasInProgressUpdate %}
+                    <div style="position: relative; padding-left: 30px; border-left: 2px solid var(--primary-color); margin-left: 10px; padding-bottom: 25px;">
+                        <div style="position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #f59e0b; border: 2px solid #0e121b; z-index: 2;"></div>
+                        <h4 style="margin: 0; color: white; font-size: 0.95rem;">Status Updated to: In Progress</h4>
+                        <span style="font-size: 0.8rem; color: #64748b; display: block; margin-top: 2px;">
+                            Updating...
+                        </span>
+                        <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #cbd5e1; background: rgba(30, 41, 59, 0.3); border-radius: 6px; padding: 10px; border: 1px solid #1e293b;">
+                            A supervisor has started working on this complaint.
+                        </p>
+                    </div>
+                {% endif %}
+
+                {# Actual History Updates #}
+                {% for update in updates %}
+                    <div style="position: relative; padding-left: 30px; border-left: 2px solid var(--primary-color); margin-left: 10px; padding-bottom: 25px;">
+                        {# Status bullet indicator #}
+                        {% set updateStatus = update.status.value %}
+                        {% if updateStatus == 'pending' %}
+                            <div style="position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #ef4444; border: 2px solid #0e121b; z-index: 2;"></div>
+                        {% elseif updateStatus == 'in_progress' %}
+                            <div style="position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #f59e0b; border: 2px solid #0e121b; z-index: 2;"></div>
+                        {% else %}
+                            <div style="position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #10b981; border: 2px solid #0e121b; z-index: 2;"></div>
+                        {% endif %}
+
+                        <h4 style="margin: 0; color: white; font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center;">
+                            <span>Status Updated to: {{ update.status.value|capitalize }}</span>
+                        </h4>
+                        <span style="font-size: 0.8rem; color: #64748b; display: block; margin-top: 2px;">
+                            By {{ update.updatedBy.name }} &bull; {{ update.updatedAt|date('M d, Y @ h:i A') }}
+                        </span>
+                        {% if update.note %}
+                            <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #cbd5e1; background: rgba(30, 41, 59, 0.3); border-radius: 6px; padding: 10px; border: 1px solid #1e293b;">
+                                {{ update.note }}
+                            </p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                
+                {# Add base creation event at the bottom #}
+                <div style="position: relative; padding-left: 30px; border-left: 2px solid var(--primary-color); margin-left: 10px; padding-bottom: 0;">
+                    <div style="position: absolute; left: -2px; bottom: 0; top: 0; width: 2px; background: #0e121b; z-index: 1;"></div>
+                    <div style="position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #475569; border: 2px solid #0e121b; z-index: 2;"></div>
+                    <h4 style="margin: 0; color: white; font-size: 0.95rem;">Complaint Filed</h4>
+                    <span style="font-size: 0.8rem; color: #64748b; display: block; margin-top: 2px;">{{ complaint.createdAt|date('M d, Y @ h:i A') }}</span>
+                    <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #cbd5e1;">Complaint submitted by you.</p>
                 </div>
-            {% endif %}
+            </div>
         </div>
         
     </div>

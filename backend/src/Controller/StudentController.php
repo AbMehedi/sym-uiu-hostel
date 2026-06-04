@@ -74,9 +74,9 @@ class StudentController extends AbstractController
 
         // Stats
         $myComplaints = $student ? $complaintRepo->findBy(['student' => $student]) : [];
-        $pending      = array_filter($myComplaints, fn($c) => $c->getStatus() === ComplaintStatus::Pending);
-        $inProgress   = array_filter($myComplaints, fn($c) => $c->getStatus() === ComplaintStatus::InProgress);
-        $resolved     = array_filter($myComplaints, fn($c) => $c->getStatus() === ComplaintStatus::Resolved);
+        $pending      = array_filter($myComplaints, fn($c) => $c->getStatusEnum() === ComplaintStatus::Pending);
+        $inProgress   = array_filter($myComplaints, fn($c) => $c->getStatusEnum() === ComplaintStatus::InProgress);
+        $resolved     = array_filter($myComplaints, fn($c) => $c->getStatusEnum() === ComplaintStatus::Resolved);
 
         // Recent complaints (last 3)
         $recentComplaints = $student
@@ -234,19 +234,21 @@ class StudentController extends AbstractController
             return $redirect;
         }
         $student = $this->getUser()->getStudent();
+        $currentRoom = $student->getRoom();
 
         if ($request->isMethod('POST')) {
             $reason  = $request->request->get('reason');
             $details = $request->request->get('details');
+            $roomId  = null;
 
             if ($request->getContentTypeFormat() === 'json') {
                 $data    = json_decode($request->getContent(), true);
                 $reason  = $data['reason'] ?? '';
                 $details = $data['details'] ?? '';
+                $roomId  = isset($data['roomId']) ? (int) $data['roomId'] : null;
             }
 
-            // ── Phase 1 fix: block submission if student has no room ──
-            $currentRoom = $student->getRoom();
+            // ── Block submission if student has no room ──
             if (!$currentRoom) {
                 $errorMsg = 'You must be assigned to a room before requesting a room change.';
                 if ($request->getContentTypeFormat() === 'json' || $request->isXmlHttpRequest()) {
@@ -256,16 +258,32 @@ class StudentController extends AbstractController
                 return $this->redirectToRoute('student_room_change');
             }
 
-            // Find a different available room for the request
-            $requestedRoom = $roomRepo->createQueryBuilder('r')
-                ->where('r.id != :currentRoomId')
-                ->setParameter('currentRoomId', $currentRoom->getId())
-                ->setMaxResults(1)
-                ->getQuery()
-                ->getOneOrNullResult();
+            // ── Resolve the requested room from student's choice ──
+            $requestedRoom = null;
+            if ($roomId) {
+                $requestedRoom = $roomRepo->find($roomId);
+                // Validate: must exist, must not be the current room, must not be full
+                if (!$requestedRoom || $requestedRoom->getId() === $currentRoom->getId()) {
+                    $requestedRoom = null;
+                } elseif ($requestedRoom->getActualOccupancy() >= $requestedRoom->getCapacity()) {
+                    $errorMsg = 'The selected room is already full. Please choose another.';
+                    if ($request->getContentTypeFormat() === 'json' || $request->isXmlHttpRequest()) {
+                        return $this->json(['status' => 'error', 'message' => $errorMsg], 400);
+                    }
+                    $this->addFlash('error', $errorMsg);
+                    return $this->redirectToRoute('student_room_change');
+                }
+            }
 
+            // Fallback: pick any other available room (should not happen with UI)
             if (!$requestedRoom) {
-                $requestedRoom = $currentRoom;
+                $requestedRoom = $roomRepo->createQueryBuilder('r')
+                    ->where('r.id != :currentRoomId')
+                    ->andWhere('r.currentOccupancy < r.capacity')
+                    ->setParameter('currentRoomId', $currentRoom->getId())
+                    ->setMaxResults(1)
+                    ->getQuery()
+                    ->getOneOrNullResult() ?? $currentRoom;
             }
 
             $rcRequest = new RoomChangeRequest();
@@ -279,15 +297,33 @@ class StudentController extends AbstractController
             $em->flush();
 
             if ($request->getContentTypeFormat() === 'json' || $request->isXmlHttpRequest()) {
-                return $this->json(['status' => 'success', 'message' => 'Request submitted!']);
+                return $this->json([
+                    'status'  => 'success',
+                    'message' => 'Request submitted!',
+                    'requestedRoom' => $requestedRoom->getRoomNumber(),
+                ]);
             }
 
             $this->addFlash('success', 'Room change request submitted successfully!');
             return $this->redirectToRoute('student_room_change');
         }
 
+        // GET: fetch available rooms the student can move to
+        $availableRooms = $currentRoom
+            ? $roomRepo->createQueryBuilder('r')
+                ->where('r.id != :currentRoomId')
+                ->andWhere('r.currentOccupancy < r.capacity')
+                ->setParameter('currentRoomId', $currentRoom->getId())
+                ->orderBy('r.block', 'ASC')
+                ->addOrderBy('r.roomNumber', 'ASC')
+                ->getQuery()
+                ->getResult()
+            : [];
+
         return $this->render('student/room-change.html.twig', [
-            'requests' => $repo->findBy(['student' => $student]),
+            'requests'       => $repo->findBy(['student' => $student], ['id' => 'DESC']),
+            'availableRooms' => $availableRooms,
+            'currentRoom'    => $currentRoom,
         ]);
     }
 
