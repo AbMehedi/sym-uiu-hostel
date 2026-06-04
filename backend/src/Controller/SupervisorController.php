@@ -344,11 +344,38 @@ class SupervisorController extends AbstractController
     public function chat(
         Request $request,
         ChatRepository $chatRepo,
-        EntityManagerInterface $em
+        EntityManagerInterface $em,
+        StudentRepository $studentRepo,
     ): Response {
         /** @var \App\Entity\User $supervisorUser */
         $supervisorUser = $this->getUser();
-        $conversations  = $chatRepo->findStudentConversations($supervisorUser);
+        $supervisor     = $supervisorUser->getSupervisor();
+        $block          = $supervisor?->getBlockAssigned() ?? '';
+
+        // Start with students who already have message history
+        $conversations = $chatRepo->findStudentConversations($supervisorUser);
+
+        // Build a set of user IDs already in the conversations list
+        $alreadyIncluded = [];
+        foreach ($conversations as $conv) {
+            $alreadyIncluded[$conv['student']->getId()] = true;
+        }
+
+        // Add ALL students in this supervisor's block who are not yet listed
+        if ($block) {
+            $blockStudents = $studentRepo->findByBlock($block);
+            foreach ($blockStudents as $student) {
+                $studentUser = $student->getUser();
+                if (!$studentUser || isset($alreadyIncluded[$studentUser->getId()])) {
+                    continue;
+                }
+                $conversations[] = [
+                    'student'     => $studentUser,
+                    'lastMessage' => null,
+                    'unread'      => 0,
+                ];
+            }
+        }
 
         // Check if a specific partner is requested via ?partner query param
         $partnerId = (int) $request->query->get('partner', 0);
