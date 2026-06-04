@@ -3,6 +3,14 @@
 {% block title %}Supervisor Management{% endblock %}
 
 {% block body %}
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="flash-{{ type }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+
     <!-- Top Header -->
     <header class="dashboard-header">
         <div>
@@ -22,13 +30,15 @@
             {% for supervisor in supervisors %}
             <div class="supervisor-card" id="sup-card-{{ supervisor.id }}">
                 <div class="supervisor-header">
-                    <div class="supervisor-avatar"></div>
+                    <div class="supervisor-avatar" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:bold;color:white;text-transform:uppercase;">
+                        {{ supervisor.user.name|slice(0, 1) }}
+                    </div>
                     <span class="badge" style="background-color: #dbeafe; color: #1d4ed8;">{{ supervisor.hostelBlock }}</span>
                 </div>
                 <div class="supervisor-info">
-                    <h4>{{ supervisor.user.name }}</h4>
-                    <p>ID: SUP-{{ supervisor.id }}</p>
-                    <p>📞 {{ supervisor.phone }}</p>
+                    <h4 style="color: white; font-size: 1.2rem; font-weight: 600; margin-bottom: 5px;">{{ supervisor.user.name }}</h4>
+                    <p style="color: #cbd5e1; font-size: 0.9rem;">ID: SUP-{{ supervisor.id }}</p>
+                    <p style="color: #cbd5e1; font-size: 0.9rem;">📞 {{ supervisor.phone }}</p>
                     <p id="stu-badge-{{ supervisor.id }}" class="sup-student-count" style="display:none;"></p>
                 </div>
                 <div class="supervisor-actions">
@@ -96,9 +106,16 @@
                     <label for="block">Assign to Block</label>
                     <select id="block" name="block" class="form-control" required>
                         <option value="" disabled selected>Select a Block...</option>
-                        <option value="A">Block A (Premium)</option>
-                        <option value="B">Block B (Standard)</option>
-                        <option value="C">Block C (Economy)</option>
+                        <option value="A-Block">Block A</option>
+                        <option value="B-Block">Block B</option>
+                        <option value="C-Block">Block C</option>
+                        <option value="D-Block">Block D</option>
+                        <option value="E-Block">Block E</option>
+                        <option value="F-Block">Block F</option>
+                        <option value="G-Block">Block G</option>
+                        <option value="H-Block">Block H</option>
+                        <option value="I-Block">Block I</option>
+                        <option value="J-Block">Block J</option>
                     </select>
                 </div>
 
@@ -109,18 +126,7 @@
                 </div>
             </div>
 
-            <!-- File Uploads (Photo & NID) -->
-            <div class="form-grid" style="margin-top: 15px;">
-                <div class="form-group file-upload-group">
-                    <label for="photoUpload">Upload Supervisor Photo</label>
-                    <input type="file" id="photoUpload" class="form-control file-input" accept="image/jpeg, image/png" required>
-                </div>
-
-                <div class="form-group file-upload-group">
-                    <label for="nidUpload">Upload NID Document</label>
-                    <input type="file" id="nidUpload" class="form-control file-input" accept=".pdf, image/jpeg, image/png" required>
-                </div>
-            </div>
+            <!-- Removed Unsupported File Uploads -->
 
             <!-- Submit Button -->
             <div style="margin-top: 25px; text-align: right;">

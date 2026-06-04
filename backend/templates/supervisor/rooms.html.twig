@@ -1,0 +1,76 @@
+{% extends 'supervisor/base.html.twig' %}
+
+{% block title %}Rooms (Block {{ block }}){% endblock %}
+
+{% block body %}
+    <header class="dashboard-header">
+        <div>
+            <h1>Manage Rooms</h1>
+            <p class="date-display">View occupancy and availability in Block {{ block }}.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <span class="badge-count" style="background:#3b82f6;">{{ rooms|length }} Total Rooms</span>
+        </div>
+    </header>
+
+    <div class="dashboard-box">
+        <div class="box-header" style="margin-bottom:20px;">
+            <h3>🛏️ Rooms Overview</h3>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Room #</th>
+                    <th>Type</th>
+                    <th>Floor</th>
+                    <th>Occupancy</th>
+                    <th>Status</th>
+                    <th>Occupants</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for room in rooms %}
+                <tr>
+                    <td>
+                        <strong style="color:white; font-size:1.1rem;">{{ room.roomNumber }}</strong>
+                    </td>
+                    <td style="color:#94a3b8;">{{ room.roomType ?? 'Standard' }}</td>
+                    <td style="color:#94a3b8;">Floor {{ room.floor }}</td>
+                    <td>
+                        {% set actual = room.actualOccupancy %}
+                        {% set cap = room.capacity %}
+                        <strong>{{ actual }} / {{ cap }}</strong>
+                    </td>
+                    <td>
+                        {% if actual >= cap %}
+                            <span class="status reject">Full</span>
+                        {% elseif actual > 0 %}
+                            <span class="status in-progress">Partially Filled ({{ cap - actual }} free)</span>
+                        {% else %}
+                            <span class="status resolved">Available ({{ cap }} free)</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:#94a3b8; font-size: 0.85rem;">
+                        {% set occupants = [] %}
+                        {% for assignment in room.roomAssignments %}
+                            {% if assignment.status.value == 'active' %}
+                                {% set occupants = occupants|merge([assignment.student.user.name]) %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if occupants is empty %}
+                            <em>Empty</em>
+                        {% else %}
+                            {{ occupants|join(', ') }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align:center;padding:30px;color:#64748b;">No rooms found in your block.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

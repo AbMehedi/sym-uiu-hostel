@@ -768,6 +768,8 @@ select.form-control {
 }
 
 .sidebar-nav {
+    overflow-y: auto;
+    overflow-x: hidden;
     flex: 1;
     padding: 20px 0;
 }
@@ -2766,11 +2768,7 @@ select.form-control {
     flex-shrink: 0;
 }
 
-<<<<<<< HEAD
-/* ── Responsive: old messenger layout on small screens ── */
-=======
 /* ── Responsive: messenger layout on small screens ── */
->>>>>>> 643aea27f36e20d4e697750cd1517228cbf5c1b4
 @media (max-width: 900px) {
     .messenger-layout {
         flex-direction: column;
@@ -2791,7 +2789,6 @@ select.form-control {
     }
 }
 
-<<<<<<< HEAD
 /* ===========================================
    Unified Messenger Page (student/chat.html.twig)
    =========================================== */
@@ -3453,7 +3450,8 @@ select.form-control {
     background: rgba(239, 68, 68, 0.15);
     color: #ef4444;
     border: 1px solid rgba(239, 68, 68, 0.3);
-=======
+}
+
 /* =========================================
    Supervisor — Student Detail Page (B2)
    ========================================= */
@@ -3564,5 +3562,162 @@ select.form-control {
     .detail-grid {
         grid-template-columns: 1fr;
     }
->>>>>>> 643aea27f36e20d4e697750cd1517228cbf5c1b4
-}
+}
+/* Thin custom scrollbar for the nav */
+.sidebar-nav::-webkit-scrollbar {
+    width: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background-color: #1f2937;
+    border-radius: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+    background-color: var(--primary-color);
+}
+
+/* =========================================
+   Student Allocation Redesign
+   ========================================= */
+
+/* Room Allocation Card */
+.allocation-card {
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    padding: 16px;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.allocation-card:hover {
+    border-color: #374151;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Capacity Bar */
+.capacity-bar-container {
+    height: 6px;
+    background: #1f2937;
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+.capacity-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+.capacity-bar-fill.safe { background: #10b981; }
+.capacity-bar-fill.warning { background: #f59e0b; }
+.capacity-bar-fill.full { background: #ef4444; }
+
+/* Occupant Row */
+.occupant-list {
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.occupant-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+.occupant-row .name { color: #e2e8f0; font-weight: 500; }
+.occupant-row .id { color: #64748b; font-size: 0.75rem; font-family: monospace; }
+.occupant-row.empty {
+    justify-content: center;
+    color: #64748b;
+    font-style: italic;
+    background: transparent;
+    border: 1px dashed #334155;
+}
+
+/* CSS-only Tab Switcher */
+.tab-radio { display: none; }
+.tab-labels {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #1f2937;
+    padding-bottom: 10px;
+}
+.tab-label {
+    padding: 8px 16px;
+    cursor: pointer;
+    color: #94a3b8;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: var(--transition);
+}
+.tab-label:hover {
+    color: #e2e8f0;
+    background: rgba(255,255,255,0.05);
+}
+.tab-content { display: none; }
+
+/* Tab Logic */
+#tab-current:checked ~ .tab-labels label[for="tab-current"],
+#tab-history:checked ~ .tab-labels label[for="tab-history"] {
+    background: var(--primary-color);
+    color: white;
+}
+#tab-current:checked ~ #content-current,
+#tab-history:checked ~ #content-history {
+    display: block;
+}
+
+/* Block Filter Pills */
+.filter-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+.filter-pill {
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #cbd5e1;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.filter-pill:hover,
+input[type="radio"]:checked + .filter-pill {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+/* Hide rooms not matching the selected block */
+#filter-all:checked ~ .room-grid .allocation-card { display: flex; }
+
+/* Queue Item */
+.queue-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #1f2937;
+}
+.queue-item:last-child { border-bottom: none; }
+.queue-item .info { display: flex; flex-direction: column; gap: 2px; }
+.queue-item .info .name { color: #e2e8f0; font-weight: 500; }
+.queue-item .info .id { color: #64748b; font-size: 0.8rem; }
+.queue-item .wait-time {
+    font-size: 0.8rem;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+}

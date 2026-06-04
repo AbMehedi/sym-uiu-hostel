@@ -248,6 +248,17 @@ class StudentController extends AbstractController
                 $roomId  = isset($data['roomId']) ? (int) $data['roomId'] : null;
             }
 
+            // ── Block submission if student already has a pending request ──
+            $existingPending = $repo->findOneBy(['student' => $student, 'status' => \App\Enum\RequestStatus::Pending]);
+            if ($existingPending) {
+                $errorMsg = 'You already have a pending room change request. Please wait for a supervisor decision before submitting another.';
+                if ($request->getContentTypeFormat() === 'json' || $request->isXmlHttpRequest()) {
+                    return $this->json(['status' => 'error', 'message' => $errorMsg], 400);
+                }
+                $this->addFlash('error', $errorMsg);
+                return $this->redirectToRoute('student_room_change');
+            }
+
             // ── Block submission if student has no room ──
             if (!$currentRoom) {
                 $errorMsg = 'You must be assigned to a room before requesting a room change.';

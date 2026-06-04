@@ -3,6 +3,14 @@
 {% block title %}Room Management{% endblock %}
 
 {% block body %}
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="flash-{{ type }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+
     <!-- Top Header -->
     <header class="dashboard-header">
         <div>
@@ -10,7 +18,6 @@
             <p class="date-display">Add, edit, and monitor physical room infrastructure.</p>
         </div>
         <div style="display: flex; gap: 15px;">
-            <a href="{{ path('admin_room_assign') }}" class="btn btn-outline" style="background:transparent;">Go to Student Allocation &rarr;</a>
             <button class="btn btn-primary" onclick="document.getElementById('add-room').scrollIntoView({behavior: 'smooth'})">
                 + Add New Room
             </button>
@@ -90,9 +97,16 @@
                     <label for="roomBlock">Hostel Block</label>
                     <select id="roomBlock" name="block" class="form-control" required>
                         <option value="" disabled selected>Select Block</option>
-                        <option value="A">Block A</option>
-                        <option value="B">Block B</option>
-                        <option value="C">Block C</option>
+                        <option value="A-Block">Block A</option>
+                        <option value="B-Block">Block B</option>
+                        <option value="C-Block">Block C</option>
+                        <option value="D-Block">Block D</option>
+                        <option value="E-Block">Block E</option>
+                        <option value="F-Block">Block F</option>
+                        <option value="G-Block">Block G</option>
+                        <option value="H-Block">Block H</option>
+                        <option value="I-Block">Block I</option>
+                        <option value="J-Block">Block J</option>
                     </select>
                 </div>
 
@@ -111,8 +125,14 @@
 
             <!-- Room Type -->
             <div class="form-group" style="margin-top: 15px;">
-                <label for="roomDescription">Room Type / Description</label>
-                <input type="text" id="roomDescription" name="roomType" class="form-control" placeholder="e.g. AC room, attached bathroom, south-facing...">
+                <label for="roomDescription">Room Type</label>
+                <select id="roomDescription" name="roomType" class="form-control" required>
+                    <option value="" disabled selected>Select Room Type...</option>
+                    <option value="Single">Single Room</option>
+                    <option value="Double">Double Room</option>
+                    <option value="Triple">Triple Room</option>
+                    <option value="Quad">Quad Room</option>
+                </select>
             </div>
 
             <!-- Submit Button -->

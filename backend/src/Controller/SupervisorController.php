@@ -13,6 +13,7 @@ use App\Enum\TaskStatus;
 use App\Repository\AnnouncementRepository;
 use App\Repository\ChatRepository;
 use App\Repository\ComplaintRepository;
+use App\Repository\RoomRepository;
 use App\Repository\RoomChangeRequestRepository;
 use App\Repository\StudentRepository;
 use DateTimeImmutable;
@@ -131,6 +132,27 @@ class SupervisorController extends AbstractController
             'student'    => $student,
             'room'       => $room,
             'supervisor' => $supervisor,
+        ]);
+    }
+
+    // ─── Rooms ────────────────────────────────────────────────────────────────
+
+    #[Route('/rooms', name: 'supervisor_rooms')]
+    public function rooms(RoomRepository $repo): Response
+    {
+        $user       = $this->getUser();
+        $supervisor = $user->getSupervisor();
+        $block      = $supervisor?->getBlockAssigned() ?? '';
+
+        if ($block) {
+            $rooms = $repo->findBy(['block' => $block], ['roomNumber' => 'ASC']);
+        } else {
+            $rooms = $repo->findAll();
+        }
+
+        return $this->render('supervisor/rooms.html.twig', [
+            'rooms' => $rooms,
+            'block' => $block
         ]);
     }
 

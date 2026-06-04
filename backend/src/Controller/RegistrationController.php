@@ -66,11 +66,16 @@ class RegistrationController extends AbstractController
             $student->setStudentNumber($studentId);
             $student->setPhone($phone ?: null);
 
+            $preferredRoomType = trim((string) $request->request->get('preferredRoomType'));
+            if (!$preferredRoomType) {
+                $preferredRoomType = 'Double Sharing';
+            }
+
             $admissionRequest = new AdmissionRequest();
             $admissionRequest->setStudent($student);
             $admissionRequest->setRequestedDate(new DateTimeImmutable());
             $admissionRequest->setStatus(RequestStatus::Pending);
-            $admissionRequest->setPreferredRoomType('Double Sharing');
+            $admissionRequest->setPreferredRoomType($preferredRoomType);
 
             $entityManager->persist($user);
             $entityManager->persist($student);

@@ -3,59 +3,81 @@
 {% block title %}Student Allocation{% endblock %}
 
 {% block body %}
-    <!-- Top Header -->
     <header class="dashboard-header">
         <div>
             <h1>Student Allocation</h1>
             <p class="date-display">Assign approved students to available hostel rooms.</p>
-        </div>
-        <div>
-            <a href="{{ path('admin_rooms') }}" class="btn btn-outline">Back to Room Management</a>
         </div>
     </header>
 
     <!-- Flash Messages -->
     {% for type, messages in app.flashes %}
         {% for message in messages %}
-            <div style="margin-bottom:16px;padding:12px 20px;border-radius:8px;
-                background:{{ type == 'success' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }};
-                color:{{ type == 'success' ? '#10b981' : '#ef4444' }};
-                border:1px solid {{ type == 'success' ? '#10b981' : '#ef4444' }};">
+            <div class="flash-message flash-{{ type }}">
                 {{ message }}
             </div>
         {% endfor %}
     {% endfor %}
 
-    <div class="dashboard-grid">
+    <!-- ── Stats Row ── -->
+    <div class="dashboard-stats" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 30px;">
+        <div class="stat-card">
+            <div class="stat-title">Total Rooms</div>
+            <div class="stat-value">{{ allRooms|length }}</div>
+        </div>
+        <div class="stat-card occupied">
+            <div class="stat-title">👥 Assigned Students</div>
+            <div class="stat-value" style="color: #10b981;">{{ occupiedBeds }}</div>
+        </div>
+        <div class="stat-card vacant">
+            <div class="stat-title">⏳ Waiting for Room</div>
+            <div class="stat-value" style="color: #f59e0b;">{{ unassignedStudents|length }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">🛏️ Available Beds</div>
+            <div class="stat-value" style="color: var(--primary-color);">{{ availableBeds }}</div>
+        </div>
+    </div>
 
+    <!-- ── Quick Assign + Queue ── -->
+    <div class="dashboard-grid" style="margin-bottom: 40px; align-items: stretch;">
         <!-- Quick Assignment Form -->
-        <div class="dashboard-box">
+        <div class="dashboard-box" style="margin-bottom: 0;">
             <div class="box-header">
-                <h3>Assign Room</h3>
+                <h3>Assign / Reassign Room</h3>
             </div>
             <form class="auth-form" action="{{ path('admin_room_assign_new') }}" method="POST">
                 <div class="form-group">
-                    <label for="studentId">Select Approved Student (No Room)</label>
-                    <select id="studentId" name="studentId" class="form-control" required>
-                        <option value="" disabled selected>Choose a student...</option>
-                        {% for student in approvedStudents %}
-                            <option value="{{ student.id }}">
-                                {{ student.user.name }} ({{ student.studentNumber }})
-                            </option>
-                        {% else %}
-                            <option disabled>No approved students without a room</option>
-                        {% endfor %}
-                    </select>
+                    <label for="studentId">Select Approved Student</label>
+                    <div class="custom-select-wrapper" style="position: relative;">
+                        <input type="hidden" name="studentId" id="studentIdHidden" required>
+                        <input type="text" id="studentSearchInput" class="form-control" placeholder="Search by name or ID..." autocomplete="off" required>
+                        
+                        <div id="studentDropdownList" class="custom-dropdown-list" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #1e293b; border: 1px solid #334155; border-radius: 6px; max-height: 200px; overflow-y: auto; z-index: 10; margin-top: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                            {% for student in allApprovedStudents %}
+                                <div class="dropdown-item" data-value="{{ student.id }}" data-search="{{ student.user.name|lower }} {{ student.studentNumber|lower }}" style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #334155;">
+                                    <div style="color: #e2e8f0; font-weight: 500;">{{ student.user.name }}</div>
+                                    <div style="font-size: 0.8rem; color: #94a3b8; font-family: monospace;">{{ student.studentNumber }}</div>
+                                    {% if student.room %}
+                                        <div style="font-size: 0.75rem; color: #10b981; margin-top: 2px;">Current: Block {{ student.room.block }}, Room {{ student.room.roomNumber }}</div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <div style="padding: 10px 14px; color: #64748b; font-style: italic;">No approved students available</div>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="roomId">Available Rooms (Showing Vacancies)</label>
+                    <label for="roomId">Available Rooms</label>
                     <select id="roomId" name="roomId" class="form-control" required>
                         <option value="" disabled selected>Choose room...</option>
                         {% for room in availableRooms %}
+                            {% set available = room.capacity - room.actualOccupancy %}
                             <option value="{{ room.id }}">
-                                Room {{ room.roomNumber }} — Block {{ room.block }}
-                                ({{ room.capacity - room.currentOccupancy }} bed{{ (room.capacity - room.currentOccupancy) != 1 ? 's' : '' }} available)
+                                Block {{ room.block }} — Room {{ room.roomNumber }}
+                                ({{ available }} bed{{ available != 1 ? 's' : '' }} available)
                             </option>
                         {% else %}
                             <option disabled>No available rooms</option>
@@ -63,89 +85,255 @@
                     </select>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-full">Confirm Assignment</button>
+                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 10px;">Confirm Assignment</button>
             </form>
         </div>
 
-        <!-- Summary -->
-        <div class="dashboard-box">
-            <div class="box-header">
-                <h3>Assignment Queue</h3>
-                <span class="status pending">{{ approvedStudents|length }} Waiting</span>
+        <!-- Unassigned Queue -->
+        <div class="dashboard-box" style="margin-bottom: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+            <div class="box-header" style="padding: 20px 25px 15px;">
+                <h3>Unassigned Queue</h3>
+                <span class="status pending">{{ unassignedStudents|length }} Waiting</span>
             </div>
-            {% if approvedStudents is empty %}
-                <div style="text-align:center;padding:30px;color:#64748b;">
-                    ✅ All approved students have been assigned to rooms.
-                </div>
-            {% else %}
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Student ID</th>
-                            <th>Name</th>
-                            <th>Admitted On</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for student in approvedStudents %}
-                        <tr>
-                            <td>{{ student.studentNumber }}</td>
-                            <td style="color:white;font-weight:500;">{{ student.user.name }}</td>
-                            <td>{{ student.admissionDate ? student.admissionDate|date('M j, Y') : '—' }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% endif %}
+            <div style="flex: 1; overflow-y: auto;">
+                {% if unassignedStudents is empty %}
+                    <div style="text-align:center; padding: 40px 20px; color: #64748b; font-style: italic;">
+                        ✅ All approved students have been assigned to rooms.
+                    </div>
+                {% else %}
+                    {% for student in unassignedStudents %}
+                        <div class="queue-item">
+                            <div class="info">
+                                <span class="name">{{ student.user.name }}</span>
+                                <span class="id">{{ student.studentNumber }}</span>
+                            </div>
+                            {% if student.admissionDate %}
+                                {% set days = date().diff(student.admissionDate).days %}
+                                <div class="wait-time">
+                                    {{ days == 0 ? 'Today' : (days ~ ' day' ~ (days != 1 ? 's' : '')) }}
+                                </div>
+                            {% else %}
+                                <div class="wait-time" style="color: #64748b; background: rgba(100,116,139,0.1);">Unknown</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
         </div>
     </div>
 
+    <!-- ── Current Allocations & History Tabs ── -->
+    <div class="css-interactive-wrapper">
+        <input type="radio" name="allocation-tabs" id="tab-current" class="tab-radio" checked>
+        <input type="radio" name="allocation-tabs" id="tab-history" class="tab-radio">
+
+        <div class="tab-labels">
+            <label for="tab-current" class="tab-label">Current Allocations</label>
+            <label for="tab-history" class="tab-label">Assignment History</label>
+        </div>
+
+        <!-- ── Current Allocations Content ── -->
+        <div id="content-current" class="tab-content">
+            
+            {% set blocks = [] %}
+            {% for room in allRooms %}
+                {% if room.block not in blocks %}
+                    {% set blocks = blocks|merge([room.block]) %}
+                {% endif %}
+            {% endfor %}
+
+            <!-- Dynamic Block Filter CSS -->
+            <style>
+                {% for block in blocks %}
+                    #filter-{{ block|lower }}:checked ~ .room-grid .card-{{ block|lower }} { display: flex; }
+                    #filter-{{ block|lower }}:checked ~ .room-grid .allocation-card:not(.card-{{ block|lower }}) { display: none; }
+                {% endfor %}
+            </style>
+
+            <div class="css-interactive-wrapper">
+                <input type="radio" name="block-filter" id="filter-all" class="hidden-radio" checked>
+                {% for block in blocks %}
+                    <input type="radio" name="block-filter" id="filter-{{ block|lower }}" class="hidden-radio">
+                {% endfor %}
+
+                <div class="filter-pills">
+                    <label for="filter-all" class="filter-pill">All Blocks</label>
+                    {% for block in blocks %}
+                        <label for="filter-{{ block|lower }}" class="filter-pill">Block {{ block }}</label>
+                    {% endfor %}
+                </div>
+
+                <div class="room-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
+                    {% for room in allRooms %}
+                        {% set occ = room.actualOccupancy %}
+                        {% set cap = room.capacity %}
+                        {% set percent = (occ / cap * 100)|round %}
+                        {% set fillClass = (occ == cap) ? 'full' : ((occ >= cap - 1 and cap > 1) ? 'warning' : 'safe') %}
+                        
+                        <div class="allocation-card card-{{ room.block|lower }}">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4px;">
+                                <div>
+                                    <h3 style="margin: 0; font-size: 1.1rem; color: white;">Room {{ room.roomNumber }}</h3>
+                                    <span style="font-size: 0.8rem; color: #94a3b8;">Block {{ room.block }}</span>
+                                </div>
+                                <div style="font-size: 0.85rem; color: {{ occ == cap ? '#ef4444' : '#10b981' }}; font-weight: 600;">
+                                    {{ occ }} / {{ cap }} Filled
+                                </div>
+                            </div>
+                            
+                            <!-- Capacity Bar -->
+                            <div class="capacity-bar-container">
+                                <div class="capacity-bar-fill {{ fillClass }}" style="width: {{ percent }}%;"></div>
+                            </div>
+
+                            <!-- Occupants -->
+                            <div class="occupant-list">
+                                {% set occupants = room.roomAssignments|filter(a => a.status.value == 'active') %}
+                                
+                                {% for assignment in occupants %}
+                                    <div class="occupant-row">
+                                        <div>
+                                            <div class="name">{{ assignment.student.user.name }}</div>
+                                            <div class="id">{{ assignment.student.studentNumber }}</div>
+                                        </div>
+                                        <form method="POST" action="{{ path('admin_room_assign_revoke', {id: assignment.id}) }}">
+                                            <button type="submit" class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 0.75rem; border-color: #ef4444; color: #ef4444;"
+                                                    onclick="return confirm('Revoke room assignment for {{ assignment.student.user.name }}?')">
+                                                Revoke
+                                            </button>
+                                        </form>
+                                    </div>
+                                {% endfor %}
+
+                                <!-- Empty Beds -->
+                                {% set emptyBeds = cap - occ %}
+                                {% if emptyBeds > 0 %}
+                                    {% for i in 1..emptyBeds %}
+                                        <div class="occupant-row empty">
+                                            Empty Bed
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ── History Content ── -->
+        <div id="content-history" class="tab-content">
+            <div class="dashboard-box" style="margin-top: 10px;">
+                <div class="box-header">
+                    <h3>Assignment History</h3>
+                    <span class="badge-count" style="background:#334155;">{{ allAssignments|length }} Records</span>
+                </div>
+
+                {% if allAssignments is empty %}
+                    <div style="text-align:center;padding:40px;color:#64748b;font-style:italic;">
+                        No room assignment history yet.
+                    </div>
+                {% else %}
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Room Info</th>
+                                <th>Student Details</th>
+                                <th>Assigned On</th>
+                                <th>Vacated On</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assignment in allAssignments %}
+                            <tr>
+                                <td>
+                                    <strong>Block {{ assignment.room.block }} — {{ assignment.room.roomNumber }}</strong>
+                                </td>
+                                <td>
+                                    <div style="color:white;font-weight:500;">{{ assignment.student.user.name }}</div>
+                                    <div style="font-size:0.8rem;color:#64748b;font-family:monospace;">{{ assignment.student.studentNumber }}</div>
+                                </td>
+                                <td>{{ assignment.assignedDate|date('M j, Y') }}</td>
+                                <td>
+                                    {% if assignment.status.value == 'active' %}
+                                        <span style="color: #10b981; font-weight: 500; font-size: 0.85rem; padding: 2px 8px; background: rgba(16,185,129,0.1); border-radius: 4px;">Currently Active</span>
+                                    {% else %}
+                                        <span style="color: #ef4444;">{{ assignment.vacatedDate ? assignment.vacatedDate|date('M j, Y') : '—' }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+        </div>
+    </div>
     <br><br>
 
-    <!-- Current Allocations Table -->
-    <div class="dashboard-box">
-        <div class="box-header">
-            <h3>Current Room Allocations</h3>
-            <span class="badge-count" style="background:#334155;">{{ assignments|length }} Active</span>
-        </div>
+    <style>
+        .custom-dropdown-list .dropdown-item:hover {
+            background: rgba(255,255,255,0.05);
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('studentSearchInput');
+            const hiddenInput = document.getElementById('studentIdHidden');
+            const dropdownList = document.getElementById('studentDropdownList');
+            if (!dropdownList) return;
+            const items = dropdownList.querySelectorAll('.dropdown-item');
 
-        {% if assignments is empty %}
-            <div style="text-align:center;padding:30px;color:#64748b;">No active room assignments yet.</div>
-        {% else %}
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Room Info</th>
-                        <th>Student Details</th>
-                        <th>Student ID</th>
-                        <th>Assigned On</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for assignment in assignments %}
-                    <tr>
-                        <td>
-                            <strong>Block {{ assignment.room.block }} — {{ assignment.room.roomNumber }}</strong>
-                            <span style="color:#64748b;font-size:0.8rem;display:block;">
-                                {{ assignment.room.currentOccupancy }}/{{ assignment.room.capacity }} occupied
-                            </span>
-                        </td>
-                        <td style="color:white;font-weight:500;">{{ assignment.student.user.name }}</td>
-                        <td>{{ assignment.student.studentNumber }}</td>
-                        <td>{{ assignment.assignedDate|date('M j, Y') }}</td>
-                        <td>
-                            <form method="POST" action="{{ path('admin_room_assign_revoke', {id: assignment.id}) }}" style="display:inline;">
-                                <button type="submit" class="btn-action reject"
-                                        onclick="return confirm('Revoke room assignment for {{ assignment.student.user.name }}?')">
-                                    Revoke
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% endif %}
-    </div>
+            if (!searchInput) return;
+
+            searchInput.addEventListener('focus', () => {
+                dropdownList.style.display = 'block';
+            });
+
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                items.forEach(item => {
+                    const searchStr = item.getAttribute('data-search');
+                    if (searchStr.includes(query)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+                
+                // Clear hidden input if user types (invalidating selection)
+                hiddenInput.value = '';
+                searchInput.setCustomValidity('Please select a student from the dropdown list.');
+            });
+
+            items.forEach(item => {
+                item.addEventListener('click', () => {
+                    hiddenInput.value = item.getAttribute('data-value');
+                    const nameEl = item.querySelector('div:first-child');
+                    const idEl = item.querySelector('div:nth-child(2)');
+                    searchInput.value = nameEl.textContent + ' (' + idEl.textContent + ')';
+                    dropdownList.style.display = 'none';
+                    searchInput.setCustomValidity(''); // clear required error
+                });
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !dropdownList.contains(e.target)) {
+                    dropdownList.style.display = 'none';
+                }
+            });
+            
+            // Validate on submit
+            const form = searchInput.closest('form');
+            if (form) {
+                form.addEventListener('submit', (e) => {
+                    if (!hiddenInput.value) {
+                        e.preventDefault();
+                        searchInput.setCustomValidity('Please select a student from the dropdown list.');
+                        searchInput.reportValidity();
+                    }
+                });
+            }
+        });
+    </script>
 {% endblock %}

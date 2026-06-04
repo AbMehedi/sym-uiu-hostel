@@ -75,11 +75,25 @@ class AdminController extends AbstractController
     // ─── Students ─────────────────────────────────────────────────────────────
 
     #[Route('/students', name: 'admin_students')]
-    public function students(StudentRepository $studentRepository): Response
-    {
+    public function students(
+        StudentRepository $studentRepository,
+        SupervisorRepository $supervisorRepository,
+    ): Response {
         $students = $studentRepository->findBy([], ['id' => 'DESC']);
+
+        // Build a block → supervisor map so the template can show the
+        // supervisor name for any student whose room belongs to that block.
+        $supervisorsByBlock = [];
+        foreach ($supervisorRepository->findAll() as $supervisor) {
+            $block = $supervisor->getBlockAssigned();
+            if ($block !== null) {
+                $supervisorsByBlock[$block] = $supervisor;
+            }
+        }
+
         return $this->render('admin/students.html.twig', [
-            'students' => $students,
+            'students'          => $students,
+            'supervisorsByBlock' => $supervisorsByBlock,
         ]);
     }
 
@@ -98,11 +112,28 @@ class AdminController extends AbstractController
     public function roomsNew(Request $request, EntityManagerInterface $em): Response
     {
         $room = new Room();
-        $room->setRoomNumber((string) $request->request->get('roomNumber'));
-        $room->setBlock((string) $request->request->get('block', 'A'));
+        
+        $block = strtoupper(trim((string) $request->request->get('block', 'A')));
+        // Ensure block has "-Block" suffix
+        if (!str_ends_with($block, '-BLOCK')) {
+            $block .= '-Block';
+        } else {
+            // Fix casing (e.g. A-BLOCK -> A-Block)
+            $block = substr($block, 0, 2) . 'Block';
+        }
+
+        $rawRoomNumber = strtoupper(trim((string) $request->request->get('roomNumber')));
+        $prefix = substr($block, 0, 1) . '-';
+        // Ensure room number starts with the block letter
+        if (!str_starts_with($rawRoomNumber, $prefix)) {
+            $rawRoomNumber = $prefix . $rawRoomNumber;
+        }
+
+        $room->setRoomNumber($rawRoomNumber);
+        $room->setBlock($block);
         $room->setFloor((int) $request->request->get('floor', 1));
         $room->setCapacity((int) $request->request->get('capacity', 2));
-        $room->setRoomType($request->request->get('roomType') ?: null);
+        $room->setRoomType($request->request->get('roomType') ?: 'Standard');
         $room->setStatus(RoomStatus::Available);
 
         $em->persist($room);
@@ -165,23 +196,50 @@ class AdminController extends AbstractController
         RoomRepository $roomRepo,
         EntityManagerInterface $em,
     ): Response {
-        // Approved students with no active room assignment
-        $approvedStudents = array_filter(
+        // Approved students with no active room assignment (unassigned queue)
+        $unassignedStudents = array_values(array_filter(
             $studentRepo->findAll(),
             fn($s) => $s->getAdmissionStatus() === AdmissionStatus::Approved && $s->getRoom() === null
-        );
-        // Rooms that are not full (using computed occupancy)
-        $availableRooms = array_filter(
+        ));
+
+        // ALL Approved students (for the assign / reassign dropdown)
+        $allApprovedStudents = array_values(array_filter(
+            $studentRepo->findAll(),
+            fn($s) => $s->getAdmissionStatus() === AdmissionStatus::Approved
+        ));
+
+        // Rooms not yet full — for the assign form dropdown
+        $availableRooms = array_values(array_filter(
             $roomRepo->findAll(),
             fn($r) => !$r->isFull()
-        );
+        ));
 
-        $allAssignments = $em->getRepository(RoomAssignment::class)->findBy(['status' => AssignmentStatus::Active]);
+        // ALL rooms ordered by block then number — for the room-card grid
+        $allRooms = $roomRepo->findBy([], ['block' => 'ASC', 'roomNumber' => 'ASC']);
+
+        // Active assignments (current allocations tab)
+        $activeAssignments = $em->getRepository(RoomAssignment::class)
+            ->findBy(['status' => AssignmentStatus::Active], ['assignedDate' => 'DESC']);
+
+        // All assignments (history tab)
+        $allAssignments = $em->getRepository(RoomAssignment::class)
+            ->findBy([], ['id' => 'DESC']);
+
+        // Stats: total beds, occupied, available
+        $totalBeds    = array_sum(array_map(fn($r) => $r->getCapacity(), $allRooms));
+        $occupiedBeds = count($activeAssignments);
+        $availableBeds = $totalBeds - $occupiedBeds;
 
         return $this->render('admin/room-assign.html.twig', [
-            'approvedStudents' => array_values($approvedStudents),
-            'availableRooms'   => array_values($availableRooms),
-            'assignments'      => $allAssignments,
+            'unassignedStudents' => $unassignedStudents,
+            'allApprovedStudents'=> $allApprovedStudents,
+            'availableRooms'     => $availableRooms,
+            'allRooms'           => $allRooms,
+            'activeAssignments'  => $activeAssignments,
+            'allAssignments'     => $allAssignments,
+            'totalBeds'          => $totalBeds,
+            'occupiedBeds'       => $occupiedBeds,
+            'availableBeds'      => $availableBeds,
         ]);
     }
 
@@ -274,7 +332,7 @@ class AdminController extends AbstractController
         $email = trim((string) $request->request->get('email'));
         $phone = trim((string) $request->request->get('phone'));
         $block = trim((string) $request->request->get('block'));
-        $pass  = (string) $request->request->get('password', 'HostelSup@123');
+        $pass  = (string) $request->request->get('password', 'password');
 
         if (!$name || !$email) {
             $this->addFlash('error', 'Name and email are required.');

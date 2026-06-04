@@ -50,15 +50,15 @@
                         <input type="text" id="studentId" name="studentId" class="form-control" placeholder="011223344" required value="{{ app.request.request.get('studentId') }}">
                     </div>
 
-                    <!-- Department -->
+                    <!-- Preferred Room Type -->
                     <div class="form-group">
-                        <label for="department">Department</label>
-                        <select id="department" name="department" class="form-control" required>
-                            <option value="" disabled selected>Select Department</option>
-                            <option value="cse" {% if app.request.request.get('department') == 'cse' %}selected{% endif %}>Computer Science & Engineering (CSE)</option>
-                            <option value="eee" {% if app.request.request.get('department') == 'eee' %}selected{% endif %}>Electrical & Electronic Eng. (EEE)</option>
-                            <option value="bba" {% if app.request.request.get('department') == 'bba' %}selected{% endif %}>Business Administration (BBA)</option>
-                            <option value="other" {% if app.request.request.get('department') == 'other' %}selected{% endif %}>Other</option>
+                        <label for="preferredRoomType">Preferred Room Type</label>
+                        <select id="preferredRoomType" name="preferredRoomType" class="form-control" required>
+                            <option value="" disabled selected>Select Room Type</option>
+                            <option value="Single" {% if app.request.request.get('preferredRoomType') == 'Single' %}selected{% endif %}>Single Room</option>
+                            <option value="Double" {% if app.request.request.get('preferredRoomType') == 'Double' %}selected{% endif %}>Double Sharing</option>
+                            <option value="Triple" {% if app.request.request.get('preferredRoomType') == 'Triple' %}selected{% endif %}>Triple Sharing</option>
+                            <option value="Quad" {% if app.request.request.get('preferredRoomType') == 'Quad' %}selected{% endif %}>Quad Sharing</option>
                         </select>
                     </div>
 
@@ -88,18 +88,7 @@
                     
                 </div> <!-- End of form-grid -->
 
-                <!-- NID Upload (Full Width) -->
-                <div class="form-group file-upload-group">
-                    <label for="nidUpload">Upload NID / Birth Certificate (PDF or Image)</label>
-                    <input type="file" id="nidUpload" name="nidUpload" class="form-control file-input" accept=".pdf, image/jpeg, image/png">
-                </div>
 
-                <!-- Other Documents Upload (Full Width, Optional) -->
-                <div class="form-group file-upload-group">
-                    <label for="otherDocsUpload">Upload Other Documents <span style="color:#64748b;font-weight:400;">(Optional)</span></label>
-                    <input type="file" id="otherDocsUpload" name="otherDocsUpload" class="form-control file-input" accept=".pdf, image/jpeg, image/png">
-                    <p style="font-size:0.8rem;color:#64748b;margin-top:6px;">e.g. Medical certificate, Guardian ID, etc.</p>
-                </div>
 
                 <!-- Terms and Conditions -->
                 <div class="form-options">

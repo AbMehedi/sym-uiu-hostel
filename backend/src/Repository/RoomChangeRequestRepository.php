@@ -17,6 +17,6 @@ class RoomChangeRequestRepository extends ServiceEntityRepository
     /** @return RoomChangeRequest[] */
     public function findPending(): array
     {
-        return $this->findBy(['status' => RequestStatus::Pending], ['id' => 'ASC']);
+        return $this->findBy(['status' => RequestStatus::Pending], ['id' => 'DESC']);
     }
 }
