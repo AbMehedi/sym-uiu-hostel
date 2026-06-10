@@ -37,11 +37,19 @@
                    style="width:100%;padding:10px 14px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;">
         </div>
         <div>
+            <label style="display:block;margin-bottom:6px;color:#94a3b8;font-size:.85rem;">Priority</label>
+            <select name="priority" style="width:100%;padding:10px 14px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;">
+                <option value="low">🟢 Low</option>
+                <option value="normal" selected>🟡 Normal</option>
+                <option value="high">🔴 High</option>
+            </select>
+        </div>
+        <div>
             <label style="display:block;margin-bottom:6px;color:#94a3b8;font-size:.85rem;">Due Date</label>
             <input type="date" name="dueDate"
                    style="width:100%;padding:10px 14px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;">
         </div>
-        <div>
+        <div style="grid-column:1/-1;">
             <label style="display:block;margin-bottom:6px;color:#94a3b8;font-size:.85rem;">Description</label>
             <input type="text" name="description" placeholder="Optional details"
                    style="width:100%;padding:10px 14px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;">
@@ -71,7 +79,13 @@
                 {% if task.status.value == value %}
                     {% set found = true %}
                     <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px 16px;margin-bottom:10px;">
-                        <div style="font-weight:600;color:#e2e8f0;margin-bottom:4px;">{{ task.title }}</div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                            <div style="font-weight:600;color:#e2e8f0;">{{ task.title }}</div>
+                            {% set pMap = {'low': '#10b981', 'normal': '#f59e0b', 'high': '#ef4444'} %}
+                            <span style="font-size:.75rem;padding:2px 8px;border-radius:12px;border:1px solid {{ pMap[task.priority.value] ?? '#64748b' }};color:{{ pMap[task.priority.value] ?? '#64748b' }};">
+                                {{ task.priority.value|capitalize }}
+                            </span>
+                        </div>
                         <div style="font-size:.82rem;color:#64748b;margin-bottom:6px;">
                             👤 {{ task.supervisor.user.name }} &nbsp;|&nbsp; {{ task.supervisor.blockAssigned }}
                         </div>

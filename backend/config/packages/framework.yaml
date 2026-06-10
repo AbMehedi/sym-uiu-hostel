@@ -2,8 +2,12 @@
 framework:
     secret: '%env(APP_SECRET)%'
 
-    # Note that the session will be started ONLY if you read or write from it.
-    session: true
+    # B-24: Explicit session security configuration
+    session:
+        gc_maxlifetime: 3600       # 1-hour idle expiry
+        cookie_secure: 'auto'      # HTTPS-only in prod, relaxed in dev
+        cookie_httponly: true      # not accessible via JavaScript
+        cookie_samesite: 'lax'     # CSRF protection baseline
 
     #esi: true
     #fragments: true

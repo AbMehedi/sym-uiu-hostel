@@ -31,11 +31,17 @@
             <div class="stat-value">{{ totalRooms }}</div>
         </div>
         <div class="stat-card occupied">
-            <div class="stat-title">Full Rooms</div>
+            <div class="stat-title">Occupied Rooms</div>
             <div class="stat-value">{{ occupiedRooms }}</div>
+            <div class="stat-subtitle" style="font-size:.75rem;color:#94a3b8;">≥1 resident</div>
+        </div>
+        <div class="stat-card danger">
+            <div class="stat-title">Full Rooms</div>
+            <div class="stat-value">{{ fullRooms }}</div>
+            <div class="stat-subtitle" style="font-size:.75rem;color:#94a3b8;">at capacity</div>
         </div>
         <div class="stat-card vacant">
-            <div class="stat-title">Available Rooms</div>
+            <div class="stat-title">Vacant Rooms</div>
             <div class="stat-value">{{ vacantRooms }}</div>
         </div>
         <div class="stat-card">

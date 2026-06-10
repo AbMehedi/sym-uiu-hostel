@@ -9,6 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity]
 #[ORM\Table(name: 'supervisors')]
 #[ORM\UniqueConstraint(name: 'uniq_supervisors_user', columns: ['user_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_supervisors_block', columns: ['block_assigned'])]
 class Supervisor
 {
     #[ORM\Id]

@@ -15,8 +15,13 @@ class RepairCost
     private ?int $id = null;
 
     #[ORM\ManyToOne(targetEntity: Complaint::class, inversedBy: 'repairCosts')]
-    #[ORM\JoinColumn(name: 'complaint_id', nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: 'complaint_id', nullable: true, onDelete: 'CASCADE')]
     private ?Complaint $complaint = null;
+
+    /** Direct room link for standalone costs not tied to a complaint (B-21). */
+    #[ORM\ManyToOne(targetEntity: Room::class)]
+    #[ORM\JoinColumn(name: 'room_id', nullable: true, onDelete: 'SET NULL')]
+    private ?Room $room = null;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
     private string $amount;
@@ -44,6 +49,18 @@ class RepairCost
     public function setComplaint(?Complaint $complaint): self
     {
         $this->complaint = $complaint;
+
+        return $this;
+    }
+
+    public function getRoom(): ?Room
+    {
+        return $this->room;
+    }
+
+    public function setRoom(?Room $room): self
+    {
+        $this->room = $room;
 
         return $this;
     }

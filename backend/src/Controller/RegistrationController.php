@@ -7,6 +7,7 @@ use App\Entity\Student;
 use App\Entity\User;
 use App\Enum\RequestStatus;
 use App\Enum\Role;
+use App\Repository\AdmissionRequestRepository;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,7 +22,8 @@ class RegistrationController extends AbstractController
     public function register(
         Request $request,
         UserPasswordHasherInterface $passwordHasher,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        AdmissionRequestRepository $admissionRepo,
     ): Response {
         if ($request->isMethod('POST')) {
             $firstName = trim((string) $request->request->get('firstName'));
@@ -51,6 +53,15 @@ class RegistrationController extends AbstractController
 
             $existingStudent = $entityManager->getRepository(Student::class)->findOneBy(['studentNumber' => $studentId]);
             if ($existingStudent) {
+                // B-19: also check if they already have a pending admission request
+                $pendingRequest = $admissionRepo->findOneBy([
+                    'student' => $existingStudent,
+                    'status'  => RequestStatus::Pending,
+                ]);
+                if ($pendingRequest) {
+                    $this->addFlash('error', 'This student ID already has a pending admission request. Please wait for admin review.');
+                    return $this->redirectToRoute('app_register');
+                }
                 $this->addFlash('error', 'A student with this Student ID is already registered.');
                 return $this->redirectToRoute('app_register');
             }

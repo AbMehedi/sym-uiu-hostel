@@ -20,41 +20,41 @@
         
         <div class="document-grid">
             
-            <!-- Report Card 1: Room Allocation -->
+            <!-- Report Card 1: Room Allocation (B-02) -->
             <div class="document-card report-card-lg">
                 <div class="doc-info flex-grow">
                     <h4 class="report-title">Room Allocation Report</h4>
                     <p class="text-muted report-desc">A complete list of all students currently assigned to hostel blocks and specific rooms.</p>
-                    <button class="btn btn-outline btn-full">Download PDF</button>
+                    <a href="{{ path('admin_pdf_room_allocation') }}" class="btn btn-outline btn-full">Download PDF</a>
                 </div>
             </div>
 
-            <!-- Report Card 2: Complaint Logs -->
+            <!-- Report Card 2: Complaint Logs (B-02) -->
             <div class="document-card report-card-lg">
                 <div class="doc-info flex-grow">
                     <h4 class="report-title">Monthly Complaint Logs</h4>
                     <p class="text-muted report-desc">A chronological log of all maintenance issues, reporter IDs, and resolution statuses.</p>
-                    <button class="btn btn-outline btn-full">Download PDF</button>
+                    <a href="{{ path('admin_pdf_complaint_log', {month: 'now'|date('Y-m')}) }}" class="btn btn-outline btn-full">Download PDF</a>
+                </div>
+            </div>
+
+            <!-- Report Card 3: Repair Costs (B-02 / B-22) -->
+            <div class="document-card report-card-lg">
+                <div class="doc-info flex-grow">
+                    <h4 class="report-title">Repair Cost Report</h4>
+                    <p class="text-muted report-desc">Full breakdown of maintenance expenditure by category and supervisor for the current month.</p>
+                    <a href="{{ path('admin_pdf_repair_costs') }}" class="btn btn-outline btn-full">Print Cost Report</a>
                 </div>
             </div>
 
         </div>
     </div>
 
-    <!-- Detailed Cost Breakdown Section -->
+    <!-- Detailed Cost Breakdown Section — B-01 / B-13: live data from $categoryStats -->
     <div class="dashboard-box">
         <div class="box-header profile-section-header">
             <h3>Detailed Maintenance Cost Analysis</h3>
-            
-            <!-- Date Filter -->
-            <div class="nav-buttons">
-                <select class="form-control form-control-sm filter-select">
-                    <option>May 2026</option>
-                    <option>April 2026</option>
-                    <option>March 2026</option>
-                </select>
-                <button class="btn btn-primary btn-sm">Filter</button>
-            </div>
+            <span class="text-muted">{{ monthLabel }} — live data from the database</span>
         </div>
 
         <!-- Financial Data Table -->
@@ -69,49 +69,47 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td><strong>Plumbing</strong> (Water leakage, pipes, taps)</td>
-                    <td>15</td>
-                    <td>12</td>
-                    <td><span class="status pending status-sm">3</span></td>
-                    <td class="text-right cost-value">৳ 4,500</td>
-                </tr>
-                <tr>
-                    <td><strong>Electricity</strong> (Fans, lights, wiring)</td>
-                    <td>12</td>
-                    <td>10</td>
-                    <td><span class="status pending status-sm">2</span></td>
-                    <td class="text-right cost-value">৳ 3,200</td>
-                </tr>
-                <tr>
-                    <td><strong>Network / IT</strong> (Wifi routers, cables)</td>
-                    <td>8</td>
-                    <td>8</td>
-                    <td><span class="status resolved status-sm">0</span></td>
-                    <td class="text-right cost-value">৳ 1,200</td>
-                </tr>
-                <tr>
-                    <td><strong>Cleaning & Carpentry</strong> (Beds, doors, hygiene)</td>
-                    <td>5</td>
-                    <td>5</td>
-                    <td><span class="status resolved status-sm">0</span></td>
-                    <td class="text-right cost-value">৳ 950</td>
-                </tr>
+                {% set hasData = false %}
+                {% for key, stat in categoryStats %}
+                    {% if stat.total > 0 %}
+                        {% set hasData = true %}
+                        <tr>
+                            <td><strong>{{ stat.label }}</strong></td>
+                            <td>{{ stat.total }}</td>
+                            <td>{{ stat.resolved }}</td>
+                            <td>
+                                {% if stat.pending > 0 %}
+                                    <span class="status pending status-sm">{{ stat.pending }}</span>
+                                {% else %}
+                                    <span class="status resolved status-sm">0</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right cost-value">৳ {{ stat.cost|number_format(2, '.', ',') }}</td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+                {% if not hasData %}
+                    <tr>
+                        <td colspan="5" style="text-align:center;padding:30px;color:#64748b;">
+                            No complaint or cost data recorded yet.
+                        </td>
+                    </tr>
+                {% endif %}
             </tbody>
             <tfoot>
                 <tr class="total-row">
-                    <td colspan="4" class="text-right total-label"><strong>Total Expenses for May 2026:</strong></td>
-                    <td class="text-right total-amount"><strong>৳ 9,850</strong></td>
+                    <td colspan="4" class="text-right total-label"><strong>Grand Total Repair Cost:</strong></td>
+                    <td class="text-right total-amount"><strong>৳ {{ grandTotal|number_format(2, '.', ',') }}</strong></td>
                 </tr>
             </tfoot>
         </table>
 
-        <!-- Bottom Print Button -->
+        <!-- Bottom Print Button (B-22) -->
         <div class="profile-footer footer-spread">
             <p class="text-muted footer-note">* Note: Pending tickets are not included in the finalized monthly cost until marked resolved.</p>
-            <button class="btn btn-outline">
+            <a href="{{ path('admin_pdf_repair_costs') }}" class="btn btn-outline">
                 Print Cost Report
-            </button>
+            </a>
         </div>
     </div>
 {% endblock %}
