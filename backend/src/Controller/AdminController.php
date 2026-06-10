@@ -659,7 +659,7 @@ class AdminController extends AbstractController
         MailerInterface $mailer,
     ): Response {
         // B-09: validate CSRF token
-        if (!$this->isCsrfTokenValid('admission_approve_' . $id, $request->request->get('_csrf_token'))) {
+        if (!$this->isCsrfTokenValid('admission_approve_' . $id, $request->request->get('_csrf_token', $request->request->get('_token')))) {
             $this->addFlash('error', 'Invalid security token. Please try again.');
             return $this->redirectToRoute('admin_admission_requests');
         }
@@ -800,7 +800,7 @@ class AdminController extends AbstractController
         EntityManagerInterface $em,
     ): Response {
         // CSRF validation
-        if (!$this->isCsrfTokenValid('complaint_update_' . $id, $request->request->get('_csrf_token'))) {
+        if (!$this->isCsrfTokenValid('complaint_update_' . $id, $request->request->get('_csrf_token', $request->request->get('_token')))) {
             $this->addFlash('error', 'Invalid security token.');
             return $this->redirectToRoute('admin_complaints');
         }
