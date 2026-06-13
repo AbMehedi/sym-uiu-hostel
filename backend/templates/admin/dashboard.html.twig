@@ -64,8 +64,7 @@
 
     <!-- Quick Actions -->
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;">
-        <a href="{{ path('admin_admission_requests') }}" class="btn btn-primary">Review Admissions</a>
-        <a href="{{ path('admin_room_assign') }}"        class="btn btn-primary">Assign Rooms</a>
+        <a href="{{ path('admin_students') }}"           class="btn btn-primary">Assign Rooms</a>
         <a href="{{ path('admin_tasks') }}"              class="btn btn-primary">Manage Tasks</a>
         <a href="{{ path('admin_reports') }}"            class="btn btn-primary">View Reports</a>
     </div>
@@ -73,19 +72,58 @@
     <!-- Dashboard Tables Grid -->
     <div class="dashboard-grid">
 
-        <!-- Pending Admissions Summary -->
+        <!-- Pending Admissions -->
         <div class="dashboard-box">
-            <div class="box-header">
-                <h3>Pending Admissions</h3>
-                <a href="{{ path('admin_admission_requests') }}" class="btn-link">View All →</a>
+            <div class="box-header" style="margin-bottom: 20px;">
+                <h3>🕐 Pending Admissions</h3>
+                <span class="badge-count" style="background:#f59e0b;color:white;padding:3px 9px;border-radius:12px;font-size:0.8rem;font-weight:700;">{{ pendingRequests|length }}</span>
             </div>
-            <div style="padding:20px;text-align:center;">
-                <div style="font-size:3rem;font-weight:700;color:#f59e0b;">{{ pendingAdmissions }}</div>
-                <p style="color:#94a3b8;margin:8px 0 20px;">Students awaiting approval</p>
-                <a href="{{ path('admin_admission_requests') }}" class="btn btn-primary" style="display:inline-block;">
-                    Review Applications
-                </a>
-            </div>
+
+            {% if pendingRequests is empty %}
+                <div style="text-align:center;padding:40px;color:#64748b;">
+                    🎉 No pending admission requests.
+                </div>
+            {% else %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Applied</th>
+                            <th style="text-align:right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in pendingRequests %}
+                        <tr>
+                            <td>
+                                <div style="font-weight:600;color:white;">{{ req.student.user.name }}</div>
+                                <div style="font-size:0.75rem;color:#64748b;">{{ req.student.studentNumber }}</div>
+                            </td>
+                            <td style="font-size:0.85rem;">{{ req.requestedDate|date('M j, Y') }}</td>
+                            <td>
+                                <div style="display:flex;gap:6px;justify-content:flex-end;">
+                                    <button class="btn btn-action approve" style="padding:4px 8px;font-size:0.75rem;background:#1e293b;border:1px solid #334155;color:#e2e8f0;"
+                                            onclick="openDetailsModal({{ req.id }}, '{{ req.student.user.name|escape('js') }}', '{{ req.student.studentNumber|escape('js') }}', '{{ req.student.user.email|escape('js') }}', '{{ (req.student.phone ?? '—')|escape('js') }}', '{{ (req.student.emergencyContact ?? '—')|escape('js') }}', '{{ (req.preferredRoomType ?? '—')|escape('js') }}', '{{ req.requestedDate|date('M j, Y')|escape('js') }}', '{{ csrf_token('admission_approve_' ~ req.id)|escape('js') }}')">
+                                        📋 Details
+                                    </button>
+                                    <form method="POST" action="{{ path('admin_admission_approve', {id: req.id}) }}" style="display:inline;">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('admission_approve_' ~ req.id) }}">
+                                        <button type="submit" class="btn btn-action approve" style="padding:4px 8px;font-size:0.75rem;"
+                                                onclick="return confirm('Approve admission for {{ req.student.user.name|escape('js') }}?')">
+                                            ✓ Approve
+                                        </button>
+                                    </form>
+                                    <button class="btn btn-action reject" style="padding:4px 8px;font-size:0.75rem;"
+                                            onclick="openRejectModal({{ req.id }}, '{{ req.student.user.name|escape('js') }}')">
+                                        ✗ Reject
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
         </div>
 
         <!-- Recent Complaints — real data -->
@@ -122,6 +160,82 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- Details Modal -->
+    <div class="modal-overlay" id="details-modal-overlay" onclick="closeDetailsModal(event)">
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="details-modal-title">
+            <div class="modal-header">
+                <h3 id="details-modal-title">Student Admission Details</h3>
+                <button class="modal-close-btn" onclick="closeDetailsModal()" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-detail-grid">
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Name</span>
+                        <span class="modal-detail-value" id="det-name" style="color:white;font-weight:600;"></span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Student ID</span>
+                        <span class="modal-detail-value" id="det-id" style="font-family:monospace;"></span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Email</span>
+                        <span class="modal-detail-value" id="det-email"></span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Phone</span>
+                        <span class="modal-detail-value" id="det-phone"></span>
+                    </div>
+                    <div class="modal-detail-item" style="grid-column: 1 / -1;">
+                        <span class="modal-detail-label">Emergency Contact</span>
+                        <span class="modal-detail-value" id="det-emergency"></span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Preferred Room Type</span>
+                        <span class="modal-detail-value" id="det-room-type"></span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Applied Date</span>
+                        <span class="modal-detail-value" id="det-date"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-action-bar">
+                <button type="button" class="btn btn-outline" onclick="closeDetailsModal()">Close</button>
+                <form id="det-approve-form" method="POST" action="" style="display:inline;">
+                    <input type="hidden" name="_token" id="det-approve-token" value="">
+                    <button type="submit" class="btn-action approve">✓ Approve</button>
+                </form>
+                <button type="button" class="btn-action reject" id="det-reject-btn">✗ Reject</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Modal -->
+    <div class="modal-overlay" id="reject-modal-overlay" onclick="closeRejectModal(event)">
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="reject-modal-title">
+            <div class="modal-header">
+                <h3 id="reject-modal-title">Reject Admission</h3>
+                <button class="modal-close-btn" onclick="closeRejectModal()" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="color:#94a3b8;margin-bottom:16px;">
+                    Rejecting admission for: <strong id="reject-student-name" style="color:white;"></strong>
+                </p>
+                <form id="reject-form" method="POST" action="">
+                    <div class="form-group" style="display:flex;flex-direction:column;gap:8px;">
+                        <label for="reject-notes" style="color:#94a3b8;font-size:0.85rem;">Rejection Reason / Notes (optional)</label>
+                        <textarea id="reject-notes" name="notes" class="form-control notes-textarea" rows="3"
+                                  placeholder="e.g. Capacity full, incomplete documents..." style="background:#0b1120;border:1px solid #1f2937;border-radius:8px;color:white;padding:10px;outline:none;font-family:inherit;"></textarea>
+                    </div>
+                    <div style="margin-top:20px;display:flex;gap:12px;justify-content:flex-end;">
+                        <button type="button" class="btn btn-outline" onclick="closeRejectModal()">Cancel</button>
+                        <button type="submit" class="btn-action reject">Confirm Rejection</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 {% endblock %}
 
 {% block javascripts %}
@@ -129,5 +243,55 @@
     <script>
         const dateEl = document.getElementById('current-date');
         if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        function openDetailsModal(id, name, number, email, phone, emergency, roomType, date, approveToken) {
+            document.getElementById('det-name').textContent = name;
+            document.getElementById('det-id').textContent = number;
+            document.getElementById('det-email').textContent = email;
+            document.getElementById('det-phone').textContent = phone;
+            document.getElementById('det-emergency').textContent = emergency;
+            document.getElementById('det-room-type').textContent = roomType;
+            document.getElementById('det-date').textContent = date;
+            
+            // Set action for Approve form in modal
+            const approveForm = document.getElementById('det-approve-form');
+            approveForm.action = '/admin/admission-requests/' + id + '/approve';
+            document.getElementById('det-approve-token').value = approveToken;
+            approveForm.onsubmit = function() {
+                return confirm('Approve admission for ' + name + '?');
+            };
+
+            // Set action for Reject button in details modal
+            const rejectBtn = document.getElementById('det-reject-btn');
+            rejectBtn.onclick = function() {
+                closeDetailsModal();
+                openRejectModal(id, name);
+            };
+
+            document.getElementById('details-modal-overlay').classList.add('active');
+        }
+
+        function closeDetailsModal(e) {
+            if (e && e.target !== document.getElementById('details-modal-overlay')) return;
+            document.getElementById('details-modal-overlay').classList.remove('active');
+        }
+
+        function openRejectModal(id, name) {
+            document.getElementById('reject-student-name').textContent = name;
+            document.getElementById('reject-form').action = '/admin/admission-requests/' + id + '/reject';
+            document.getElementById('reject-modal-overlay').classList.add('active');
+        }
+
+        function closeRejectModal(e) {
+            if (e && e.target !== document.getElementById('reject-modal-overlay')) return;
+            document.getElementById('reject-modal-overlay').classList.remove('active');
+        }
+
+        // Close modal on Escape
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(el => el.classList.remove('active'));
+            }
+        });
     </script>
 {% endblock %}

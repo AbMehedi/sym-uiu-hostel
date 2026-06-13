@@ -73,6 +73,7 @@ class AdminController extends AbstractController
         }
 
         $totalRepairCost = $repairCostRepo->findGrandTotal();
+        $pendingRequests = $admissionRepo->findPending();
 
         return $this->render('admin/dashboard.html.twig', [
             'totalRooms'        => count($rooms),
@@ -81,7 +82,8 @@ class AdminController extends AbstractController
             'vacantRooms'       => $vacantRooms,
             'totalStudents'     => count($studentRepo->findAll()),
             'pendingComplaints' => count($complaintRepo->findBy(['status' => \App\Enum\ComplaintStatus::Pending])),
-            'pendingAdmissions' => count($admissionRepo->findPending()),
+            'pendingAdmissions' => count($pendingRequests),
+            'pendingRequests'   => $pendingRequests,
             'recentComplaints'  => $complaintRepo->findRecent(5),
             'totalRepairCost'   => $totalRepairCost,
         ]);
@@ -328,53 +330,12 @@ class AdminController extends AbstractController
 
     // ─── Room Assignment ──────────────────────────────────────────────────────
 
+    // ─── Room Assignment ──────────────────────────────────────────────────────
+
     #[Route('/room-assign', name: 'admin_room_assign')]
-    public function roomAssign(
-        StudentRepository $studentRepo,
-        RoomRepository $roomRepo,
-        SupervisorRepository $supervisorRepo,
-        EntityManagerInterface $em,
-    ): Response {
-        $unassignedStudents = array_values(array_filter(
-            $studentRepo->findAll(),
-            fn($s) => $s->getAdmissionStatus() === AdmissionStatus::Approved && $s->getRoom() === null
-        ));
-
-        $allApprovedStudents = array_values(array_filter(
-            $studentRepo->findAll(),
-            fn($s) => $s->getAdmissionStatus() === AdmissionStatus::Approved
-        ));
-
-        $availableRooms = array_values(array_filter(
-            $roomRepo->findAll(),
-            fn($r) => !$r->isFull()
-        ));
-
-        $allRooms = $roomRepo->findBy([], ['hostel' => 'ASC', 'roomNumber' => 'ASC']);
-
-        $activeAssignments = $em->getRepository(RoomAssignment::class)
-            ->findBy(['status' => AssignmentStatus::Active], ['assignedDate' => 'DESC']);
-
-        $allAssignments = $em->getRepository(RoomAssignment::class)
-            ->findBy([], ['id' => 'DESC']);
-
-        $totalBeds    = array_sum(array_map(fn($r) => $r->getCapacity(), $allRooms));
-        $occupiedBeds = count($activeAssignments);
-        $availableBeds = $totalBeds - $occupiedBeds;
-
-        return $this->render('admin/room-assign.html.twig', [
-            'unassignedStudents' => $unassignedStudents,
-            'allApprovedStudents'=> $allApprovedStudents,
-            'availableRooms'     => $availableRooms,
-            'allRooms'           => $allRooms,
-            'hostels'            => $roomRepo->findDistinctHostelNames(),
-            'supervisors'        => $supervisorRepo->findBy([], ['id' => 'ASC']),
-            'activeAssignments'  => $activeAssignments,
-            'allAssignments'     => $allAssignments,
-            'totalBeds'          => $totalBeds,
-            'occupiedBeds'       => $occupiedBeds,
-            'availableBeds'      => $availableBeds,
-        ]);
+    public function roomAssign(): Response
+    {
+        return $this->redirectToRoute('admin_students');
     }
 
     #[Route('/room-assign/new', name: 'admin_room_assign_new', methods: ['POST'])]
@@ -397,22 +358,22 @@ class AdminController extends AbstractController
 
         if (!$student || !$room || !$supervisor || $hostel === '') {
             $this->addFlash('error', 'Student, hostel, supervisor, and room are required.');
-            return $this->redirectToRoute('admin_room_assign');
+            return $this->redirectToRoute('admin_students');
         }
 
         if ($supervisor->getHostelAssigned() !== $hostel) {
             $this->addFlash('error', 'Selected supervisor is not assigned to the selected hostel.');
-            return $this->redirectToRoute('admin_room_assign');
+            return $this->redirectToRoute('admin_students');
         }
 
         if ($room->getHostel() !== $hostel) {
             $this->addFlash('error', 'Selected room does not belong to the selected hostel.');
-            return $this->redirectToRoute('admin_room_assign');
+            return $this->redirectToRoute('admin_students');
         }
 
         if ($room->isFull()) {
             $this->addFlash('error', 'Selected room is already full.');
-            return $this->redirectToRoute('admin_room_assign');
+            return $this->redirectToRoute('admin_students');
         }
 
         // Deactivate any existing assignment for this student
@@ -469,7 +430,7 @@ class AdminController extends AbstractController
         ]);
 
         $this->addFlash('success', $student->getUser()->getName() . ' assigned to ' . $hostel . ', Room ' . $room->getRoomNumber() . ', under supervisor ' . $supervisor->getUser()->getName() . '.');
-        return $this->redirectToRoute('admin_room_assign');
+        return $this->redirectToRoute('admin_students');
     }
 
     #[Route('/room-assign/{id}/revoke', name: 'admin_room_assign_revoke', methods: ['POST'])]
@@ -485,7 +446,7 @@ class AdminController extends AbstractController
             $em->flush();
             $this->addFlash('success', 'Room assignment revoked.');
         }
-        return $this->redirectToRoute('admin_room_assign');
+        return $this->redirectToRoute('admin_students');
     }
 
     // ─── Supervisors ──────────────────────────────────────────────────────────
@@ -761,12 +722,9 @@ class AdminController extends AbstractController
     // ─── Admission Requests ───────────────────────────────────────────────────
 
     #[Route('/admission-requests', name: 'admin_admission_requests')]
-    public function admissionRequests(AdmissionRequestRepository $repo): Response
+    public function admissionRequests(): Response
     {
-        return $this->render('admin/admission-requests.html.twig', [
-            'pendingRequests'  => $repo->findPending(),
-            'allRequests'      => $repo->findBy([], ['requestedDate' => 'DESC']),
-        ]);
+        return $this->redirectToRoute('admin_dashboard');
     }
 
     #[Route('/admission-requests/{id}/approve', name: 'admin_admission_approve', methods: ['POST'])]
@@ -780,13 +738,13 @@ class AdminController extends AbstractController
         // B-09: validate CSRF token
         if (!$this->isCsrfTokenValid('admission_approve_' . $id, $request->request->get('_csrf_token', $request->request->get('_token')))) {
             $this->addFlash('error', 'Invalid security token. Please try again.');
-            return $this->redirectToRoute('admin_admission_requests');
+            return $this->redirectToRoute('admin_dashboard');
         }
 
         $admRequest = $repo->find($id);
         if (!$admRequest) {
             $this->addFlash('error', 'Request not found.');
-            return $this->redirectToRoute('admin_admission_requests');
+            return $this->redirectToRoute('admin_dashboard');
         }
 
         $admRequest->setStatus(RequestStatus::Approved);
@@ -818,7 +776,7 @@ class AdminController extends AbstractController
         ]);
 
         $this->addFlash('success', $student->getUser()->getName() . '\'s admission has been approved!');
-        return $this->redirectToRoute('admin_admission_requests');
+        return $this->redirectToRoute('admin_dashboard');
     }
 
     #[Route('/admission-requests/{id}/reject', name: 'admin_admission_reject', methods: ['POST'])]
@@ -832,7 +790,7 @@ class AdminController extends AbstractController
         $admRequest = $repo->find($id);
         if (!$admRequest) {
             $this->addFlash('error', 'Request not found.');
-            return $this->redirectToRoute('admin_admission_requests');
+            return $this->redirectToRoute('admin_dashboard');
         }
 
         $notes = $request->request->get('notes') ?: null;
@@ -867,7 +825,7 @@ class AdminController extends AbstractController
         ]);
 
         $this->addFlash('success', $student->getUser()->getName() . '\'s admission has been rejected.');
-        return $this->redirectToRoute('admin_admission_requests');
+        return $this->redirectToRoute('admin_dashboard');
     }
 
     // ─── Complaints ───────────────────────────────────────────────────────────
