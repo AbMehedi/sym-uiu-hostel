@@ -1,12 +1,12 @@
 {% extends 'supervisor/base.html.twig' %}
 
-{% block title %}Rooms (Block {{ block }}){% endblock %}
+{% block title %}Rooms (Hostel {{ hostel }}){% endblock %}
 
 {% block body %}
     <header class="dashboard-header">
         <div>
             <h1>Manage Rooms</h1>
-            <p class="date-display">View occupancy and availability in Block {{ block }}.</p>
+            <p class="date-display">View occupancy and availability in Hostel {{ hostel }}.</p>
         </div>
         <div style="display:flex;align-items:center;gap:12px;">
             <span class="badge-count" style="background:#3b82f6;">{{ rooms|length }} Total Rooms</span>
@@ -67,7 +67,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" style="text-align:center;padding:30px;color:#64748b;">No rooms found in your block.</td>
+                    <td colspan="6" style="text-align:center;padding:30px;color:#64748b;">No rooms found in your hostel.</td>
                 </tr>
                 {% endfor %}
             </tbody>

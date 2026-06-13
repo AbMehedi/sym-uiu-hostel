@@ -27,8 +27,8 @@
         </div>
         <div class="block-info-divider"></div>
         <div class="block-info-item">
-            <span class="block-info-label">Block</span>
-            <span class="block-info-value stu-value">{{ app.user.student.room ? app.user.student.room.hostelBlock : 'N/A' }}</span>
+            <span class="block-info-label">Hostel</span>
+            <span class="block-info-value stu-value">{{ app.user.student.room ? app.user.student.room.hostel : 'N/A' }}</span>
         </div>
         <div class="block-info-divider"></div>
         <div class="block-info-item">
@@ -56,9 +56,9 @@
                         <option value="">— Select a Room —</option>
                         {% for room in availableRooms %}
                             <option value="{{ room.id }}"
-                                    data-block="{{ room.block }}"
+                                    data-hostel="{{ room.hostel }}"
                                     data-free="{{ room.capacity - room.actualOccupancy }}">
-                                Room {{ room.roomNumber }} — Block {{ room.block }}
+                                Room {{ room.roomNumber }} — Hostel {{ room.hostel }}
                                 ({{ room.capacity - room.actualOccupancy }}/{{ room.capacity }} beds available)
                             </option>
                         {% else %}
@@ -104,7 +104,7 @@
                     <div style="font-size:0.82rem;color:#64748b;margin-top:4px;">
                         {{ request.currentRoom ? 'From Room ' ~ request.currentRoom.roomNumber : '' }}
                         {% if request.requestedRoom %}
-                            → Room {{ request.requestedRoom.roomNumber }} (Block {{ request.requestedRoom.block }})
+                            → Room {{ request.requestedRoom.roomNumber }} (Hostel {{ request.requestedRoom.hostel }})
                         {% endif %}
                     </div>
                     <div class="rc-supervisor-note">
@@ -146,7 +146,7 @@
             const reason   = document.getElementById('rc-reason').value;
             const details  = document.getElementById('rc-details').value.trim();
             const selectedOpt = document.getElementById('rc-preferred-room').selectedOptions[0];
-            const requestedBlock = selectedOpt ? selectedOpt.dataset.block : '';
+            const requestedHostel = selectedOpt ? selectedOpt.dataset.hostel : '';
             const currentRoomStr = "{{ currentRoom ? 'From Room ' ~ currentRoom.roomNumber : '' }}";
             const dateStr  = new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
 
@@ -179,7 +179,7 @@
                             <span class="ann-date">${dateStr}</span>
                         </div>
                         <h4 class="ann-card-title">${reason}: ${details.slice(0,60)}${details.length>60?'…':''}</h4>
-                        <div style="font-size:0.82rem;color:#64748b;margin-top:4px;">${currentRoomStr} → Room ${data.requestedRoom} (Block ${requestedBlock})</div>
+                        <div style="font-size:0.82rem;color:#64748b;margin-top:4px;">${currentRoomStr} → Room ${data.requestedRoom} (Hostel ${requestedHostel})</div>
                         <div class="rc-supervisor-note"><span class="rc-note-label">Supervisor Note:</span><span class="rc-note-text" style="color:#64748b;">Awaiting review…</span></div>
                     `;
                     const hist = document.getElementById('rc-history');

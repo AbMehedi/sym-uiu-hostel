@@ -10,7 +10,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity]
 #[ORM\Table(name: 'rooms')]
 #[ORM\UniqueConstraint(name: 'uniq_rooms_number', columns: ['room_number'])]
-#[ORM\Index(name: 'idx_rooms_block_status', columns: ['block', 'status'])]
+#[ORM\Index(name: 'idx_rooms_hostel_status', columns: ['hostel', 'status'])]
 class Room
 {
     #[ORM\Id]
@@ -22,7 +22,7 @@ class Room
     private string $roomNumber;
 
     #[ORM\Column(length: 50)]
-    private string $block;
+    private string $hostel;
 
     #[ORM\Column(type: 'integer')]
     private int $floor;
@@ -41,6 +41,10 @@ class Room
 
     #[ORM\Column(enumType: RoomStatus::class)]
     private RoomStatus $status = RoomStatus::Available;
+
+    #[ORM\ManyToOne(targetEntity: Supervisor::class, inversedBy: 'rooms')]
+    #[ORM\JoinColumn(name: 'supervisor_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?Supervisor $supervisor = null;
 
     #[ORM\OneToMany(mappedBy: 'room', targetEntity: RoomAssignment::class, orphanRemoval: true)]
     private Collection $roomAssignments;
@@ -71,26 +75,15 @@ class Room
         return $this;
     }
 
-    public function getBlock(): string
+
+    public function getHostel(): string
     {
-        return $this->block;
+        return $this->hostel;
     }
 
-    public function setBlock(string $block): self
+    public function setHostel(string $hostel): self
     {
-        $this->block = $block;
-
-        return $this;
-    }
-
-    public function getHostelBlock(): string
-    {
-        return $this->block;
-    }
-
-    public function setHostelBlock(string $hostelBlock): self
-    {
-        $this->block = $hostelBlock;
+        $this->hostel = $hostel;
 
         return $this;
     }
@@ -151,6 +144,18 @@ class Room
     public function setStatus(RoomStatus $status): self
     {
         $this->status = $status;
+
+        return $this;
+    }
+
+    public function getSupervisor(): ?Supervisor
+    {
+        return $this->supervisor;
+    }
+
+    public function setSupervisor(?Supervisor $supervisor): self
+    {
+        $this->supervisor = $supervisor;
 
         return $this;
     }

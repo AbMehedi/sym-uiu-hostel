@@ -11,15 +11,15 @@
         </div>
         <div class="admin-profile">
             <div class="avatar sup-avatar"></div>
-            <span>{{ app.user.supervisor ? app.user.supervisor.hostelBlock : '' }} Supervisor</span>
+            <span>{{ app.user.supervisor ? app.user.supervisor.hostelAssigned : '' }} Supervisor</span>
         </div>
     </header>
 
-    <!-- Block Info Banner -->
+    <!-- Hostel Info Banner -->
     <div class="block-info-banner">
         <div class="block-info-item">
-            <span class="block-info-label">Assigned Block</span>
-            <span class="block-info-value">{{ app.user.supervisor ? app.user.supervisor.hostelBlock : 'N/A' }}</span>
+            <span class="block-info-label">Assigned Hostel</span>
+            <span class="block-info-value">{{ app.user.supervisor ? app.user.supervisor.hostelAssigned : 'N/A' }}</span>
         </div>
         <div class="block-info-divider"></div>
         <div class="block-info-item">

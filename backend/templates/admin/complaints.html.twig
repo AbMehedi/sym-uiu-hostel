@@ -127,7 +127,7 @@
                          {# B-14: Use real complaint ID instead of hardcoded #CMP-892 #}
                          <p style="color:#64748b;font-size:.8rem;margin-bottom:6px;">Ticket ID: #CMP-{{ complaint.id }}</p>
                          <h2 class="complaint-title">{{ complaint.subject }}</h2>
-                         <p class="complaint-meta">Type: <strong class="text-primary">{{ complaint.category.value|capitalize }}</strong> • {{ complaint.room ? complaint.room.hostelBlock : 'N/A' }}, Room {{ complaint.room ? complaint.room.roomNumber : 'N/A' }}</p>
+                         <p class="complaint-meta">Type: <strong class="text-primary">{{ complaint.category.value|capitalize }}</strong> • {{ complaint.room ? complaint.room.hostel : 'N/A' }}, Room {{ complaint.room ? complaint.room.roomNumber : 'N/A' }}</p>
                          <p class="complaint-meta">Submitted by: <strong>{{ complaint.student ? complaint.student.user.name : 'N/A' }} (ID: {{ complaint.student ? complaint.student.studentNumber : 'N/A' }})</strong> on {{ complaint.createdAt|date('M d, Y') }}</p>
                      </div>
  

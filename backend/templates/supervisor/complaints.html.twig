@@ -5,12 +5,12 @@
 {% block body %}
     <header class="dashboard-header">
         <div>
-            <h1>{{ app.user.supervisor ? app.user.supervisor.hostelBlock : 'My Block' }} — Complaints</h1>
-            <p class="date-display">View and resolve complaints for your block students</p>
+            <h1>{{ app.user.supervisor ? app.user.supervisor.hostelAssigned : 'My Hostel' }} — Complaints</h1>
+            <p class="date-display">View and resolve complaints for your hostel students</p>
         </div>
         <div class="admin-profile">
             <div class="avatar sup-avatar"></div>
-            <span>{{ app.user.supervisor ? app.user.supervisor.hostelBlock : '' }} Supervisor</span>
+            <span>{{ app.user.supervisor ? app.user.supervisor.hostelAssigned : '' }} Supervisor</span>
         </div>
     </header>
 
@@ -58,7 +58,7 @@
     <!-- Complaints Table -->
     <div class="dashboard-box full-width-box">
         <div class="box-header">
-            <h3>All Block Complaints</h3>
+            <h3>All Hostel Complaints</h3>
         </div>
         <table class="data-table" id="complaints-table">
             <thead>

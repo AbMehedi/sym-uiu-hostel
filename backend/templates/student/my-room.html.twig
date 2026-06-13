@@ -51,8 +51,8 @@
                             <span style="color: white; font-weight: 600;">{{ room.roomNumber }}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 8px;">
-                            <span style="color: #64748b; font-size: 0.9rem;">Hostel Block</span>
-                            <span style="color: white; font-weight: 600;">Block {{ room.block }}</span>
+                            <span style="color: #64748b; font-size: 0.9rem;">Hostel</span>
+                            <span style="color: white; font-weight: 600;">{{ room.hostel }}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 8px;">
                             <span style="color: #64748b; font-size: 0.9rem;">Floor</span>
@@ -75,7 +75,7 @@
                 
                 {# Supervisor Card #}
                 <div class="dashboard-box" style="padding: 20px;">
-                    <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Block Supervisor</h3>
+                    <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Hostel Supervisor</h3>
                     {% if supervisor %}
                         <div style="display: flex; align-items: center; justify-content: space-between;">
                             <div style="display: flex; align-items: center; gap: 15px;">
@@ -84,7 +84,7 @@
                                 </div>
                                 <div>
                                     <h4 style="margin: 0; color: white;">{{ supervisor.name }}</h4>
-                                    <p style="margin: 2px 0 0 0; font-size: 0.85rem; color: #64748b;">Block {{ room.block }} Supervisor</p>
+                                    <p style="margin: 2px 0 0 0; font-size: 0.85rem; color: #64748b;">Hostel {{ room.hostel }} Supervisor</p>
                                 </div>
                             </div>
                             <a href="{{ path('student_chat') }}?partner={{ supervisor.id }}" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
@@ -92,7 +92,7 @@
                             </a>
                         </div>
                     {% else %}
-                        <p style="margin: 0; color: #64748b; font-style: italic;">No supervisor assigned to Block {{ room.block }} yet.</p>
+                        <p style="margin: 0; color: #64748b; font-style: italic;">No supervisor assigned to Hostel {{ room.hostel }} yet.</p>
                     {% endif %}
                 </div>
 

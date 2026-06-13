@@ -44,7 +44,7 @@
         <!-- Quick Assignment Form -->
         <div class="dashboard-box" style="margin-bottom: 0;">
             <div class="box-header">
-                <h3>Assign / Reassign Room</h3>
+                <h3>Assign Student to Hostel, Supervisor, and Room</h3>
             </div>
             <form class="auth-form" action="{{ path('admin_room_assign_new') }}" method="POST">
                 <div class="form-group">
@@ -59,7 +59,7 @@
                                     <div style="color: #e2e8f0; font-weight: 500;">{{ student.user.name }}</div>
                                     <div style="font-size: 0.8rem; color: #94a3b8; font-family: monospace;">{{ student.studentNumber }}</div>
                                     {% if student.room %}
-                                        <div style="font-size: 0.75rem; color: #10b981; margin-top: 2px;">Current: Block {{ student.room.block }}, Room {{ student.room.roomNumber }}</div>
+                                        <div style="font-size: 0.75rem; color: #10b981; margin-top: 2px;">Current: Hostel {{ student.room.hostel }}, Room {{ student.room.roomNumber }}</div>
                                     {% endif %}
                                 </div>
                             {% else %}
@@ -70,13 +70,39 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="hostel">Hostel</label>
+                    <select id="hostel" name="hostel" class="form-control" required>
+                        <option value="" disabled selected>Select hostel...</option>
+                        {% for hostel in hostels %}
+                            <option value="{{ hostel }}">{{ hostel }}</option>
+                        {% else %}
+                            <option value="" disabled>No hostels available</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="supervisorId">Supervisor</label>
+                    <select id="supervisorId" name="supervisorId" class="form-control" required disabled>
+                        <option value="" disabled selected>Select supervisor...</option>
+                        {% for supervisor in supervisors %}
+                            <option value="{{ supervisor.id }}" data-hostel="{{ supervisor.hostelAssigned }}">
+                                {{ supervisor.user.name }} ({{ supervisor.hostelAssigned ?: 'Unassigned' }})
+                            </option>
+                        {% else %}
+                            <option value="" disabled>No supervisors available</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
                     <label for="roomId">Available Rooms</label>
-                    <select id="roomId" name="roomId" class="form-control" required>
+                    <select id="roomId" name="roomId" class="form-control" required disabled>
                         <option value="" disabled selected>Choose room...</option>
                         {% for room in availableRooms %}
                             {% set available = room.capacity - room.actualOccupancy %}
-                            <option value="{{ room.id }}">
-                                Block {{ room.block }} — Room {{ room.roomNumber }}
+                            <option value="{{ room.id }}" data-hostel="{{ room.hostel }}">
+                                Hostel {{ room.hostel }} — Room {{ room.roomNumber }}
                                 ({{ available }} bed{{ available != 1 ? 's' : '' }} available)
                             </option>
                         {% else %}
@@ -135,31 +161,34 @@
         <!-- ── Current Allocations Content ── -->
         <div id="content-current" class="tab-content">
             
-            {% set blocks = [] %}
+            {% set hostelsForFilter = [] %}
             {% for room in allRooms %}
-                {% if room.block not in blocks %}
-                    {% set blocks = blocks|merge([room.block]) %}
+                {% if room.hostel not in hostelsForFilter %}
+                    {% set hostelsForFilter = hostelsForFilter|merge([room.hostel]) %}
                 {% endif %}
             {% endfor %}
 
-            <!-- Dynamic Block Filter CSS -->
+            <!-- Dynamic Hostel Filter CSS -->
             <style>
-                {% for block in blocks %}
-                    #filter-{{ block|lower }}:checked ~ .room-grid .card-{{ block|lower }} { display: flex; }
-                    #filter-{{ block|lower }}:checked ~ .room-grid .allocation-card:not(.card-{{ block|lower }}) { display: none; }
+                {% for hostel in hostelsForFilter %}
+                    {% set hostelKey = hostel|lower|replace({' ':'-', '/':'-'}) %}
+                    #filter-{{ hostelKey }}:checked ~ .room-grid .card-{{ hostelKey }} { display: flex; }
+                    #filter-{{ hostelKey }}:checked ~ .room-grid .allocation-card:not(.card-{{ hostelKey }}) { display: none; }
                 {% endfor %}
             </style>
 
             <div class="css-interactive-wrapper">
-                <input type="radio" name="block-filter" id="filter-all" class="hidden-radio" checked>
-                {% for block in blocks %}
-                    <input type="radio" name="block-filter" id="filter-{{ block|lower }}" class="hidden-radio">
+                <input type="radio" name="hostel-filter" id="filter-all" class="hidden-radio" checked>
+                {% for hostel in hostelsForFilter %}
+                    {% set hostelKey = hostel|lower|replace({' ':'-', '/':'-'}) %}
+                    <input type="radio" name="hostel-filter" id="filter-{{ hostelKey }}" class="hidden-radio">
                 {% endfor %}
 
                 <div class="filter-pills">
-                    <label for="filter-all" class="filter-pill">All Blocks</label>
-                    {% for block in blocks %}
-                        <label for="filter-{{ block|lower }}" class="filter-pill">Block {{ block }}</label>
+                    <label for="filter-all" class="filter-pill">All Hostels</label>
+                    {% for hostel in hostelsForFilter %}
+                        {% set hostelKey = hostel|lower|replace({' ':'-', '/':'-'}) %}
+                        <label for="filter-{{ hostelKey }}" class="filter-pill">{{ hostel }}</label>
                     {% endfor %}
                 </div>
 
@@ -170,11 +199,12 @@
                         {% set percent = (occ / cap * 100)|round %}
                         {% set fillClass = (occ == cap) ? 'full' : ((occ >= cap - 1 and cap > 1) ? 'warning' : 'safe') %}
                         
-                        <div class="allocation-card card-{{ room.block|lower }}">
+                        {% set hostelKey = room.hostel|lower|replace({' ':'-', '/':'-'}) %}
+                        <div class="allocation-card card-{{ hostelKey }}">
                             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4px;">
                                 <div>
                                     <h3 style="margin: 0; font-size: 1.1rem; color: white;">Room {{ room.roomNumber }}</h3>
-                                    <span style="font-size: 0.8rem; color: #94a3b8;">Block {{ room.block }}</span>
+                                    <span style="font-size: 0.8rem; color: #94a3b8;">Hostel {{ room.hostel }}</span>
                                 </div>
                                 <div style="font-size: 0.85rem; color: {{ occ == cap ? '#ef4444' : '#10b981' }}; font-weight: 600;">
                                     {{ occ }} / {{ cap }} Filled
@@ -247,7 +277,7 @@
                             {% for assignment in allAssignments %}
                             <tr>
                                 <td>
-                                    <strong>Block {{ assignment.room.block }} — {{ assignment.room.roomNumber }}</strong>
+                                    <strong>Hostel {{ assignment.room.hostel }} — {{ assignment.room.roomNumber }}</strong>
                                 </td>
                                 <td>
                                     <div style="color:white;font-weight:500;">{{ assignment.student.user.name }}</div>
@@ -281,6 +311,9 @@
             const searchInput = document.getElementById('studentSearchInput');
             const hiddenInput = document.getElementById('studentIdHidden');
             const dropdownList = document.getElementById('studentDropdownList');
+            const hostelSelect = document.getElementById('hostel');
+            const supervisorSelect = document.getElementById('supervisorId');
+            const roomSelect = document.getElementById('roomId');
             if (!dropdownList) return;
             const items = dropdownList.querySelectorAll('.dropdown-item');
 
@@ -333,6 +366,42 @@
                         searchInput.reportValidity();
                     }
                 });
+            }
+
+            function filterSelectByHostel(selectEl, hostelValue) {
+                const options = selectEl.querySelectorAll('option[data-hostel]');
+                let visibleCount = 0;
+                options.forEach(option => {
+                    const matches = hostelValue !== '' && option.dataset.hostel === hostelValue;
+                    option.hidden = !matches;
+                    if (matches) {
+                        visibleCount += 1;
+                    }
+                });
+                return visibleCount;
+            }
+
+            if (hostelSelect && supervisorSelect && roomSelect) {
+                hostelSelect.addEventListener('change', () => {
+                    const selectedHostel = hostelSelect.value;
+                    supervisorSelect.value = '';
+                    roomSelect.value = '';
+                    supervisorSelect.disabled = selectedHostel === '';
+                    roomSelect.disabled = selectedHostel === '';
+
+                    const visibleSupervisors = filterSelectByHostel(supervisorSelect, selectedHostel);
+                    const visibleRooms = filterSelectByHostel(roomSelect, selectedHostel);
+
+                    supervisorSelect.setCustomValidity(visibleSupervisors > 0 ? '' : 'No supervisor found for selected hostel.');
+                    roomSelect.setCustomValidity(visibleRooms > 0 ? '' : 'No available room found for selected hostel.');
+                });
+
+                supervisorSelect.addEventListener('change', () => supervisorSelect.setCustomValidity(''));
+                roomSelect.addEventListener('change', () => roomSelect.setCustomValidity(''));
+                filterSelectByHostel(supervisorSelect, '');
+                filterSelectByHostel(roomSelect, '');
+                supervisorSelect.disabled = true;
+                roomSelect.disabled = true;
             }
         });
     </script>

@@ -25,9 +25,8 @@
                     <li><a href="{{ path('admin_dashboard') }}" class="{{ app.request.attributes.get('_route') == 'admin_dashboard' ? 'active' : '' }}">Dashboard Overview</a></li>
                     <li><a href="{{ path('admin_supervisors') }}" class="{{ app.request.attributes.get('_route') starts with 'admin_supervisor' ? 'active' : '' }}">Supervisor Management</a></li>
                     <li><a href="{{ path('admin_tasks') }}" class="{{ app.request.attributes.get('_route') starts with 'admin_task' ? 'active' : '' }}">Task Management</a></li>
-                    <li><a href="{{ path('admin_rooms') }}" class="{{ app.request.attributes.get('_route') in ['admin_rooms', 'admin_rooms_new', 'admin_rooms_delete', 'admin_room_photo'] ? 'active' : '' }}">Room Management</a></li>
-                    <li><a href="{{ path('admin_room_assign') }}" class="{{ app.request.attributes.get('_route') in ['admin_room_assign', 'admin_room_assign_new', 'admin_room_assign_revoke'] ? 'active' : '' }}">Student Allocation</a></li>
-                    <li><a href="{{ path('admin_students') }}" class="{{ app.request.attributes.get('_route') == 'admin_students' ? 'active' : '' }}">Students</a></li>
+                    <li><a href="{{ path('admin_rooms') }}" class="{{ app.request.attributes.get('_route') in ['admin_rooms', 'admin_rooms_new', 'admin_rooms_delete'] ? 'active' : '' }}">Room Management</a></li>
+                    <li><a href="{{ path('admin_students') }}" class="{{ app.request.attributes.get('_route') in ['admin_students', 'admin_room_assign_new', 'admin_room_assign_revoke', 'admin_student_change_supervisor'] ? 'active' : '' }}">Student Management</a></li>
                     <li><a href="{{ path('admin_admission_requests') }}" class="{{ app.request.attributes.get('_route') starts with 'admin_admission' ? 'active' : '' }}">Admission Requests</a></li>
                     <li><a href="{{ path('admin_complaints') }}" class="{{ app.request.attributes.get('_route') == 'admin_complaints' ? 'active' : '' }}">Complaints &amp; Costs</a></li>
                     <li><a href="{{ path('admin_reports') }}" class="{{ app.request.attributes.get('_route') == 'admin_reports' ? 'active' : '' }}">Reports &amp; PDF Export</a></li>

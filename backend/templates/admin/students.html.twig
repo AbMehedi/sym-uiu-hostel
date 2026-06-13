@@ -4,392 +4,813 @@
 
 {% block body %}
 
-{#
-  ── Dynamic CSS ──────────────────────────────────────────────────────
-  Radios are INSIDE .css-interactive-wrapper so they are siblings of
-  .dashboard-grid, enabling the CSS ~ sibling combinator to work.
-#}
+{% for type, messages in app.flashes %}
+    {% for message in messages %}
+        <div class="flash-{{ type }}">{{ message }}</div>
+    {% endfor %}
+{% endfor %}
+
 <style>
-    /* ── Row selection & profile visibility ── */
-    {% for student in students %}
-    #student-{{ student.id }}:checked ~ .dashboard-grid .right-container #profile-{{ student.id }} {
-        display: block;
-    }
-    #student-{{ student.id }}:checked ~ .dashboard-grid #label-{{ student.id }} {
-        border-left: 4px solid var(--primary-color) !important;
-    }
-    #student-{{ student.id }}:checked ~ .dashboard-grid #label-{{ student.id }} .css-td {
-        color: var(--primary-color);
-    }
-    {% endfor %}
+/* ═══════════════════════════════════════════════════
+   STUDENT MANAGEMENT — Full-list + slide-over panel
+   ═══════════════════════════════════════════════════ */
 
-    /* ── Status-based row styling (left border + tint) ── */
-    .row-approved  { border-left: 4px solid #10b981; }
-    .row-pending   { border-left: 4px solid #f59e0b; }
-    .row-rejected  { border-left: 4px solid #ef4444; }
+/* ── Stats ── */
+.sm-stats { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 28px; }
+.sm-stat {
+    flex: 1 1 130px;
+    background: #0b1120; border: 1px solid #1e293b; border-radius: 12px;
+    padding: 16px 20px; display: flex; align-items: center; gap: 14px;
+}
+.sm-stat-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem; flex-shrink: 0;
+}
+.sm-stat .s-label { font-size: 0.71rem; color: #64748b; margin-bottom: 3px; }
+.sm-stat .s-value { font-size: 1.5rem; font-weight: 700; line-height: 1; }
 
-    .row-approved:hover  { background-color: rgba(16,  185, 129, 0.1) !important; }
-    .row-pending:hover   { background-color: rgba(245, 158,  11, 0.1) !important; }
-    .row-rejected:hover  { background-color: rgba(239,  68,  68, 0.1) !important; }
+/* ── Toolbar ── */
+.sm-toolbar {
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    margin-bottom: 16px;
+}
+.sm-search-wrap { position: relative; flex: 1 1 260px; }
+.sm-search-wrap svg {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    pointer-events: none;
+}
+.sm-search {
+    width: 100%; box-sizing: border-box;
+    background: #0b1120; border: 1px solid #1e293b; border-radius: 9px;
+    padding: 9px 14px 9px 38px; color: #e2e8f0; font-size: 0.88rem; outline: none;
+    transition: border-color 0.2s;
+}
+.sm-search:focus { border-color: #3b82f6; }
+.sm-search::placeholder { color: #475569; }
+.sm-filter-sel {
+    background: #0b1120; border: 1px solid #1e293b; border-radius: 9px;
+    padding: 9px 14px; color: #e2e8f0; font-size: 0.88rem; outline: none; cursor: pointer;
+}
+.sm-filter-sel:focus { border-color: #3b82f6; }
+.sm-count-label { font-size: 0.8rem; color: #475569; white-space: nowrap; }
 
-    /* Checked state tint per status */
-    {% for student in students %}
-    {% set sv = student.admissionStatus.value %}
-    #student-{{ student.id }}:checked ~ .dashboard-grid #label-{{ student.id }} {
-        background-color: rgba(
-            {{ sv == 'approved' ? '16,185,129' : (sv == 'rejected' ? '239,68,68' : '245,158,11') }},
-            0.12
-        ) !important;
-    }
-    {% endfor %}
+/* ── Table wrapper ── */
+.sm-table-wrap {
+    background: #0b1120; border: 1px solid #1e293b; border-radius: 14px;
+    overflow: hidden; margin-bottom: 36px;
+}
+.sm-table {
+    width: 100%; border-collapse: collapse; font-size: 0.875rem;
+}
+.sm-table thead tr {
+    background: #060d18; border-bottom: 1px solid #1e293b;
+}
+.sm-table thead th {
+    padding: 12px 18px; text-align: left;
+    font-size: 0.71rem; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: #475569; white-space: nowrap;
+}
+.sm-table tbody tr {
+    border-bottom: 1px solid #1e293b;
+    transition: background 0.12s;
+}
+.sm-table tbody tr:last-child { border-bottom: none; }
+.sm-table tbody tr:hover { background: rgba(59,130,246,0.04); }
+.sm-table td { padding: 13px 18px; vertical-align: middle; }
 
-    /* ── Row status dot ── */
-    .status-dot {
-        width: 8px; height: 8px;
-        border-radius: 50%;
-        display: inline-block;
-        margin-right: 6px;
-        flex-shrink: 0;
-    }
-    .dot-approved { background-color: #10b981; }
-    .dot-pending  { background-color: #f59e0b; }
-    .dot-rejected { background-color: #ef4444; }
+/* Student name cell */
+.st-name-cell { display: flex; align-items: center; gap: 12px; }
+.st-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; font-weight: 700; color: white; flex-shrink: 0;
+}
+.st-name      { font-weight: 600; color: #e2e8f0; font-size: 0.9rem; }
+.st-id        { font-size: 0.73rem; color: #475569; font-family: monospace; margin-top: 1px; }
 
-    /* ── Supervisor badge ── */
-    .supervisor-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: rgba(37,99,235,0.1);
-        border: 1px solid rgba(37,99,235,0.3);
-        border-radius: 8px;
-        padding: 10px 16px;
-        margin-bottom: 25px;
-    }
-    .supervisor-badge .sup-icon {
-        width: 34px; height: 34px;
-        border-radius: 50%;
-        background: #10b981;
-        color: white;
-        display: flex; align-items: center; justify-content: center;
-        font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
-    }
-    .supervisor-badge .sup-label { font-size: 0.75rem; color: #64748b; }
-    .supervisor-badge .sup-name  { font-size: 0.95rem; color: white; font-weight: 600; }
-    .supervisor-badge .sup-block { font-size: 0.8rem; color: var(--primary-color); }
+/* Room / supervisor cells */
+.st-room-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(16,185,129,0.09); border: 1px solid rgba(16,185,129,0.2);
+    border-radius: 6px; padding: 3px 9px;
+    font-size: 0.78rem; font-weight: 600; color: #10b981;
+}
+.st-room-empty {
+    font-size: 0.8rem; color: #475569; font-style: italic;
+}
+.st-sup-name { font-size: 0.83rem; font-weight: 500; color: #94a3b8; }
+.st-sup-empty { font-size: 0.8rem; color: #475569; font-style: italic; }
 
-    /* ── No-supervisor state ── */
-    .no-supervisor {
-        display: inline-flex; align-items: center; gap: 8px;
-        background: rgba(100,116,139,0.1);
-        border: 1px solid rgba(100,116,139,0.2);
-        border-radius: 8px; padding: 10px 16px; margin-bottom: 25px;
-        color: #64748b; font-size: 0.9rem;
-    }
+/* Status pill */
+.st-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.71rem; font-weight: 700; letter-spacing: 0.04em;
+    padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+}
+.p-approved { background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid #10b981; }
+.p-pending  { background: rgba(245,158,11,0.12);  color: #f59e0b; border: 1px solid #f59e0b; }
+.p-rejected { background: rgba(239,68,68,0.12);   color: #ef4444; border: 1px solid #ef4444; }
+
+/* Action buttons in table */
+.st-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.act-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.75rem; font-weight: 600; padding: 5px 11px;
+    border-radius: 7px; border: 1px solid; cursor: pointer;
+    transition: all 0.15s; white-space: nowrap; background: none;
+}
+.act-btn-blue  { border-color: rgba(59,130,246,0.4); color: #60a5fa; }
+.act-btn-blue:hover  { background: rgba(59,130,246,0.12); border-color: #60a5fa; }
+.act-btn-green { border-color: rgba(16,185,129,0.4); color: #34d399; }
+.act-btn-green:hover { background: rgba(16,185,129,0.1); border-color: #34d399; }
+.act-btn-slate { border-color: rgba(100,116,139,0.4); color: #94a3b8; }
+.act-btn-slate:hover { background: rgba(100,116,139,0.1); border-color: #94a3b8; }
+
+/* Row stagger animation */
+@keyframes stRowIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+.sm-table tbody tr { animation: stRowIn 0.22s ease both; }
+{% for i in 1..200 %}
+.sm-table tbody tr:nth-child({{ i }}) { animation-delay: {{ (i-1)*0.018 }}s; }
+{% endfor %}
+
+/* ═══════════════════════════════════════════════════
+   Slide-Over Detail Panel
+   ═══════════════════════════════════════════════════ */
+.so-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(3px);
+    z-index: 900;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+.so-overlay.open { opacity: 1; pointer-events: all; }
+
+.so-panel {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(520px, 100vw);
+    background: #0b1120;
+    border-left: 1px solid #1e293b;
+    z-index: 901;
+    display: flex; flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    overflow-y: auto;
+}
+.so-panel.open { transform: translateX(0); }
+
+/* Close button */
+.so-close {
+    position: absolute; top: 16px; left: -44px;
+    width: 34px; height: 34px;
+    background: #0b1120; border: 1px solid #1e293b; border-radius: 8px;
+    color: #94a3b8; font-size: 1.1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: color 0.15s, border-color 0.15s;
+}
+.so-close:hover { color: white; border-color: #475569; }
+
+/* Panel sections */
+.so-hero {
+    padding: 28px 28px 20px;
+    border-bottom: 1px solid #1e293b;
+    background: linear-gradient(135deg, #0f1e35 0%, #0b1120 60%);
+    position: relative;
+}
+.so-hero-inner { display: flex; align-items: center; gap: 18px; }
+.so-avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; font-weight: 700; color: white;
+    flex-shrink: 0; box-shadow: 0 0 0 3px rgba(255,255,255,0.08);
+}
+.so-hero h2 { margin: 0 0 4px; font-size: 1.25rem; color: white; }
+.so-hero p  { margin: 0 0 8px; font-size: 0.83rem; color: #64748b; }
+
+.so-section {
+    padding: 20px 28px;
+    border-bottom: 1px solid #1e293b;
+}
+.so-section:last-child { border-bottom: none; }
+.so-section-title {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #475569; margin: 0 0 14px;
+    display: flex; align-items: center; gap: 8px;
+}
+.so-section-title::after {
+    content: ''; flex: 1; height: 1px; background: #1e293b;
+}
+
+/* Info pairs */
+.so-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+.so-info-item .i-label { font-size: 0.71rem; color: #64748b; margin-bottom: 3px; }
+.so-info-item .i-val   { font-size: 0.88rem; font-weight: 600; color: #e2e8f0; word-break: break-all; }
+
+/* Current room card */
+.so-room-card {
+    background: #060d18; border: 1px solid #1e293b; border-radius: 10px;
+    padding: 13px 16px; margin-bottom: 12px;
+}
+.so-room-card .r-num  { font-size: 1rem; font-weight: 700; color: white; }
+.so-room-card .r-meta { font-size: 0.78rem; color: #64748b; margin-top: 3px; }
+.so-cap-bg { background: #1f2937; border-radius: 999px; height: 5px; overflow: hidden; margin: 9px 0 5px; }
+.so-cap-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; }
+.so-occ-txt { display: flex; justify-content: space-between; font-size: 0.73rem; color: #64748b; }
+.so-occ-txt .occ-val { color: #e2e8f0; font-weight: 600; }
+
+/* Inline assign form inside panel */
+.so-assign-form {
+    background: #060d18; border: 1px solid rgba(59,130,246,0.25);
+    border-radius: 10px; padding: 16px;
+}
+.so-assign-form h5 {
+    font-size: 0.73rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: #60a5fa; margin: 0 0 12px;
+}
+.so-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.so-form-grid label { font-size: 0.73rem; color: #94a3b8; display: block; margin-bottom: 4px; }
+.so-form-select {
+    width: 100%; box-sizing: border-box;
+    background: #0b1120; border: 1px solid #334155; border-radius: 7px;
+    color: #e2e8f0; padding: 8px 10px; font-size: 0.85rem; outline: none;
+}
+.so-form-select:focus { border-color: #3b82f6; }
+.so-form-footer {
+    margin-top: 12px; display: flex; align-items: center;
+    justify-content: flex-end; gap: 8px;
+}
+.btn-so-cancel {
+    font-size: 0.8rem; color: #64748b; background: none; border: none;
+    cursor: pointer; padding: 6px 12px; border-radius: 6px; transition: color 0.15s;
+}
+.btn-so-cancel:hover { color: #e2e8f0; }
+.btn-so-submit {
+    font-size: 0.82rem; font-weight: 600; padding: 8px 18px;
+    background: #3b82f6; color: white; border: none; border-radius: 7px;
+    cursor: pointer; transition: opacity 0.15s;
+}
+.btn-so-submit:hover { opacity: 0.87; }
+
+/* Supervisor badge inside panel */
+.so-sup-badge {
+    background: rgba(37,99,235,0.08); border: 1px solid rgba(37,99,235,0.2);
+    border-radius: 10px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+}
+.so-sup-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: #10b981; color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; font-weight: 700; flex-shrink: 0;
+}
+.so-sup-badge .sup-name { font-size: 0.9rem; font-weight: 600; color: white; }
+.so-sup-badge .sup-sub  { font-size: 0.77rem; color: #3b82f6; margin-top: 2px; }
+
+/* Change supervisor form */
+.so-chg-sup {
+    background: #060d18; border: 1px solid #1e293b; border-radius: 10px; padding: 13px 14px;
+}
+.so-chg-sup .chg-label {
+    font-size: 0.71rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;
+    display: block; margin-bottom: 8px;
+}
+.so-chg-row { display: flex; gap: 8px; }
+.so-chg-row select {
+    flex: 1; background: #0b1120; border: 1px solid #334155; border-radius: 7px;
+    color: #e2e8f0; padding: 7px 10px; font-size: 0.86rem; outline: none;
+}
+.so-chg-row select:focus { border-color: #3b82f6; }
+.btn-chg-save {
+    padding: 7px 14px; font-size: 0.82rem; font-weight: 600;
+    background: #3b82f6; color: white; border: none; border-radius: 7px;
+    cursor: pointer; transition: opacity 0.15s; white-space: nowrap;
+}
+.btn-chg-save:hover { opacity: 0.87; }
+
+/* Assignment history inside panel */
+.so-hist-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 12px; background: #060d18; border: 1px solid #1e293b;
+    border-radius: 8px; margin-bottom: 8px; font-size: 0.82rem;
+}
+.so-hist-item:last-child { margin-bottom: 0; }
+
+/* Activity mini-stats */
+.so-activity { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.so-act-card {
+    background: #060d18; border: 1px solid #1e293b; border-radius: 9px;
+    padding: 10px; text-align: center;
+}
+.so-act-card .ac-label { font-size: 0.7rem; color: #64748b; margin-bottom: 5px; }
+.so-act-card .ac-val   { font-size: 1.4rem; font-weight: 700; }
+
+/* Empty state */
+.sm-empty {
+    text-align: center; padding: 60px 24px; color: #475569;
+}
+.sm-empty .em-icon { font-size: 2.5rem; margin-bottom: 14px; }
+
+/* No results */
+.sm-no-results { display: none; }
+.sm-no-results td {
+    padding: 40px; text-align: center; color: #475569;
+}
 </style>
 
-{# ── Top Header ── #}
+{# ── Header ── #}
 <header class="dashboard-header">
     <div>
         <h1>Student Management</h1>
-        <p class="date-display">View and manage all registered student profiles.</p>
-    </div>
-    <div class="admin-profile">
-        <div class="avatar">A</div>
-        <span>Admin</span>
+        <p class="date-display">Manage room assignments, supervisors and student profiles.</p>
     </div>
 </header>
 
-{# ── Stats Row ── #}
-{% set approvedCount  = students|filter(s => s.admissionStatus.value == 'approved')|length %}
-{% set pendingCount   = students|filter(s => s.admissionStatus.value == 'pending')|length %}
-{% set rejectedCount  = students|filter(s => s.admissionStatus.value == 'rejected')|length %}
-<div class="dashboard-stats" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 30px;">
-    <div class="stat-card">
-        <div class="stat-title">Total Students</div>
-        <div class="stat-value">{{ students|length }}</div>
+{# ── Stats strip ── #}
+<div class="sm-stats">
+    <div class="sm-stat">
+        <div class="sm-stat-icon" style="background:rgba(59,130,246,0.12);">👨‍🎓</div>
+        <div>
+            <div class="s-label">Total Students</div>
+            <div class="s-value" style="color:#3b82f6;">{{ students|length }}</div>
+        </div>
     </div>
-    <div class="stat-card occupied">
-        <div class="stat-title">✅ Approved</div>
-        <div class="stat-value" style="color: #10b981;">{{ approvedCount }}</div>
+    <div class="sm-stat">
+        <div class="sm-stat-icon" style="background:rgba(245,158,11,0.08);">🛏️</div>
+        <div>
+            <div class="s-label">No Room Yet</div>
+            <div class="s-value" style="color:#f59e0b;">{{ unassignedStudents|length }}</div>
+        </div>
     </div>
-    <div class="stat-card vacant">
-        <div class="stat-title">⏳ Pending</div>
-        <div class="stat-value" style="color: #f59e0b;">{{ pendingCount }}</div>
-    </div>
-    <div class="stat-card danger">
-        <div class="stat-title">❌ Rejected</div>
-        <div class="stat-value" style="color: #ef4444;">{{ rejectedCount }}</div>
+    <div class="sm-stat">
+        <div class="sm-stat-icon" style="background:rgba(16,185,129,0.08);">🏠</div>
+        <div>
+            <div class="s-label">Available Beds</div>
+            <div class="s-value" style="color:#10b981;">{{ availableBeds }}</div>
+        </div>
     </div>
 </div>
 
-{# ═══════════════════════════════════════════════════════════
-   Master-Detail Wrapper — radios inside so they are
-   siblings of .dashboard-grid (required for CSS ~ to work)
-   ═══════════════════════════════════════════════════════════ #}
-<div class="css-interactive-wrapper">
+{# ── Toolbar ── #}
+<div class="sm-toolbar">
+    <div class="sm-search-wrap">
+        <svg width="16" height="16" fill="none" stroke="#475569" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" class="sm-search" id="sm-search"
+               placeholder="Search by name or student ID…" oninput="smFilter()">
+    </div>
+    <select class="sm-filter-sel" id="sm-filter-room" onchange="smFilter()">
+        <option value="">All Room States</option>
+        <option value="assigned">Has Room</option>
+        <option value="unassigned">No Room</option>
+    </select>
+    <span class="sm-count-label" id="sm-count"></span>
+</div>
 
-    {% for student in students %}
-        <input type="radio" name="student-select"
-               id="student-{{ student.id }}"
-               class="hidden-radio"
-               {{ loop.first ? 'checked' : '' }}>
-    {% endfor %}
-
-    <div class="dashboard-grid" style="grid-template-columns: 1fr 1.6fr; align-items: start;">
-
-        {# ══ LEFT: Student List ══ #}
-        <div class="dashboard-box" style="padding: 0; overflow: hidden;">
-            <div class="box-header" style="padding: 20px 25px 15px;">
-                <h3>All Students</h3>
-                <span class="status resolved">{{ students|length }} Records</span>
-            </div>
-
-            {# Legend #}
-            <div style="padding: 0 25px 12px; display: flex; gap: 14px; flex-wrap: wrap;">
-                <span style="font-size: 0.78rem; color: #64748b; display: flex; align-items: center; gap: 4px;">
-                    <span class="status-dot dot-approved"></span> Approved
-                </span>
-                <span style="font-size: 0.78rem; color: #64748b; display: flex; align-items: center; gap: 4px;">
-                    <span class="status-dot dot-pending"></span> Pending
-                </span>
-                <span style="font-size: 0.78rem; color: #64748b; display: flex; align-items: center; gap: 4px;">
-                    <span class="status-dot dot-rejected"></span> Rejected
-                </span>
-            </div>
-
-            {# Search bar #}
-            <div style="padding: 0 25px 15px;">
-                <input type="text" id="student-search" class="form-control"
-                       placeholder="🔍 Search by name or ID…"
-                       style="padding: 8px 14px; font-size: 0.9rem;"
-                       oninput="filterStudents(this.value)">
-            </div>
-
-            {# CSS Grid Table #}
-            <div class="css-table" id="student-list-table">
-                <div class="css-thead">
-                    <div class="css-th">Student ID</div>
-                    <div class="css-th">Full Name</div>
-                    <div class="css-th">Status</div>
-                </div>
-                <div class="css-tbody">
-                    {% for student in students %}
-                        {% set sv = student.admissionStatus.value %}
-                        {% set rowClass = sv == 'approved' ? 'row-approved' : (sv == 'rejected' ? 'row-rejected' : 'row-pending') %}
-                        {% set dotClass = sv == 'approved' ? 'dot-approved' : (sv == 'rejected' ? 'dot-rejected' : 'dot-pending') %}
-                        {% set badgeClass = sv == 'approved' ? 'resolved' : (sv == 'rejected' ? 'in-progress' : 'pending') %}
-                        <label
-                            for="student-{{ student.id }}"
-                            class="css-tr clickable-row student-row {{ rowClass }}"
-                            id="label-{{ student.id }}"
-                            data-name="{{ student.user.name|lower }}"
-                            data-id="{{ student.studentNumber|lower }}"
-                        >
-                            <div class="css-td" style="font-family: monospace; font-size: 0.82rem; color: #94a3b8;">
-                                {{ student.studentNumber }}
-                            </div>
-                            <div class="css-td" style="display: flex; align-items: center; gap: 0;">
-                                <span class="status-dot {{ dotClass }}"></span>
-                                <strong style="font-size: 0.92rem;">{{ student.user.name }}</strong>
-                            </div>
-                            <div class="css-td">
-                                <span class="status status-sm {{ badgeClass }}">
-                                    {{ sv|capitalize }}
-                                </span>
-                            </div>
-                        </label>
-                    {% else %}
-                        <div style="padding: 30px; text-align: center; color: #64748b;">
-                            No students registered yet.
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <div id="no-results-msg" style="display:none; padding: 16px 25px; color: #64748b; font-size: 0.9rem;">
-                No students match your search.
-            </div>
-        </div>{# /left panel #}
-
-        {# ══ RIGHT: Profile Detail ══ #}
-        <div class="dashboard-box right-container" style="position: sticky; top: 20px; min-height: 440px;">
-            <div class="box-header profile-section-header" style="margin-bottom: 25px;">
-                <h3>Student Profile Details</h3>
-            </div>
-
-            {% if students is empty %}
-                <div style="text-align:center; padding: 40px 20px; color: #64748b;">
-                    <p>No students found in the database.</p>
-                </div>
-            {% endif %}
-
+{# ── Student Table ── #}
+<div class="sm-table-wrap">
+    {% if students is empty %}
+        <div class="sm-empty">
+            <div class="em-icon">👨‍🎓</div>
+            <p>No students registered yet.</p>
+        </div>
+    {% else %}
+    <table class="sm-table" id="sm-table">
+        <thead>
+            <tr>
+                <th>Student</th>
+                <th>Assigned Room</th>
+                <th>Supervisor</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="sm-tbody">
             {% for student in students %}
-                {% set sv = student.admissionStatus.value %}
-                {% set badgeClass = sv == 'approved' ? 'resolved' : (sv == 'rejected' ? 'in-progress' : 'pending') %}
-                {% set heroColor  = sv == 'approved' ? '#10b981' : (sv == 'rejected' ? '#ef4444' : '#f59e0b') %}
-                {% set initials   = student.user.name|split(' ')|map(w => w|slice(0,1))|join('')|upper|slice(0,2) %}
+            {% set initials  = student.user.name|split(' ')|map(w => w|slice(0,1))|join('')|upper|slice(0,2) %}
+            {% set room      = student.room %}
+            {% set supervisor = student.supervisor %}
 
-                {# Resolve supervisor via block #}
-                {% set supervisor = null %}
-                {% if student.room is not null %}
-                    {% set block = student.room.block %}
-                    {% if supervisorsByBlock[block] is defined %}
-                        {% set supervisor = supervisorsByBlock[block] %}
-                    {% endif %}
-                {% endif %}
+            <tr class="sm-student-row"
+                data-name="{{ student.user.name|lower }}"
+                data-id="{{ student.studentNumber|lower }}"
+                data-room="{{ room ? 'assigned' : 'unassigned' }}">
 
-                <div class="profile-view" id="profile-{{ student.id }}">
-
-                    {# ── Hero ── #}
-                    <div class="profile-hero">
-                        <div class="profile-avatar-lg"
-                             style="font-size: 1.5rem; flex-shrink: 0; background-color: {{ heroColor }};">
-                            {{ initials }}
-                        </div>
-                        <div class="profile-title">
-                            <h2>{{ student.user.name }}</h2>
-                            <p>Student • ID: {{ student.studentNumber }}</p>
-                            <span class="status {{ badgeClass }}" style="margin-top: 6px; display: inline-block;">
-                                {% if sv == 'approved' %}✅{% elseif sv == 'rejected' %}❌{% else %}⏳{% endif %}
-                                {{ sv|capitalize }}
-                            </span>
+                {# Student name #}
+                <td>
+                    <div class="st-name-cell">
+                        <div class="st-avatar" style="background:#10b981;">{{ initials }}</div>
+                        <div>
+                            <div class="st-name">{{ student.user.name }}</div>
+                            <div class="st-id">{{ student.studentNumber }}</div>
                         </div>
                     </div>
+                </td>
 
-                    {# ── Supervisor Badge ── #}
-                    {% if supervisor is not null %}
-                        <div class="supervisor-badge">
-                            {% set supInitials = supervisor.user.name|split(' ')|map(w => w|slice(0,1))|join('')|upper|slice(0,2) %}
-                            <div class="sup-icon">{{ supInitials }}</div>
-                            <div>
-                                <div class="sup-label">Block Supervisor</div>
-                                <div class="sup-name">{{ supervisor.user.name }}</div>
-                                <div class="sup-block">
-                                    Block {{ supervisor.blockAssigned }}
-                                    {% if supervisor.phone %}• {{ supervisor.phone }}{% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    {% elseif student.room is not null %}
-                        <div class="no-supervisor">
-                            <span>⚠️</span>
-                            No supervisor assigned to Block {{ student.room.block }}
-                        </div>
+                {# Room #}
+                <td>
+                    {% if room %}
+                        <span class="st-room-tag">🏠 {{ room.roomNumber }} · {{ room.hostel }}</span>
                     {% else %}
-                        <div class="no-supervisor">
-                            <span>🏠</span>
-                            No room assigned — supervisor not determined yet
-                        </div>
+                        <span class="st-room-empty">Not assigned</span>
                     {% endif %}
+                </td>
 
-                    {# ── Contact & Admission Info ── #}
-                    <h4 class="profile-subheading">Contact &amp; Admission Info</h4>
-                    <div class="profile-info-grid">
-                        <div class="info-item">
-                            <span>Email Address</span>
-                            <strong>{{ student.user.email }}</strong>
-                        </div>
-                        <div class="info-item">
-                            <span>Phone Number</span>
-                            <strong>{{ student.phone ?? '—' }}</strong>
-                        </div>
-                        <div class="info-item">
-                            <span>Emergency Contact</span>
-                            <strong>{{ student.emergencyContact ?? '—' }}</strong>
-                        </div>
-                        <div class="info-item">
-                            <span>Admission Date</span>
-                            <strong>{{ student.admissionDate ? student.admissionDate|date('M d, Y') : '—' }}</strong>
-                        </div>
-                        <div class="info-item">
-                            <span>Assigned Room</span>
-                            <strong class="text-primary">
-                                {{ student.room ? ('Room ' ~ student.room.roomNumber ~ ' · Block ' ~ student.room.block) : 'Not Assigned' }}
-                            </strong>
-                        </div>
-                        <div class="info-item">
-                            <span>Account Created</span>
-                            <strong>{{ student.user.createdAt|date('M d, Y') }}</strong>
-                        </div>
-                    </div>
-
-                    {# ── Activity Summary ── #}
-                    <h4 class="profile-subheading">Activity Summary</h4>
-                    <div class="profile-info-grid" style="grid-template-columns: repeat(3, 1fr);">
-                        <div class="info-item" style="text-align: center;">
-                            <span>Complaints</span>
-                            <strong style="font-size: 1.6rem; display: block; margin-top: 4px;
-                                color: {{ student.complaints|length > 0 ? '#ef4444' : '#10b981' }};">
-                                {{ student.complaints|length }}
-                            </strong>
-                        </div>
-                        <div class="info-item" style="text-align: center;">
-                            <span>Room Requests</span>
-                            <strong style="font-size: 1.6rem; color: #f59e0b; display: block; margin-top: 4px;">
-                                {{ student.roomChangeRequests|length }}
-                            </strong>
-                        </div>
-                        <div class="info-item" style="text-align: center;">
-                            <span>Admissions</span>
-                            <strong style="font-size: 1.6rem; color: var(--primary-color); display: block; margin-top: 4px;">
-                                {{ student.admissionRequests|length }}
-                            </strong>
-                        </div>
-                    </div>
-
-                    {# ── Room Assignment History ── #}
-                    {% if student.roomAssignments is not empty %}
-                        <h4 class="profile-subheading">Room Assignment History</h4>
-                        <div style="border: 1px solid #1f2937; border-radius: 8px; overflow: hidden; margin-bottom: 25px;">
-                            {% for assignment in student.roomAssignments %}
-                                <div style="display:flex; justify-content:space-between; align-items:center;
-                                            padding: 10px 15px; border-bottom: 1px solid #1f2937; background: #0e121b;">
-                                    <span style="color: #c0bfbf; font-size: 0.9rem;">
-                                        Room <strong style="color:white;">{{ assignment.room.roomNumber }}</strong>
-                                        &nbsp;—&nbsp;{{ assignment.assignedDate|date('M d, Y') }}
-                                        {% if assignment.vacatedDate %}
-                                            → {{ assignment.vacatedDate|date('M d, Y') }}
-                                        {% endif %}
-                                    </span>
-                                    <span class="status status-sm {{ assignment.status.value == 'active' ? 'resolved' : 'in-progress' }}">
-                                        {{ assignment.status.value|capitalize }}
-                                    </span>
-                                </div>
-                            {% endfor %}
-                        </div>
+                {# Supervisor #}
+                <td>
+                    {% if supervisor %}
+                        <div class="st-sup-name">👤 {{ supervisor.user.name }}</div>
+                        <div class="st-id">{{ supervisor.hostelAssigned ?? '' }}</div>
+                    {% else %}
+                        <span class="st-sup-empty">No supervisor</span>
                     {% endif %}
+                </td>
 
-                    {# ── Footer Actions ── #}
-                    <div class="profile-footer" style="gap: 10px; justify-content: flex-end;">
-                        {% if student.room is null %}
-                            <a href="{{ path('admin_room_assign') }}" class="btn btn-outline btn-sm">Assign Room</a>
-                        {% else %}
-                            <a href="{{ path('admin_room_assign') }}" class="btn btn-outline btn-sm">Change Room</a>
-                        {% endif %}
+                {# Actions #}
+                <td>
+                    <div class="st-actions">
+                        {# View Details button #}
+                        <button class="act-btn act-btn-slate"
+                                onclick="openPanel({{ student.id }})">
+                            📋 Details
+                        </button>
+
+                        {# Assign/Change Room #}
+                        <button class="act-btn act-btn-blue"
+                                onclick="openPanel({{ student.id }}, 'room')">
+                            {{ room ? '🔄 Room' : '🛏️ Assign Room' }}
+                        </button>
+
+                        {# Assign/Change Supervisor #}
+                        <button class="act-btn act-btn-green"
+                                onclick="openPanel({{ student.id }}, 'supervisor')">
+                            {{ supervisor ? '🔁 Supervisor' : '👤 Assign Supervisor' }}
+                        </button>
                     </div>
-
-                </div>{# /profile-view #}
+                </td>
+            </tr>
             {% endfor %}
 
-        </div>{# /right-container #}
+            {# No-results placeholder #}
+            <tr class="sm-no-results" id="sm-no-results-row" style="display:none;">
+                <td colspan="5">No students match your search filters.</td>
+            </tr>
+        </tbody>
+    </table>
+    {% endif %}
+</div>
 
-    </div>{# /dashboard-grid #}
-</div>{# /css-interactive-wrapper #}
+{# ════════════════════════════════════════════════════
+   SLIDE-OVER DETAIL PANEL — one panel, filled via JS
+   ════════════════════════════════════════════════════ #}
+<div class="so-overlay" id="so-overlay" onclick="closePanel()"></div>
 
-{# ── Search filter ── #}
+<div class="so-panel" id="so-panel" role="dialog" aria-modal="true">
+    <button class="so-close" onclick="closePanel()" title="Close">✕</button>
+
+    {# Panel content injected per-student via hidden data blocks #}
+    <div id="so-content"></div>
+</div>
+
+{# ── Hidden data blocks for each student (rendered by Twig, read by JS) ── #}
+{% for student in students %}
+{% set initials  = student.user.name|split(' ')|map(w => w|slice(0,1))|join('')|upper|slice(0,2) %}
+{% set room      = student.room %}
+{% set supervisor = student.supervisor %}
+
+<template id="tpl-{{ student.id }}">
+    {# ── Hero ── #}
+    <div class="so-hero">
+        <div class="so-hero-inner">
+            <div class="so-avatar" style="background:#10b981;">{{ initials }}</div>
+            <div>
+                <h2>{{ student.user.name }}</h2>
+                <p>Student · {{ student.studentNumber }}</p>
+            </div>
+        </div>
+    </div>
+
+    {# ── Contact Info ── #}
+    <div class="so-section">
+        <div class="so-section-title">Contact &amp; Info</div>
+        <div class="so-info-grid">
+            <div class="so-info-item">
+                <div class="i-label">Email</div>
+                <div class="i-val" style="font-size:0.82rem;">{{ student.user.email }}</div>
+            </div>
+            <div class="so-info-item">
+                <div class="i-label">Phone</div>
+                <div class="i-val">{{ student.phone ?? '—' }}</div>
+            </div>
+            <div class="so-info-item">
+                <div class="i-label">Emergency Contact</div>
+                <div class="i-val">{{ student.emergencyContact ?? '—' }}</div>
+            </div>
+            <div class="so-info-item">
+                <div class="i-label">Admission Date</div>
+                <div class="i-val">{{ student.admissionDate ? student.admissionDate|date('M d, Y') : '—' }}</div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Room Assignment ── #}
+    <div class="so-section" id="so-room-section-{{ student.id }}">
+        <div class="so-section-title">Room Assignment</div>
+
+        {% if room %}
+        {% set occ = room.actualOccupancy %}
+        {% set cap = room.capacity %}
+        {% set pct = cap > 0 ? ((occ/cap)*100)|round : 0 %}
+        {% set barC = room.isFull ? '#ef4444' : (pct >= 50 ? '#f59e0b' : '#10b981') %}
+        <div class="so-room-card">
+            <div class="r-num">Room {{ room.roomNumber }}</div>
+            <div class="r-meta">
+                {{ room.hostel }}
+                {% if room.floor == 0 %} · Ground Floor{% else %} · Floor {{ room.floor }}{% endif %}
+                {% if room.roomType %} · {{ room.roomType }}{% endif %}
+            </div>
+            <div class="so-cap-bg">
+                <div class="so-cap-fill" style="width:{{ pct }}%;background:{{ barC }};"></div>
+            </div>
+            <div class="so-occ-txt">
+                <span>Occupancy</span>
+                <span class="occ-val">{{ occ }}/{{ cap }} beds ({{ pct }}%)</span>
+            </div>
+        </div>
+        {% else %}
+        <div style="padding:11px 14px;background:#060d18;border:1px dashed #1e293b;border-radius:8px;color:#475569;font-size:0.85rem;margin-bottom:12px;">
+            ⚠️ No room assigned yet
+        </div>
+        {% endif %}
+
+        {# Assign / Change Room form #}
+        <div class="so-assign-form" id="so-assign-form-{{ student.id }}">
+            <h5>{{ room ? '🔄 Change Room Assignment' : '➕ Assign Room' }}</h5>
+            <form action="{{ path('admin_room_assign_new') }}" method="POST">
+                <input type="hidden" name="studentId" value="{{ student.id }}">
+                <div class="so-form-grid">
+                    <div>
+                        <label>Hostel <span style="color:#ef4444;">*</span></label>
+                        <select name="hostel" class="so-form-select"
+                                id="so-hostel-{{ student.id }}" required
+                                onchange="soFilterByHostel('{{ student.id }}')">
+                            <option value="" disabled {{ room is null ? 'selected' : '' }}>Select hostel…</option>
+                            {% for h in hostels %}
+                            <option value="{{ h }}" {{ room and room.hostel == h ? 'selected' : '' }}>{{ h }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label>Supervisor <span style="color:#ef4444;">*</span></label>
+                        <select name="supervisorId" class="so-form-select"
+                                id="so-sup-{{ student.id }}" required>
+                            <option value="" disabled selected>Select hostel first…</option>
+                            {% for sup in supervisors %}
+                            <option value="{{ sup.id }}" data-hostel="{{ sup.hostelAssigned }}"
+                                    {{ supervisor and supervisor.id == sup.id ? 'selected' : '' }}>
+                                {{ sup.user.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="grid-column: 1/-1;">
+                        <label>Available Room <span style="color:#ef4444;">*</span></label>
+                        <select name="roomId" class="so-form-select"
+                                id="so-room-{{ student.id }}" required>
+                            <option value="" disabled selected>Select hostel first…</option>
+                            {% for r in availableRooms %}
+                            {% set avail = r.capacity - r.actualOccupancy %}
+                            <option value="{{ r.id }}" data-hostel="{{ r.hostel }}"
+                                    {{ room and room.id == r.id ? 'selected' : '' }}>
+                                Room {{ r.roomNumber }} — {{ r.hostel }}
+                                ({{ avail }} bed{{ avail != 1 ? 's' : '' }} free)
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="so-form-footer">
+                    <button type="submit" class="btn-so-submit">Confirm Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {# ── Supervisor ── #}
+    <div class="so-section" id="so-sup-section-{{ student.id }}">
+        <div class="so-section-title">Supervisor</div>
+
+        {% if supervisor %}
+        {% set supInit = supervisor.user.name|split(' ')|map(w => w|slice(0,1))|join('')|upper|slice(0,2) %}
+        <div class="so-sup-badge">
+            <div class="so-sup-avatar">{{ supInit }}</div>
+            <div>
+                <div class="sup-name">{{ supervisor.user.name }}</div>
+                <div class="sup-sub">{{ supervisor.hostelAssigned ?? 'Unassigned' }}{% if supervisor.phone %} · {{ supervisor.phone }}{% endif %}</div>
+            </div>
+        </div>
+        {% else %}
+        <div style="padding:10px 13px;background:#060d18;border:1px dashed #1e293b;border-radius:8px;color:#475569;font-size:0.84rem;margin-bottom:12px;">
+            ⚠️ No supervisor assigned
+        </div>
+        {% endif %}
+
+        <div class="so-chg-sup">
+            <span class="chg-label">{% if supervisor %}🔁 Change Supervisor{% else %}👤 Assign Supervisor{% endif %}</span>
+            <form method="POST" action="{{ path('admin_student_change_supervisor', {id: student.id}) }}"
+                  onsubmit="return confirmSupChange(this)">
+                <div class="so-chg-row">
+                    <select name="supervisorId">
+                        <option value="0"{% if supervisor is null %} selected{% endif %}>— Remove supervisor —</option>
+                        {% for sup in supervisors %}
+                        <option value="{{ sup.id }}"
+                            {{ supervisor is not null and supervisor.id == sup.id ? 'selected' : '' }}>
+                            {{ sup.user.name }} ({{ sup.hostelAssigned ?? 'No hostel' }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn-chg-save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# ── Activity ── #}
+    <div class="so-section">
+        <div class="so-section-title">Activity</div>
+        <div class="so-activity">
+            <div class="so-act-card">
+                <div class="ac-label">Complaints</div>
+                <div class="ac-val" style="color:{{ student.complaints|length > 0 ? '#ef4444' : '#10b981' }};">
+                    {{ student.complaints|length }}
+                </div>
+            </div>
+            <div class="so-act-card">
+                <div class="ac-label">Room Requests</div>
+                <div class="ac-val" style="color:#f59e0b;">{{ student.roomChangeRequests|length }}</div>
+            </div>
+            <div class="so-act-card">
+                <div class="ac-label">Admissions</div>
+                <div class="ac-val" style="color:#3b82f6;">{{ student.admissionRequests|length }}</div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Assignment History ── #}
+    {% if student.roomAssignments is not empty %}
+    <div class="so-section">
+        <div class="so-section-title">Assignment History</div>
+        {% for a in student.roomAssignments %}
+        <div class="so-hist-item">
+            <span>
+                Room <strong style="color:white;">{{ a.room.roomNumber }}</strong>
+                &nbsp;·&nbsp; {{ a.room.hostel }}
+                &nbsp;·&nbsp; {{ a.assignedDate|date('M d, Y') }}
+                {% if a.vacatedDate %} → {{ a.vacatedDate|date('M d, Y') }}{% endif %}
+            </span>
+            <span class="st-pill {{ a.status.value == 'active' ? 'p-approved' : 'p-rejected' }}">
+                {{ a.status.value|capitalize }}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</template>
+{% endfor %}
+
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
 <script>
-function filterStudents(q) {
-    q = q.toLowerCase().trim();
-    let found = 0;
-    document.querySelectorAll('.student-row').forEach(row => {
-        const match = !q || row.dataset.name.includes(q) || row.dataset.id.includes(q);
-        row.style.display = match ? '' : 'none';
-        if (match) found++;
+/* ════════════════════════════════
+   Table filtering
+   ════════════════════════════════ */
+function smFilter() {
+    const q      = document.getElementById('sm-search').value.toLowerCase().trim();
+    const room   = document.getElementById('sm-filter-room').value;
+    const rows   = document.querySelectorAll('#sm-tbody .sm-student-row');
+    let visible  = 0;
+
+    rows.forEach(row => {
+        const matchQ = !q || row.dataset.name.includes(q) || row.dataset.id.includes(q);
+        const matchR = !room   || row.dataset.room   === room;
+        const show   = matchQ && matchR;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
     });
-    document.getElementById('no-results-msg').style.display =
-        (found === 0 && q !== '') ? 'block' : 'none';
+
+    const nr = document.getElementById('sm-no-results-row');
+    if (nr) nr.style.display = (visible === 0) ? '' : 'none';
+
+    const lbl = document.getElementById('sm-count');
+    if (lbl) lbl.textContent = `${visible} student${visible !== 1 ? 's' : ''} shown`;
+}
+
+document.addEventListener('DOMContentLoaded', smFilter);
+
+/* ════════════════════════════════
+   Slide-over panel
+   ════════════════════════════════ */
+let currentStudentId = null;
+
+function openPanel(studentId, focusSection) {
+    const tpl = document.getElementById('tpl-' + studentId);
+    if (!tpl) return;
+
+    // Clone template content into panel
+    const content = document.getElementById('so-content');
+    content.innerHTML = '';
+    content.appendChild(tpl.content.cloneNode(true));
+
+    // Bootstrap hostel-dependent selects in the cloned DOM
+    bootstrapHostelSelect(studentId);
+
+    currentStudentId = studentId;
+
+    document.getElementById('so-overlay').classList.add('open');
+    document.getElementById('so-panel').classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    // Scroll to the right section
+    if (focusSection) {
+        requestAnimationFrame(() => {
+            const target = document.getElementById('so-' + focusSection + '-section-' + studentId);
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+}
+
+function closePanel() {
+    document.getElementById('so-overlay').classList.remove('open');
+    document.getElementById('so-panel').classList.remove('open');
+    document.body.style.overflow = '';
+    currentStudentId = null;
+}
+
+// Escape key closes panel
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+
+/* ════════════════════════════════
+   Hostel → Supervisor + Room filter
+   ════════════════════════════════ */
+function bootstrapHostelSelect(studentId) {
+    const hostelSel = document.getElementById('so-hostel-' + studentId);
+    const supSel    = document.getElementById('so-sup-' + studentId);
+    const roomSel   = document.getElementById('so-room-' + studentId);
+    if (!hostelSel || !supSel || !roomSel) return;
+
+    // Save original options
+    const supOptions  = Array.from(supSel.options);
+    const roomOptions = Array.from(roomSel.options);
+
+    function filterByHostel() {
+        const h = hostelSel.value ? hostelSel.value.toLowerCase() : '';
+
+        // Rebuild supervisor options
+        const curSup = supSel.value;
+        supSel.innerHTML = '<option value="" disabled>Select supervisor…</option>';
+        supOptions.forEach(o => {
+            if (!o.dataset.hostel) return;
+            if (!h || o.dataset.hostel.toLowerCase() === h) {
+                supSel.appendChild(o.cloneNode(true));
+            }
+        });
+        if (curSup) supSel.value = curSup;
+
+        // Rebuild room options
+        const curRoom = roomSel.value;
+        roomSel.innerHTML = '<option value="" disabled>Select room…</option>';
+        roomOptions.forEach(o => {
+            if (!o.dataset.hostel) return;
+            if (!h || o.dataset.hostel.toLowerCase() === h) {
+                roomSel.appendChild(o.cloneNode(true));
+            }
+        });
+        if (curRoom) roomSel.value = curRoom;
+    }
+
+    hostelSel.addEventListener('change', filterByHostel);
+
+    // If hostel already has a value (pre-filled), filter now
+    if (hostelSel.value) filterByHostel();
+}
+
+// Expose for inline onchange (called from within cloned template)
+function soFilterByHostel(studentId) {
+    const hostelSel = document.getElementById('so-hostel-' + studentId);
+    if (hostelSel) hostelSel.dispatchEvent(new Event('change'));
+}
+
+/* ════════════════════════════════
+   Confirm supervisor change
+   ════════════════════════════════ */
+function confirmSupChange(form) {
+    const sel   = form.querySelector('select');
+    const label = sel.options[sel.selectedIndex].text.trim();
+    const msg   = sel.value === '0'
+        ? 'Remove the supervisor from this student?'
+        : `Assign "${label}" as this student's supervisor?`;
+    return confirm(msg);
 }
 </script>
-
 {% endblock %}

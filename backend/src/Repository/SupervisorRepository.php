@@ -15,4 +15,9 @@ class SupervisorRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Supervisor::class);
     }
+
+    public function findOneByHostel(string $hostel): ?Supervisor
+    {
+        return $this->findOneBy(['hostelAssigned' => $hostel]);
+    }
 }

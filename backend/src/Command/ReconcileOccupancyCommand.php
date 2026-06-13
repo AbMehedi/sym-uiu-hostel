@@ -40,7 +40,7 @@ class ReconcileOccupancyCommand extends Command
                 $io->warning(sprintf(
                     'Room %s (%s): stored=%d → corrected=%d',
                     $room->getRoomNumber(),
-                    $room->getBlock(),
+                    $room->getHostel(),
                     $before,
                     $after
                 ));

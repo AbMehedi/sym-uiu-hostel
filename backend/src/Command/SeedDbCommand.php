@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Command;
 
 use App\Entity\AdmissionRequest;
@@ -38,6 +40,11 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 )]
 class SeedDbCommand extends Command
 {
+    // ─── Hostel names (single source of truth for the whole seed) ─────────────
+    public const HOSTEL_BOYS_I   = 'UIU Boys Hostel I';
+    public const HOSTEL_BOYS_II  = 'UIU Boys Hostel II';
+    public const HOSTEL_GIRLS    = 'UIU Girls Hostel';
+
     public function __construct(
         private EntityManagerInterface $em,
         private UserPasswordHasherInterface $hasher
@@ -65,43 +72,40 @@ class SeedDbCommand extends Command
         $adminUser->setPasswordHash($this->hasher->hashPassword($adminUser, 'password'));
         $this->em->persist($adminUser);
 
-        // ── 2. Rooms (18 across 3 blocks) ────────────────────────────────────
+        // ── 2. Rooms (18 across 3 hostels) ───────────────────────────────────
         $io->section('Creating Rooms');
 
         $roomData = [
-            // [number, block, floor, capacity, type]
-            ['A-101', 'A-Block', 1, 2, 'Double'],
-            ['A-102', 'A-Block', 1, 3, 'Triple'],
-            ['A-103', 'A-Block', 1, 1, 'Single'],
-            ['A-201', 'A-Block', 2, 2, 'Double'],
-            ['A-202', 'A-Block', 2, 3, 'Triple'],
-            ['A-203', 'A-Block', 2, 1, 'Single'],
-            ['B-101', 'B-Block', 1, 2, 'Double'],
-            ['B-102', 'B-Block', 1, 3, 'Triple'],
-            ['B-103', 'B-Block', 1, 1, 'Single'],
-            ['B-201', 'B-Block', 2, 2, 'Double'],
-            ['B-202', 'B-Block', 2, 3, 'Triple'],
-            ['B-203', 'B-Block', 2, 1, 'Single'],
-            ['C-101', 'C-Block', 1, 2, 'Double'],
-            ['C-102', 'C-Block', 1, 3, 'Triple'],
-            ['C-103', 'C-Block', 1, 1, 'Single'],
-            ['C-201', 'C-Block', 2, 2, 'Double'],
-            ['C-202', 'C-Block', 2, 3, 'Triple'],
-            ['C-203', 'C-Block', 2, 1, 'Single'],
-            ['D-101', 'D-Block', 1, 2, 'Double'],
-            ['D-102', 'D-Block', 1, 3, 'Triple'],
-            ['D-103', 'D-Block', 1, 1, 'Single'],
-            ['D-201', 'D-Block', 2, 2, 'Double'],
-            ['D-202', 'D-Block', 2, 3, 'Triple'],
-            ['D-203', 'D-Block', 2, 1, 'Single'],
+            // [number,      hostel,                 floor, capacity, type    ]
+            // UIU Boys Hostel I (prefix BH1-)
+            ['BH1-101', self::HOSTEL_BOYS_I,   1, 2, 'Double'],
+            ['BH1-102', self::HOSTEL_BOYS_I,   1, 3, 'Triple'],
+            ['BH1-103', self::HOSTEL_BOYS_I,   1, 1, 'Single'],
+            ['BH1-201', self::HOSTEL_BOYS_I,   2, 2, 'Double'],
+            ['BH1-202', self::HOSTEL_BOYS_I,   2, 3, 'Triple'],
+            ['BH1-203', self::HOSTEL_BOYS_I,   2, 1, 'Single'],
+            // UIU Boys Hostel II (prefix BH2-)
+            ['BH2-101', self::HOSTEL_BOYS_II,  1, 2, 'Double'],
+            ['BH2-102', self::HOSTEL_BOYS_II,  1, 3, 'Triple'],
+            ['BH2-103', self::HOSTEL_BOYS_II,  1, 1, 'Single'],
+            ['BH2-201', self::HOSTEL_BOYS_II,  2, 2, 'Double'],
+            ['BH2-202', self::HOSTEL_BOYS_II,  2, 3, 'Triple'],
+            ['BH2-203', self::HOSTEL_BOYS_II,  2, 1, 'Single'],
+            // UIU Girls Hostel (prefix GH-)
+            ['GH-101',  self::HOSTEL_GIRLS,    1, 2, 'Double'],
+            ['GH-102',  self::HOSTEL_GIRLS,    1, 3, 'Triple'],
+            ['GH-103',  self::HOSTEL_GIRLS,    1, 1, 'Single'],
+            ['GH-201',  self::HOSTEL_GIRLS,    2, 2, 'Double'],
+            ['GH-202',  self::HOSTEL_GIRLS,    2, 3, 'Triple'],
+            ['GH-203',  self::HOSTEL_GIRLS,    2, 1, 'Single'],
         ];
 
         /** @var Room[] $rooms */
         $rooms = [];
-        foreach ($roomData as [$num, $block, $floor, $cap, $type]) {
+        foreach ($roomData as [$num, $hostel, $floor, $cap, $type]) {
             $room = new Room();
             $room->setRoomNumber($num);
-            $room->setBlock($block);
+            $room->setHostel($hostel);
             $room->setFloor($floor);
             $room->setCapacity($cap);
             $room->setRoomType($type);
@@ -112,19 +116,26 @@ class SeedDbCommand extends Command
 
         $this->em->flush(); // flush rooms so IDs exist before assigning
 
-        // ── 3. Supervisors (3 blocks) ─────────────────────────────────────────
-        $io->section('Creating Supervisors');
+        // ── 3. Supervisors (5 across 3 hostels — multiple per hostel) ─────────
+        $io->section('Creating Supervisors (multiple per hostel allowed)');
 
+        // [email, name, hostel, phone, nid]
         $supervisorData = [
-            ['supervisor.a@hostel.com', 'Rahman Ahmed',    'A-Block', '01711-000001'],
-            ['supervisor.b@hostel.com', 'Nadia Hossain',   'B-Block', '01711-000002'],
-            ['supervisor.c@hostel.com', 'Karim Uddin',     'C-Block', '01711-000003'],
-            ['supervisor.d@hostel.com', 'Tariq Rahman',    'D-Block', '01711-000004'],
+            // UIU Boys Hostel I — 2 supervisors
+            ['supervisor.bh1a@hostel.com', 'Rahman Ahmed',   self::HOSTEL_BOYS_I,  '01711-000001', '1234567890001'],
+            ['supervisor.bh1b@hostel.com', 'Karim Uddin',    self::HOSTEL_BOYS_I,  '01711-000002', '1234567890002'],
+            // UIU Boys Hostel II — 2 supervisors
+            ['supervisor.bh2a@hostel.com', 'Tariq Rahman',   self::HOSTEL_BOYS_II, '01711-000003', '1234567890003'],
+            ['supervisor.bh2b@hostel.com', 'Jamal Hossain',  self::HOSTEL_BOYS_II, '01711-000004', '1234567890004'],
+            // UIU Girls Hostel — 1 supervisor
+            ['supervisor.gh@hostel.com',   'Nadia Khanam',   self::HOSTEL_GIRLS,   '01711-000005', '1234567890005'],
         ];
 
         /** @var Supervisor[] $supervisors */
-        $supervisors = [];
-        foreach ($supervisorData as [$email, $name, $block, $phone]) {
+        $supervisors = [];           // keyed by email for easy reference below
+        $supervisorsByHostel = [];   // keyed by hostel → first supervisor (for tasks/seeding)
+
+        foreach ($supervisorData as [$email, $name, $hostel, $phone, $nid]) {
             $u = new User();
             $u->setEmail($email);
             $u->setName($name);
@@ -134,35 +145,45 @@ class SeedDbCommand extends Command
 
             $s = new Supervisor();
             $s->setUser($u);
-            $s->setBlockAssigned($block);
+            $s->setHostelAssigned($hostel);
             $s->setPhone($phone);
+            $s->setNidNumber($nid);
             $this->em->persist($s);
-            $supervisors[$block] = $s;
+
+            $supervisors[$email] = $s;
+            if (!isset($supervisorsByHostel[$hostel])) {
+                $supervisorsByHostel[$hostel] = $s; // first supervisor per hostel
+            }
         }
 
         $this->em->flush();
 
-        // ── 4. Students (12 in various states) ───────────────────────────────
+        // ── 4. Students (16 across the three hostels) ─────────────────────────
         $io->section('Creating Students');
 
+        // [email, name, number, admissionStatus, phone]
         $studentData = [
-            // [email, name, number, status, phone]
-            ['student1@hostel.com',  'Alice Rahman',     'STU001', AdmissionStatus::Approved,  '01812-001001'],
-            ['student2@hostel.com',  'Bob Chowdhury',    'STU002', AdmissionStatus::Approved,  '01812-001002'],
-            ['student3@hostel.com',  'Carol Begum',      'STU003', AdmissionStatus::Approved,  '01812-001003'],
-            ['student4@hostel.com',  'David Islam',      'STU004', AdmissionStatus::Approved,  '01812-001004'],
-            ['student5@hostel.com',  'Eva Khatun',       'STU005', AdmissionStatus::Approved,  '01812-001005'],
+            // Boys Hostel I students
+            ['student1@hostel.com',  'Arif Rahman',      'STU001', AdmissionStatus::Approved,  '01812-001001'],
+            ['student2@hostel.com',  'Bashir Chowdhury', 'STU002', AdmissionStatus::Approved,  '01812-001002'],
+            ['student3@hostel.com',  'Chayan Islam',     'STU003', AdmissionStatus::Approved,  '01812-001003'],
+            ['student4@hostel.com',  'Delwar Hossain',   'STU004', AdmissionStatus::Approved,  '01812-001004'],
+            ['student5@hostel.com',  'Emran Ahmed',      'STU005', AdmissionStatus::Approved,  '01812-001005'],
+            // Boys Hostel II students
             ['student6@hostel.com',  'Fahim Akter',      'STU006', AdmissionStatus::Approved,  '01812-001006'],
-            ['student7@hostel.com',  'Gita Rani',        'STU007', AdmissionStatus::Approved,  '01812-001007'],
+            ['student7@hostel.com',  'Golam Kibria',     'STU007', AdmissionStatus::Approved,  '01812-001007'],
             ['student8@hostel.com',  'Habib Hasan',      'STU008', AdmissionStatus::Approved,  '01812-001008'],
-            ['student9@hostel.com',  'Iffat Jahan',      'STU009', AdmissionStatus::Pending,   '01812-001009'],
-            ['student10@hostel.com', 'Jakir Hossain',    'STU010', AdmissionStatus::Pending,   '01812-001010'],
-            ['student11@hostel.com', 'Keya Sultana',     'STU011', AdmissionStatus::Pending,   '01812-001011'],
-            ['student12@hostel.com', 'Limon Mia',        'STU012', AdmissionStatus::Rejected,  '01812-001012'],
-            ['student13@hostel.com', 'Mina Akter',       'STU013', AdmissionStatus::Approved,  '01812-001013'],
-            ['student14@hostel.com', 'Nizam Uddin',      'STU014', AdmissionStatus::Approved,  '01812-001014'],
-            ['student15@hostel.com', 'Omar Faruq',       'STU015', AdmissionStatus::Approved,  '01812-001015'],
-            ['student16@hostel.com', 'Priya Roy',        'STU016', AdmissionStatus::Approved,  '01812-001016'],
+            ['student9@hostel.com',  'Ibrahim Mia',      'STU009', AdmissionStatus::Approved,  '01812-001009'],
+            // Girls Hostel students
+            ['student10@hostel.com', 'Jannatul Nayeem',  'STU010', AdmissionStatus::Approved,  '01812-001010'],
+            ['student11@hostel.com', 'Keya Sultana',     'STU011', AdmissionStatus::Approved,  '01812-001011'],
+            ['student12@hostel.com', 'Lubna Akter',      'STU012', AdmissionStatus::Approved,  '01812-001012'],
+            // Pending students (not yet placed in any hostel)
+            ['student13@hostel.com', 'Mamun Hossain',    'STU013', AdmissionStatus::Pending,   '01812-001013'],
+            ['student14@hostel.com', 'Nasrin Begum',     'STU014', AdmissionStatus::Pending,   '01812-001014'],
+            ['student15@hostel.com', 'Omar Faruq',       'STU015', AdmissionStatus::Pending,   '01812-001015'],
+            // Rejected student
+            ['student16@hostel.com', 'Priya Roy',        'STU016', AdmissionStatus::Rejected,  '01812-001016'],
         ];
 
         /** @var Student[] $students */
@@ -189,10 +210,11 @@ class SeedDbCommand extends Command
 
         $this->em->flush();
 
-        // ── 5. AdmissionRequests for pending/rejected students ────────────────
+        // ── 5. AdmissionRequests ──────────────────────────────────────────────
         $io->section('Creating Admission Requests');
 
-        foreach (['STU009', 'STU010', 'STU011'] as $num) {
+        // Pending requests
+        foreach (['STU013', 'STU014', 'STU015'] as $num) {
             $ar = new AdmissionRequest();
             $ar->setStudent($students[$num]);
             $ar->setStatus(RequestStatus::Pending);
@@ -201,8 +223,9 @@ class SeedDbCommand extends Command
             $this->em->persist($ar);
         }
 
+        // Rejected request
         $arRejected = new AdmissionRequest();
-        $arRejected->setStudent($students['STU012']);
+        $arRejected->setStudent($students['STU016']);
         $arRejected->setStatus(RequestStatus::Rejected);
         $arRejected->setRequestedDate(new DateTimeImmutable('-30 days'));
         $arRejected->setReviewedBy($adminUser);
@@ -210,8 +233,8 @@ class SeedDbCommand extends Command
         $arRejected->setAdminNotes('Rejected: insufficient documentation.');
         $this->em->persist($arRejected);
 
-        // Also create approved admission requests for approved students
-        foreach (['STU001','STU002','STU003','STU004','STU005','STU006','STU007','STU008','STU013','STU014','STU015','STU016'] as $num) {
+        // Approved requests (for all approved students)
+        foreach (['STU001','STU002','STU003','STU004','STU005','STU006','STU007','STU008','STU009','STU010','STU011','STU012'] as $num) {
             $ar2 = new AdmissionRequest();
             $ar2->setStudent($students[$num]);
             $ar2->setStatus(RequestStatus::Approved);
@@ -224,37 +247,49 @@ class SeedDbCommand extends Command
 
         $this->em->flush();
 
-        // ── 6. Room Assignments (8 approved students spread across blocks) ────
+        // ── 6. Room Assignments ───────────────────────────────────────────────
         $io->section('Assigning Students to Rooms');
 
+        // [studentNum, roomNum, supervisorEmail]
         $assignments = [
-            // [studentNum, roomNum]
-            ['STU001', 'A-101'],
-            ['STU002', 'A-101'],  // same room as STU001 (double)
-            ['STU003', 'A-102'],
-            ['STU004', 'A-102'],
-            ['STU013', 'A-102'],  // triple room full
-            ['STU005', 'B-101'],
-            ['STU006', 'B-102'],
-            ['STU007', 'C-101'],
-            ['STU008', 'C-102'],
-            ['STU014', 'C-102'],  // roommates with STU008
-            ['STU015', 'D-101'],
-            ['STU016', 'D-101'],  // roommates
+            // UIU Boys Hostel I
+            ['STU001', 'BH1-101', 'supervisor.bh1a@hostel.com'],
+            ['STU002', 'BH1-101', 'supervisor.bh1a@hostel.com'], // double room
+            ['STU003', 'BH1-102', 'supervisor.bh1b@hostel.com'],
+            ['STU004', 'BH1-102', 'supervisor.bh1b@hostel.com'],
+            ['STU005', 'BH1-102', 'supervisor.bh1b@hostel.com'], // triple room
+            // UIU Boys Hostel II
+            ['STU006', 'BH2-101', 'supervisor.bh2a@hostel.com'],
+            ['STU007', 'BH2-101', 'supervisor.bh2a@hostel.com'],
+            ['STU008', 'BH2-102', 'supervisor.bh2b@hostel.com'],
+            ['STU009', 'BH2-102', 'supervisor.bh2b@hostel.com'],
+            // UIU Girls Hostel
+            ['STU010', 'GH-101',  'supervisor.gh@hostel.com'],
+            ['STU011', 'GH-101',  'supervisor.gh@hostel.com'],
+            ['STU012', 'GH-102',  'supervisor.gh@hostel.com'],
         ];
 
-        foreach ($assignments as [$sNum, $rNum]) {
-            $asgn = new RoomAssignment();
-            $asgn->setStudent($students[$sNum]);
-            $asgn->setRoom($rooms[$rNum]);
+        foreach ($assignments as [$sNum, $rNum, $supEmail]) {
+            $asgn    = new RoomAssignment();
+            $student = $students[$sNum];
+            $room    = $rooms[$rNum];
+            $sup     = $supervisors[$supEmail];
+
+            $asgn->setStudent($student);
+            $asgn->setRoom($room);
             $asgn->setAssignedDate(new DateTimeImmutable('-' . random_int(10, 60) . ' days'));
             $asgn->setStatus(AssignmentStatus::Active);
             $this->em->persist($asgn);
+
+            // Link room to the specific supervisor who manages this student
+            $room->setSupervisor($sup);
+            // Link student to their supervisor
+            $student->setSupervisor($sup);
         }
 
         $this->em->flush();
 
-        // Recalculate occupancy for all rooms (uses real assignments)
+        // Recalculate occupancy for all rooms
         foreach ($rooms as $room) {
             $room->recalculateOccupancy();
         }
@@ -264,19 +299,19 @@ class SeedDbCommand extends Command
         $io->section('Creating Complaints');
 
         $complaintData = [
-            ['STU001', 'A-101', 'Leaky Water Tap',          'Water tap drips constantly at night.',                    ComplaintCategory::Plumbing,    ComplaintStatus::Pending],
-            ['STU002', 'A-101', 'Broken Ceiling Fan',        'Fan makes loud noise and wobbles dangerously.',           ComplaintCategory::Electricity,  ComplaintStatus::InProgress],
-            ['STU003', 'A-102', 'Mold on Bathroom Wall',     'Black mold growing near the shower area.',                ComplaintCategory::Cleaning,     ComplaintStatus::Pending],
-            ['STU004', 'A-102', 'Noisy Neighbors at Night',  'Room C-101 residents play music past midnight.',          ComplaintCategory::Noise,        ComplaintStatus::Resolved],
-            ['STU005', 'B-101', 'Broken Window Latch',       'Window latch broken; room exposed to rain.',              ComplaintCategory::Plumbing,     ComplaintStatus::InProgress],
-            ['STU006', 'B-102', 'Power Outlet Sparking',     'One power outlet sparks when anything is plugged in.',    ComplaintCategory::Electricity,  ComplaintStatus::Resolved],
-            ['STU007', 'C-101', 'Corridor Light Fused',      'Corridor light on floor 1 has been out for 3 days.',      ComplaintCategory::Electricity,  ComplaintStatus::Pending],
-            ['STU008', 'C-102', 'Drainage Blocked',          'Bathroom drain is blocked, water accumulating on floor.', ComplaintCategory::Plumbing,     ComplaintStatus::InProgress],
+            ['STU001', 'BH1-101', 'Leaky Water Tap',          'Water tap drips constantly at night.',                    ComplaintCategory::Plumbing,    ComplaintStatus::Pending],
+            ['STU002', 'BH1-101', 'Broken Ceiling Fan',        'Fan makes loud noise and wobbles dangerously.',           ComplaintCategory::Electricity,  ComplaintStatus::InProgress],
+            ['STU003', 'BH1-102', 'Mold on Bathroom Wall',     'Black mold growing near the shower area.',                ComplaintCategory::Cleaning,     ComplaintStatus::Pending],
+            ['STU004', 'BH1-102', 'Noisy Neighbors at Night',  'Residents play music past midnight.',                     ComplaintCategory::Noise,        ComplaintStatus::Resolved],
+            ['STU006', 'BH2-101', 'Broken Window Latch',       'Window latch broken; room exposed to rain.',              ComplaintCategory::Plumbing,     ComplaintStatus::InProgress],
+            ['STU007', 'BH2-101', 'Power Outlet Sparking',     'One power outlet sparks when anything is plugged in.',    ComplaintCategory::Electricity,  ComplaintStatus::Resolved],
+            ['STU010', 'GH-101',  'Corridor Light Fused',      'Corridor light on floor 1 has been out for 3 days.',      ComplaintCategory::Electricity,  ComplaintStatus::Pending],
+            ['STU011', 'GH-101',  'Drainage Blocked',          'Bathroom drain is blocked, water accumulating.',          ComplaintCategory::Plumbing,     ComplaintStatus::InProgress],
         ];
 
         /** @var Complaint[] $complaints */
         $complaints = [];
-        foreach ($complaintData as $i => [$sNum, $rNum, $subject, $desc, $category, $status]) {
+        foreach ($complaintData as [$sNum, $rNum, $subject, $desc, $category, $status]) {
             $c = new Complaint();
             $c->setStudent($students[$sNum]);
             $c->setRoom($rooms[$rNum]);
@@ -293,31 +328,28 @@ class SeedDbCommand extends Command
 
         $this->em->flush();
 
-        // ── 8. Complaint Updates (for in-progress and resolved) ───────────────
+        // ── 8. Complaint Updates ──────────────────────────────────────────────
         $io->section('Creating Complaint Updates');
 
-        // InProgress: fan (index 1)
         $upd1 = new ComplaintUpdate();
-        $upd1->setComplaint($complaints[1]);
+        $upd1->setComplaint($complaints[1]); // Broken fan — InProgress
         $upd1->setNote('Electrician scheduled for tomorrow. Fan blades will be balanced.');
         $upd1->setStatus(ComplaintStatus::InProgress);
-        $upd1->setUpdatedBy($supervisors['A-Block']->getUser());
+        $upd1->setUpdatedBy($supervisors['supervisor.bh1a@hostel.com']->getUser());
         $this->em->persist($upd1);
 
-        // Resolved: noise complaint (index 3)
         $upd2 = new ComplaintUpdate();
-        $upd2->setComplaint($complaints[3]);
-        $upd2->setNote('Residents were spoken to and agreed to keep noise down. Resolved.');
+        $upd2->setComplaint($complaints[3]); // Noisy neighbors — Resolved
+        $upd2->setNote('Residents were spoken to and agreed to keep noise down.');
         $upd2->setStatus(ComplaintStatus::Resolved);
-        $upd2->setUpdatedBy($supervisors['A-Block']->getUser());
+        $upd2->setUpdatedBy($supervisors['supervisor.bh1b@hostel.com']->getUser());
         $this->em->persist($upd2);
 
-        // Resolved: power outlet (index 5)
         $upd3 = new ComplaintUpdate();
-        $upd3->setComplaint($complaints[5]);
+        $upd3->setComplaint($complaints[5]); // Power outlet — Resolved
         $upd3->setNote('Outlet replaced by licensed electrician. Tested and confirmed safe.');
         $upd3->setStatus(ComplaintStatus::Resolved);
-        $upd3->setUpdatedBy($supervisors['B-Block']->getUser());
+        $upd3->setUpdatedBy($supervisors['supervisor.bh2a@hostel.com']->getUser());
         $this->em->persist($upd3);
 
         $this->em->flush();
@@ -326,9 +358,8 @@ class SeedDbCommand extends Command
         $io->section('Creating Repair Costs');
 
         $repairData = [
-            // [complaintIndex, description, amount]
             [1, 'Fan balancing and blade replacement',  850.00],
-            [3, 'Supervisor time — mediation session',  200.00],
+            [3, 'Supervisor mediation session',          200.00],
             [5, 'Replacement outlet and wiring labour', 1200.00],
             [5, 'Electrician call-out fee',              500.00],
             [7, 'Drain cleaning service',                650.00],
@@ -349,37 +380,37 @@ class SeedDbCommand extends Command
         // ── 10. Room Change Requests ──────────────────────────────────────────
         $io->section('Creating Room Change Requests');
 
-        // Pending request
+        // Pending request — STU003 wants to move to BH1-201
         $rcr1 = new RoomChangeRequest();
         $rcr1->setStudent($students['STU003']);
-        $rcr1->setCurrentRoom($rooms['A-102']);
-        $rcr1->setRequestedRoom($rooms['B-101']);
-        $rcr1->setReason('Would prefer to be closer to the library in B-Block.');
+        $rcr1->setCurrentRoom($rooms['BH1-102']);
+        $rcr1->setRequestedRoom($rooms['BH1-201']);
+        $rcr1->setReason('Would prefer a quieter room on floor 2.');
         $rcr1->setStatus(RequestStatus::Pending);
         $rcr1->setRequestedAt(new DateTimeImmutable('-3 days'));
         $this->em->persist($rcr1);
 
-        // Approved request (historical)
+        // Approved historical request — STU008 moved within BH2
         $rcr2 = new RoomChangeRequest();
-        $rcr2->setStudent($students['STU005']);
-        $rcr2->setCurrentRoom($rooms['A-102']);
-        $rcr2->setRequestedRoom($rooms['B-101']);
-        $rcr2->setReason('Personal reasons — family closer to B-Block area.');
+        $rcr2->setStudent($students['STU008']);
+        $rcr2->setCurrentRoom($rooms['BH2-103']);
+        $rcr2->setRequestedRoom($rooms['BH2-102']);
+        $rcr2->setReason('Personal reasons — closer to study room.');
         $rcr2->setStatus(RequestStatus::Approved);
         $rcr2->setRequestedAt(new DateTimeImmutable('-20 days'));
-        $rcr2->setReviewedBy($supervisors['A-Block']);
+        $rcr2->setReviewedBy($supervisors['supervisor.bh2a@hostel.com']);
         $rcr2->setReviewedAt(new DateTimeImmutable('-15 days'));
         $this->em->persist($rcr2);
 
-        // Rejected request
+        // Rejected request — STU010 Girls Hostel cross-block
         $rcr3 = new RoomChangeRequest();
-        $rcr3->setStudent($students['STU006']);
-        $rcr3->setCurrentRoom($rooms['B-102']);
-        $rcr3->setRequestedRoom($rooms['C-101']);
-        $rcr3->setReason('Conflict with roommates.');
+        $rcr3->setStudent($students['STU010']);
+        $rcr3->setCurrentRoom($rooms['GH-101']);
+        $rcr3->setRequestedRoom($rooms['GH-201']);
+        $rcr3->setReason('Conflict with current roommate.');
         $rcr3->setStatus(RequestStatus::Rejected);
         $rcr3->setRequestedAt(new DateTimeImmutable('-10 days'));
-        $rcr3->setReviewedBy($supervisors['B-Block']);
+        $rcr3->setReviewedBy($supervisors['supervisor.gh@hostel.com']);
         $rcr3->setReviewedAt(new DateTimeImmutable('-7 days'));
         $this->em->persist($rcr3);
 
@@ -389,10 +420,11 @@ class SeedDbCommand extends Command
         $io->section('Creating Supervisor Tasks');
 
         $taskData = [
-            [$supervisors['A-Block'], 'Monthly Room Inspection — A-Block',       'Inspect all 6 rooms in A-Block for cleanliness and maintenance needs.',        TaskStatus::Pending,     '+7 days'],
-            [$supervisors['A-Block'], 'Resolve Pending Plumbing Complaints',      'Follow up on all open plumbing complaints. Arrange plumber visit.',             TaskStatus::InProgress,  '+2 days'],
-            [$supervisors['B-Block'], 'Update Student Emergency Contact Records', 'Verify and update emergency contacts for all B-Block residents.',               TaskStatus::Done,        '-3 days'],
-            [$supervisors['C-Block'], 'Corridor Light Replacement — C-Block F1',  'Coordinate with maintenance to replace fused corridor light on floor 1.',      TaskStatus::Pending,     '+1 days'],
+            [$supervisors['supervisor.bh1a@hostel.com'], 'Monthly Room Inspection — BH1',          'Inspect all rooms in UIU Boys Hostel I.',                          TaskStatus::Pending,    '+7 days'],
+            [$supervisors['supervisor.bh1b@hostel.com'], 'Resolve Pending Plumbing Complaints',     'Follow up on all open plumbing issues. Arrange plumber visit.',    TaskStatus::InProgress, '+2 days'],
+            [$supervisors['supervisor.bh2a@hostel.com'], 'Update Student Emergency Contacts',       'Verify and update emergency contacts for all BH2 residents.',     TaskStatus::Done,       '-3 days'],
+            [$supervisors['supervisor.bh2b@hostel.com'], 'Corridor Light Replacement — BH2 F1',    'Coordinate with maintenance to replace fused corridor lights.',    TaskStatus::Pending,    '+1 days'],
+            [$supervisors['supervisor.gh@hostel.com'],   'Monthly Room Inspection — Girls Hostel',  'Inspect all rooms in UIU Girls Hostel for cleanliness.',          TaskStatus::Pending,    '+5 days'],
         ];
 
         foreach ($taskData as [$sup, $title, $desc, $status, $dueDelta]) {
@@ -412,12 +444,12 @@ class SeedDbCommand extends Command
         $io->section('Creating Announcements');
 
         $announcementData = [
-            [$supervisors['A-Block'], 'A-Block', 'Water Supply Suspension Friday', 'Maintenance',
-             'Water supply in A-Block will be suspended from 2:00 PM to 4:00 PM this Friday for routine tank cleaning. Please store water in advance.'],
-            [$supervisors['B-Block'], 'B-Block', 'Fire Drill — Next Monday 10 AM', 'Safety',
+            [$supervisors['supervisor.bh1a@hostel.com'], self::HOSTEL_BOYS_I,  'Water Supply Suspension Friday', 'Maintenance',
+             'Water supply in UIU Boys Hostel I will be suspended from 2:00 PM to 4:00 PM this Friday for routine tank cleaning. Please store water in advance.'],
+            [$supervisors['supervisor.bh2a@hostel.com'], self::HOSTEL_BOYS_II, 'Fire Drill — Next Monday 10 AM', 'Safety',
              'A mandatory fire drill will be held next Monday at 10:00 AM. All residents must evacuate to the main gate assembly point within 5 minutes of the alarm.'],
-            [$supervisors['C-Block'], 'C-Block', 'Visitor Policy Reminder', 'General',
-             'Visitors are only permitted in common areas between 8:00 AM and 8:00 PM. No visitors are allowed in resident rooms. Please remind your guests of this policy.'],
+            [$supervisors['supervisor.gh@hostel.com'],   self::HOSTEL_GIRLS,   'Visitor Policy Reminder',        'General',
+             'Visitors are only permitted in common areas between 8:00 AM and 8:00 PM. No visitors are allowed in resident rooms.'],
         ];
 
         foreach ($announcementData as [$sup, $block, $title, $cat, $body]) {
@@ -432,23 +464,19 @@ class SeedDbCommand extends Command
 
         $this->em->flush();
 
-        // ── 13. Chat Messages ────────────────────────────────────────────────
+        // ── 13. Chat Messages ─────────────────────────────────────────────────
         $io->section('Creating Chat Messages');
 
         $chatData = [
-            // Roommate chat: STU001 & STU002 (Room A-101)
-            [$students['STU001']->getUser(), $students['STU002']->getUser(), 'Hey roomie, are you in the room?', '-2 hours', true],
-            [$students['STU002']->getUser(), $students['STU001']->getUser(), 'Yeah, just studying. Why?', '-1 hours 55 minutes', true],
-            [$students['STU001']->getUser(), $students['STU002']->getUser(), 'Can you unlock the door? I forgot my keys.', '-1 hours 50 minutes', true],
-            [$students['STU002']->getUser(), $students['STU001']->getUser(), 'Got it, opening now.', '-1 hours 49 minutes', true],
-
-            // Student-Supervisor chat: STU001 & A-Block Supervisor
-            [$students['STU001']->getUser(), $supervisors['A-Block']->getUser(), 'Hello sir, the water tap in A-101 is still leaking.', '-1 days', true],
-            [$supervisors['A-Block']->getUser(), $students['STU001']->getUser(), 'I have escalated it to the plumber. They will come tomorrow.', '-23 hours', false],
-
-            // Roommate chat: STU015 & STU016 (Room D-101)
-            [$students['STU015']->getUser(), $students['STU016']->getUser(), 'Did you pay the mess bill yet?', '-3 days', true],
-            [$students['STU016']->getUser(), $students['STU015']->getUser(), 'Not yet, doing it tonight.', '-2 days', false],
+            // STU001 ↔ STU002 (roommates in BH1-101)
+            [$students['STU001']->getUser(), $students['STU002']->getUser(), 'Hey roomie, did you pay the electricity bill?',    '-2 hours',           true],
+            [$students['STU002']->getUser(), $students['STU001']->getUser(), 'Not yet, will do it tonight.',                     '-1 hours 55 minutes', true],
+            // STU001 ↔ BH1-A supervisor
+            [$students['STU001']->getUser(), $supervisors['supervisor.bh1a@hostel.com']->getUser(), 'Sir, the tap in BH1-101 is still leaking.',      '-1 days', true],
+            [$supervisors['supervisor.bh1a@hostel.com']->getUser(), $students['STU001']->getUser(), 'Plumber will come tomorrow morning.',             '-23 hours', false],
+            // STU010 ↔ GH supervisor
+            [$students['STU010']->getUser(), $supervisors['supervisor.gh@hostel.com']->getUser(), 'Madam, the corridor light on floor 1 is not working.', '-3 days', true],
+            [$supervisors['supervisor.gh@hostel.com']->getUser(), $students['STU010']->getUser(), 'Reported to maintenance. Should be fixed by tomorrow.', '-2 days', true],
         ];
 
         foreach ($chatData as [$sender, $receiver, $msgText, $dateStr, $isRead]) {
@@ -465,16 +493,20 @@ class SeedDbCommand extends Command
 
         $io->success([
             'Database seeded successfully!',
+            '',
+            '  Hostels:      UIU Boys Hostel I · UIU Boys Hostel II · UIU Girls Hostel',
             '  Admin:        admin@hostel.com / password',
-            '  Supervisors:  supervisor.a@hostel.com ... supervisor.d@hostel.com / password',
+            '  Supervisors:  supervisor.bh1a, supervisor.bh1b (Boys I)',
+            '                supervisor.bh2a, supervisor.bh2b (Boys II)',
+            '                supervisor.gh (Girls Hostel)  — all use /password',
             '  Students:     student1@hostel.com … student16@hostel.com / password',
-            '  Rooms:        24 across A/B/C/D blocks',
+            '  Rooms:        18 across 3 hostels',
             '  Complaints:   8 (Pending/InProgress/Resolved)',
             '  Repair costs: 5 entries',
             '  Room changes: 3 (Pending/Approved/Rejected)',
-            '  Tasks:        4 assigned to supervisors',
-            '  Announcements:3 (one per block)',
-            '  Chats:        8 messages between roommates & supervisors',
+            '  Tasks:        5 assigned to supervisors',
+            '  Announcements:3 (one per hostel)',
+            '  Chats:        6 messages',
         ]);
 
         return Command::SUCCESS;

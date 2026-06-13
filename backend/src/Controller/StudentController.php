@@ -65,9 +65,10 @@ class StudentController extends AbstractController
                     }
                 }
 
-                // Supervisor for this student's block
-                $supervisorEntity = $em->getRepository(Supervisor::class)
-                    ->findOneBy(['blockAssigned' => $room->getBlock()]);
+                // Supervisor for this student's hostel (stored as room.hostel)
+                $supervisorEntity = $student->getSupervisor()
+                    ?: $room->getSupervisor()
+                    ?: $em->getRepository(Supervisor::class)->findOneBy(['hostelAssigned' => $room->getHostel()]);
                 $supervisor = $supervisorEntity?->getUser();
             }
         }
@@ -84,11 +85,11 @@ class StudentController extends AbstractController
             : [];
 
         // Latest announcements (last 3)
-        $block = $room ? $room->getBlock() : null;
+        $hostel = $room ? $room->getHostel() : null;
         $qb = $announcementRepo->createQueryBuilder('a');
-        if ($block) {
-            $qb->where('a.targetBlock = :block OR a.targetBlock = :general')
-               ->setParameter('block', $block)
+        if ($hostel) {
+            $qb->where('a.targetBlock = :hostel OR a.targetBlock = :general')
+               ->setParameter('hostel', $hostel)
                ->setParameter('general', 'General');
         } else {
             $qb->where('a.targetBlock = :general')
@@ -101,8 +102,8 @@ class StudentController extends AbstractController
 
         // Total announcements for unread badge
         $totalAnnouncements = count($announcementRepo->createQueryBuilder('a')
-            ->where('a.targetBlock = :block OR a.targetBlock = :general')
-            ->setParameter('block', $block ?: 'General')
+            ->where('a.targetBlock = :hostel OR a.targetBlock = :general')
+            ->setParameter('hostel', $hostel ?: 'General')
             ->setParameter('general', 'General')
             ->getQuery()
             ->getResult());
@@ -133,12 +134,12 @@ class StudentController extends AbstractController
         }
         $student = $this->getUser()->getStudent();
         $room = $student->getRoom();
-        $block = $room ? $room->getBlock() : null;
+        $hostel = $room ? $room->getHostel() : null;
 
         $qb = $repo->createQueryBuilder('a');
-        if ($block) {
-            $qb->where('a.targetBlock = :block OR a.targetBlock = :general')
-               ->setParameter('block', $block)
+        if ($hostel) {
+            $qb->where('a.targetBlock = :hostel OR a.targetBlock = :general')
+               ->setParameter('hostel', $hostel)
                ->setParameter('general', 'General');
         } else {
             $qb->where('a.targetBlock = :general')
@@ -325,7 +326,7 @@ class StudentController extends AbstractController
                 ->where('r.id != :currentRoomId')
                 ->andWhere('r.currentOccupancy < r.capacity')
                 ->setParameter('currentRoomId', $currentRoom->getId())
-                ->orderBy('r.block', 'ASC')
+                ->orderBy('r.hostel', 'ASC')
                 ->addOrderBy('r.roomNumber', 'ASC')
                 ->getQuery()
                 ->getResult()
@@ -520,8 +521,9 @@ class StudentController extends AbstractController
                     $roommates[] = $assignment->getStudent();
                 }
             }
-            $supervisorEntity = $em->getRepository(Supervisor::class)
-                ->findOneBy(['blockAssigned' => $room->getBlock()]);
+            $supervisorEntity = $student->getSupervisor()
+                ?: $room->getSupervisor()
+                ?: $em->getRepository(Supervisor::class)->findOneBy(['hostelAssigned' => $room->getHostel()]);
             $supervisor = $supervisorEntity?->getUser();
         }
 
@@ -612,14 +614,15 @@ class StudentController extends AbstractController
         }
 
         // 1. Supervisor for this block
-        $supervisorEntity = $em->getRepository(Supervisor::class)
-            ->findOneBy(['blockAssigned' => $room->getBlock()]);
+        $supervisorEntity = $student?->getSupervisor()
+            ?: $room->getSupervisor()
+            ?: $em->getRepository(Supervisor::class)->findOneBy(['hostelAssigned' => $room->getHostel()]);
         if ($supervisorEntity) {
             $supUser  = $supervisorEntity->getUser();
             $lastMsgs = $chatRepo->findConversation($user, $supUser, 1);
             $contacts[] = [
                 'user'        => $supUser,
-                'role'        => 'Supervisor · Block ' . $room->getBlock(),
+                'role'        => 'Supervisor · Hostel ' . $room->getHostel(),
                 'lastMessage' => !empty($lastMsgs) ? end($lastMsgs) : null,
                 'unread'      => $chatRepo->countUnread($supUser, $user),
             ];

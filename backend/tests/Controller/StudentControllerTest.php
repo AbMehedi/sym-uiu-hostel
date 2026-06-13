@@ -28,6 +28,17 @@ class StudentControllerTest extends WebTestCase
         
         if (!$this->studentUser) {
             $this->markTestSkipped('Database needs to be seeded first with student1@hostel.com');
+        } else {
+            // Clean up any existing room change requests for student1 to make this test idempotent
+            $student = $this->studentUser->getStudent();
+            if ($student) {
+                $rcrRepo = $this->entityManager->getRepository(\App\Entity\RoomChangeRequest::class);
+                $existingRequests = $rcrRepo->findBy(['student' => $student]);
+                foreach ($existingRequests as $req) {
+                    $this->entityManager->remove($req);
+                }
+                $this->entityManager->flush();
+            }
         }
     }
 

@@ -30,12 +30,12 @@ class AppExtension extends AbstractExtension
             return 0;
         }
         $room = $student->getRoom();
-        $block = $room ? $room->getBlock() : 'General';
+        $hostel = $room ? $room->getHostel() : 'General';
 
         // Query announcements matching student's block or General
         $announcements = $this->announcementRepo->createQueryBuilder('a')
-            ->where('a.targetBlock = :block OR a.targetBlock = :general')
-            ->setParameter('block', $block)
+            ->where('a.targetBlock = :hostel OR a.targetBlock = :general')
+            ->setParameter('hostel', $hostel)
             ->setParameter('general', 'General')
             ->getQuery()
             ->getResult();

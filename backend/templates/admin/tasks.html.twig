@@ -27,7 +27,7 @@
             <select name="supervisorId" required style="width:100%;padding:10px 14px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;">
                 <option value="">Select Supervisor</option>
                 {% for sup in supervisors %}
-                    <option value="{{ sup.id }}">{{ sup.user.name }} — {{ sup.blockAssigned }}</option>
+                    <option value="{{ sup.id }}">{{ sup.user.name }} — {{ sup.hostelAssigned }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -87,7 +87,7 @@
                             </span>
                         </div>
                         <div style="font-size:.82rem;color:#64748b;margin-bottom:6px;">
-                            👤 {{ task.supervisor.user.name }} &nbsp;|&nbsp; {{ task.supervisor.blockAssigned }}
+                            👤 {{ task.supervisor.user.name }} &nbsp;|&nbsp; {{ task.supervisor.hostelAssigned }}
                         </div>
                         {% if task.description %}
                             <div style="font-size:.84rem;color:#94a3b8;margin-bottom:6px;">{{ task.description }}</div>

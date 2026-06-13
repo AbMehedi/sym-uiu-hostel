@@ -49,13 +49,13 @@ class PdfController extends AbstractController
             ['status' => AssignmentStatus::Active],
         );
 
-        // Group by block → room number
+        // Group by hostel → room number
         $grouped = [];
         foreach ($allAssignments as $asgn) {
             $room  = $asgn->getRoom();
-            $block = $room->getBlock();
+            $hostel = $room->getHostel();
             $num   = $room->getRoomNumber();
-            $grouped[$block][$num][] = $asgn;
+            $grouped[$hostel][$num][] = $asgn;
         }
         ksort($grouped);
         foreach ($grouped as &$rooms) {

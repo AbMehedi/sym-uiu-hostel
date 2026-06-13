@@ -83,12 +83,12 @@ class SupervisorController extends AbstractController
         /** @var \App\Entity\User $user */
         $user       = $this->getUser();
         $supervisor = $user->getSupervisor();
-        $block      = $supervisor?->getBlockAssigned() ?? '';
+        $hostel     = $supervisor?->getHostelAssigned() ?? '';
 
-        // All students in this block (active assignment only)
-        $students = $block ? $studentRepo->findByBlock($block) : [];
+        // Students explicitly assigned to this supervisor
+        $students = $supervisor ? $studentRepo->findBySupervisor($supervisor) : [];
 
-        // Build list of unique room numbers in this block for the filter dropdown
+        // Build list of unique room numbers in this hostel for the filter dropdown
         $rooms = [];
         foreach ($students as $student) {
             $room = $student->getRoom();
@@ -102,7 +102,7 @@ class SupervisorController extends AbstractController
             'students'   => $students,
             'rooms'      => $rooms,          // [ roomId => roomNumber ] for filter dropdown
             'supervisor' => $supervisor,
-            'block'      => $block,
+            'hostel'     => $hostel,
         ]);
     }
 
@@ -112,19 +112,19 @@ class SupervisorController extends AbstractController
         /** @var \App\Entity\User $user */
         $user       = $this->getUser();
         $supervisor = $user->getSupervisor();
-        $block      = $supervisor?->getBlockAssigned() ?? '';
+        $hostel     = $supervisor?->getHostelAssigned() ?? '';
 
         $student = $studentRepo->find($id);
 
-        // Guard: student must exist and must be in the supervisor's block
+        // Guard: student must exist and must be in the supervisor's hostel
         if (!$student) {
             $this->addFlash('error', 'Student not found.');
             return $this->redirectToRoute('supervisor_students');
         }
 
         $room = $student->getRoom();
-        if (!$room || $room->getBlock() !== $block) {
-            $this->addFlash('error', 'Access denied — student is not in your block.');
+        if (!$room || $room->getHostel() !== $hostel) {
+            $this->addFlash('error', 'Access denied — student is not in your hostel.');
             return $this->redirectToRoute('supervisor_students');
         }
 
@@ -142,17 +142,17 @@ class SupervisorController extends AbstractController
     {
         $user       = $this->getUser();
         $supervisor = $user->getSupervisor();
-        $block      = $supervisor?->getBlockAssigned() ?? '';
+        $hostel     = $supervisor?->getHostelAssigned() ?? '';
 
-        if ($block) {
-            $rooms = $repo->findBy(['block' => $block], ['roomNumber' => 'ASC']);
+        if ($hostel) {
+            $rooms = $repo->findBy(['hostel' => $hostel], ['roomNumber' => 'ASC']);
         } else {
             $rooms = $repo->findAll();
         }
 
         return $this->render('supervisor/rooms.html.twig', [
             'rooms' => $rooms,
-            'block' => $block
+            'hostel' => $hostel
         ]);
     }
 
@@ -164,14 +164,14 @@ class SupervisorController extends AbstractController
         /** @var \App\Entity\User $user */
         $user       = $this->getUser();
         $supervisor = $user->getSupervisor();
-        $block      = $supervisor?->getBlockAssigned() ?? '';
+        $hostel     = $supervisor?->getHostelAssigned() ?? '';
 
-        // Scope complaints to rooms in the supervisor's block only
-        if ($block) {
+        // Scope complaints to rooms in the supervisor's hostel only
+        if ($hostel) {
             $complaints = $repo->createQueryBuilder('c')
                 ->join('c.room', 'r')
-                ->where('r.block = :block')
-                ->setParameter('block', $block)
+                ->where('r.hostel = :hostel')
+                ->setParameter('hostel', $hostel)
                 ->orderBy('c.createdAt', 'DESC')
                 ->getQuery()
                 ->getResult();
@@ -250,7 +250,7 @@ class SupervisorController extends AbstractController
             $announcement->setCategory($category);
             $announcement->setBody($body);
             $announcement->setSupervisor($supervisor);
-            $announcement->setTargetBlock($supervisor ? $supervisor->getBlockAssigned() : 'General');
+            $announcement->setTargetBlock($supervisor ? $supervisor->getHostelAssigned() : 'General');
 
             $em->persist($announcement);
             $em->flush();
@@ -261,8 +261,8 @@ class SupervisorController extends AbstractController
 
         return $this->render('supervisor/announcements.html.twig', [
             'announcements' => $repo->createQueryBuilder('a')
-                ->where('a.targetBlock = :block OR a.targetBlock = :general')
-                ->setParameter('block', $supervisor?->getBlockAssigned() ?? '')
+                ->where('a.targetBlock = :hostel OR a.targetBlock = :general')
+                ->setParameter('hostel', $supervisor?->getHostelAssigned() ?? '')
                 ->setParameter('general', 'General')
                 ->orderBy('a.createdAt', 'DESC')
                 ->getQuery()
@@ -315,6 +315,9 @@ class SupervisorController extends AbstractController
         $newAssignment->setRoom($requestedRoom);
         $newAssignment->setAssignedDate(new DateTimeImmutable());
         $newAssignment->setStatus(AssignmentStatus::Active);
+
+        // Persist explicit Student↔Supervisor relation (derived from the requested room / hostel).
+        $student->setSupervisor($requestedRoom->getSupervisor() ?? $supervisor);
 
         $rcRequest->setStatus(RequestStatus::Approved);
         $rcRequest->setReviewedBy($supervisor);
@@ -417,7 +420,7 @@ class SupervisorController extends AbstractController
         /** @var \App\Entity\User $supervisorUser */
         $supervisorUser = $this->getUser();
         $supervisor     = $supervisorUser->getSupervisor();
-        $block          = $supervisor?->getBlockAssigned() ?? '';
+        $hostel         = $supervisor?->getHostelAssigned() ?? '';
 
         // Start with students who already have message history
         $conversations = $chatRepo->findStudentConversations($supervisorUser);
@@ -428,9 +431,9 @@ class SupervisorController extends AbstractController
             $alreadyIncluded[$conv['student']->getId()] = true;
         }
 
-        // Add ALL students in this supervisor's block who are not yet listed
-        if ($block) {
-            $blockStudents = $studentRepo->findByBlock($block);
+        // Add ALL students in this supervisor's hostel who are not yet listed
+        if ($supervisor) {
+            $blockStudents = $studentRepo->findBySupervisor($supervisor);
             foreach ($blockStudents as $student) {
                 $studentUser = $student->getUser();
                 if (!$studentUser || isset($alreadyIncluded[$studentUser->getId()])) {

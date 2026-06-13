@@ -46,14 +46,14 @@
             <div class="value">{{ activeCount }}</div>
         </div>
         <div class="summary-item">
-            <div class="label">Blocks</div>
+            <div class="label">Hostels</div>
             <div class="value">{{ grouped|keys|length }}</div>
         </div>
     </div>
 
-    {% for block, rooms in grouped %}
+    {% for hostel, rooms in grouped %}
     <div class="block-section">
-        <div class="block-title">Block: {{ block }}</div>
+        <div class="block-title">Hostel: {{ hostel }}</div>
         <table>
             <thead>
                 <tr>

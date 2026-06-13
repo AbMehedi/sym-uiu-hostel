@@ -11,6 +11,7 @@ use App\Entity\RoomAssignment;
 use App\Entity\Supervisor;
 use App\Entity\SupervisorTask;
 use App\Entity\User;
+use App\Enum\Gender;
 use App\Enum\AdmissionStatus;
 use App\Enum\AssignmentStatus;
 use App\Enum\ComplaintCategory;
@@ -30,7 +31,7 @@ use App\Repository\SupervisorRepository;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mailer\MailerInterface;
@@ -92,21 +93,83 @@ class AdminController extends AbstractController
     public function students(
         StudentRepository $studentRepository,
         SupervisorRepository $supervisorRepository,
+        RoomRepository $roomRepository,
+        EntityManagerInterface $em,
     ): Response {
-        $students = $studentRepository->findBy([], ['id' => 'DESC']);
+        $students    = $studentRepository->findBy(['admissionStatus' => AdmissionStatus::Approved], ['id' => 'DESC']);
+        $supervisors = $supervisorRepository->findBy([], ['hostelAssigned' => 'ASC', 'id' => 'ASC']);
+        $allRooms    = $roomRepository->findBy([], ['hostel' => 'ASC', 'roomNumber' => 'ASC']);
 
-        $supervisorsByBlock = [];
-        foreach ($supervisorRepository->findAll() as $supervisor) {
-            $block = $supervisor->getBlockAssigned();
-            if ($block !== null) {
-                $supervisorsByBlock[$block] = $supervisor;
-            }
-        }
+        $availableRooms = array_values(array_filter($allRooms, fn($r) => !$r->isFull()));
+
+        $unassignedStudents = array_values(array_filter(
+            $students,
+            fn($s) => $s->getRoom() === null
+        ));
+
+        $activeAssignments = $em->getRepository(RoomAssignment::class)
+            ->findBy(['status' => AssignmentStatus::Active], ['assignedDate' => 'DESC']);
+        $allAssignments = $em->getRepository(RoomAssignment::class)
+            ->findBy([], ['id' => 'DESC']);
+
+        $totalBeds     = array_sum(array_map(fn($r) => $r->getCapacity(), $allRooms));
+        $occupiedBeds  = count($activeAssignments);
+        $availableBeds = $totalBeds - $occupiedBeds;
 
         return $this->render('admin/students.html.twig', [
-            'students'          => $students,
-            'supervisorsByBlock' => $supervisorsByBlock,
+            'students'           => $students,
+            'supervisors'        => $supervisors,
+            'hostels'            => $roomRepository->findDistinctHostelNames(),
+            'availableRooms'     => $availableRooms,
+            'allRooms'           => $allRooms,
+            'unassignedStudents' => $unassignedStudents,
+            'activeAssignments'  => $activeAssignments,
+            'allAssignments'     => $allAssignments,
+            'totalBeds'          => $totalBeds,
+            'occupiedBeds'       => $occupiedBeds,
+            'availableBeds'      => $availableBeds,
         ]);
+    }
+
+    #[Route('/students/{id}/change-supervisor', name: 'admin_student_change_supervisor', methods: ['POST'])]
+    public function studentChangeSupervisor(
+        int $id,
+        Request $request,
+        StudentRepository $studentRepo,
+        SupervisorRepository $supervisorRepo,
+        EntityManagerInterface $em,
+    ): Response {
+        $student = $studentRepo->find($id);
+        if (!$student) {
+            $this->addFlash('error', 'Student not found.');
+            return $this->redirectToRoute('admin_students');
+        }
+
+        $supervisorId = (int) $request->request->get('supervisorId', 0);
+
+        if ($supervisorId === 0) {
+            // Remove supervisor assignment
+            $student->setSupervisor(null);
+            $this->addFlash('success', 'Supervisor removed from ' . $student->getUser()->getName() . '.');
+        } else {
+            $supervisor = $supervisorRepo->find($supervisorId);
+            if (!$supervisor) {
+                $this->addFlash('error', 'Supervisor not found.');
+                return $this->redirectToRoute('admin_students');
+            }
+            $student->setSupervisor($supervisor);
+            $this->addFlash('success',
+                $supervisor->getUser()->getName() . ' is now the supervisor of ' . $student->getUser()->getName() . '.');
+        }
+
+        $em->flush();
+        $this->logAudit($em, 'student.change_supervisor', [
+            'studentId'    => $student->getId(),
+            'studentName'  => $student->getUser()->getName(),
+            'supervisorId' => $supervisorId,
+        ]);
+
+        return $this->redirectToRoute('admin_students');
     }
 
     // ─── Rooms ────────────────────────────────────────────────────────────────
@@ -114,9 +177,10 @@ class AdminController extends AbstractController
     #[Route('/rooms', name: 'admin_rooms')]
     public function rooms(RoomRepository $roomRepository): Response
     {
-        $rooms = $roomRepository->findBy([], ['id' => 'DESC']);
+        $rooms = $roomRepository->findBy([], ['hostel' => 'ASC', 'roomNumber' => 'ASC']);
         return $this->render('admin/rooms.html.twig', [
-            'rooms' => $rooms,
+            'rooms'   => $rooms,
+            'hostels' => $roomRepository->findDistinctHostelNames(),
         ]);
     }
 
@@ -125,17 +189,16 @@ class AdminController extends AbstractController
     {
         $room = new Room();
 
-        $block = strtoupper(trim((string) $request->request->get('block', 'A')));
-        if (!str_ends_with($block, '-BLOCK')) {
-            $block .= '-Block';
-        } else {
-            $block = substr($block, 0, 2) . 'Block';
+        $hostel = trim((string) $request->request->get('hostel', ''));
+        if ($hostel === '') {
+            $this->addFlash('error', 'Hostel is required.');
+            return $this->redirectToRoute('admin_rooms');
         }
 
         $rawRoomNumber = strtoupper(trim((string) $request->request->get('roomNumber')));
-        $prefix = substr($block, 0, 1) . '-';
-        if (!str_starts_with($rawRoomNumber, $prefix)) {
-            $rawRoomNumber = $prefix . $rawRoomNumber;
+        if ($rawRoomNumber === '') {
+            $this->addFlash('error', 'Room number is required.');
+            return $this->redirectToRoute('admin_rooms');
         }
 
         // B-05: check for duplicate room number before persisting
@@ -145,9 +208,10 @@ class AdminController extends AbstractController
             return $this->redirectToRoute('admin_rooms');
         }
 
-        // B-06: server-side validation for capacity and floor
-        $capacityRaw = $request->request->get('capacity', 2);
-        $floorRaw    = $request->request->get('floor', 1);
+        // B-06: server-side validation for capacity, floor, and initial occupancy
+        $capacityRaw   = $request->request->get('capacity', 2);
+        $floorRaw      = $request->request->get('floor', 1);
+        $occupancyRaw  = $request->request->get('currentOccupancy', 0);
 
         if (!is_numeric($capacityRaw) || (int)$capacityRaw < 1) {
             $this->addFlash('error', 'Capacity must be a positive integer (minimum 1).');
@@ -157,19 +221,35 @@ class AdminController extends AbstractController
             $this->addFlash('error', 'Floor must be a non-negative integer (ground floor = 0).');
             return $this->redirectToRoute('admin_rooms');
         }
+        if (!is_numeric($occupancyRaw) || (int)$occupancyRaw < 0) {
+            $this->addFlash('error', 'Initial occupancy cannot be negative.');
+            return $this->redirectToRoute('admin_rooms');
+        }
+
+        $capacity  = (int) $capacityRaw;
+        $occupancy = (int) $occupancyRaw;
+
+        if ($occupancy > $capacity) {
+            $this->addFlash('error',
+                "Initial occupancy ($occupancy) cannot exceed capacity ($capacity). A room cannot have more beds occupied than it has available.");
+            return $this->redirectToRoute('admin_rooms');
+        }
 
         $room->setRoomNumber($rawRoomNumber);
-        $room->setBlock($block);
+        $room->setHostel($hostel);
         $room->setFloor((int) $floorRaw);
-        $room->setCapacity((int) $capacityRaw);
+        $room->setCapacity($capacity);
+        $room->setCurrentOccupancy($occupancy);
         $room->setRoomType($request->request->get('roomType') ?: 'Standard');
         $room->setStatus(RoomStatus::Available);
+        $room->syncStatus(); // auto-set Full if occupancy already at capacity
+
 
         $em->persist($room);
         $em->flush();
 
         // B-20: audit log
-        $this->logAudit($em, 'room.create', ['roomNumber' => $rawRoomNumber, 'block' => $block, 'capacity' => (int)$capacityRaw]);
+        $this->logAudit($em, 'room.create', ['roomNumber' => $rawRoomNumber, 'hostel' => $hostel, 'capacity' => (int)$capacityRaw]);
 
         $this->addFlash('success', 'Room ' . $room->getRoomNumber() . ' created successfully!');
         return $this->redirectToRoute('admin_rooms');
@@ -252,6 +332,7 @@ class AdminController extends AbstractController
     public function roomAssign(
         StudentRepository $studentRepo,
         RoomRepository $roomRepo,
+        SupervisorRepository $supervisorRepo,
         EntityManagerInterface $em,
     ): Response {
         $unassignedStudents = array_values(array_filter(
@@ -269,7 +350,7 @@ class AdminController extends AbstractController
             fn($r) => !$r->isFull()
         ));
 
-        $allRooms = $roomRepo->findBy([], ['block' => 'ASC', 'roomNumber' => 'ASC']);
+        $allRooms = $roomRepo->findBy([], ['hostel' => 'ASC', 'roomNumber' => 'ASC']);
 
         $activeAssignments = $em->getRepository(RoomAssignment::class)
             ->findBy(['status' => AssignmentStatus::Active], ['assignedDate' => 'DESC']);
@@ -286,6 +367,8 @@ class AdminController extends AbstractController
             'allApprovedStudents'=> $allApprovedStudents,
             'availableRooms'     => $availableRooms,
             'allRooms'           => $allRooms,
+            'hostels'            => $roomRepo->findDistinctHostelNames(),
+            'supervisors'        => $supervisorRepo->findBy([], ['id' => 'ASC']),
             'activeAssignments'  => $activeAssignments,
             'allAssignments'     => $allAssignments,
             'totalBeds'          => $totalBeds,
@@ -299,17 +382,31 @@ class AdminController extends AbstractController
         Request $request,
         StudentRepository $studentRepo,
         RoomRepository $roomRepo,
+        SupervisorRepository $supervisorRepo,
         EntityManagerInterface $em,
         MailerInterface $mailer,
     ): Response {
         $studentId = (int) $request->request->get('studentId');
         $roomId    = (int) $request->request->get('roomId');
+        $supervisorId = (int) $request->request->get('supervisorId');
+        $hostel = trim((string) $request->request->get('hostel'));
 
         $student = $studentRepo->find($studentId);
         $room    = $roomRepo->find($roomId);
+        $supervisor = $supervisorRepo->find($supervisorId);
 
-        if (!$student || !$room) {
-            $this->addFlash('error', 'Invalid student or room selection.');
+        if (!$student || !$room || !$supervisor || $hostel === '') {
+            $this->addFlash('error', 'Student, hostel, supervisor, and room are required.');
+            return $this->redirectToRoute('admin_room_assign');
+        }
+
+        if ($supervisor->getHostelAssigned() !== $hostel) {
+            $this->addFlash('error', 'Selected supervisor is not assigned to the selected hostel.');
+            return $this->redirectToRoute('admin_room_assign');
+        }
+
+        if ($room->getHostel() !== $hostel) {
+            $this->addFlash('error', 'Selected room does not belong to the selected hostel.');
             return $this->redirectToRoute('admin_room_assign');
         }
 
@@ -334,6 +431,14 @@ class AdminController extends AbstractController
         $assignment->setAssignedDate(new DateTimeImmutable());
         $assignment->setStatus(AssignmentStatus::Active);
 
+        // Persist explicit Student↔Supervisor relation as well.
+        $student->setSupervisor($supervisor);
+
+        // Keep Room↔Supervisor consistent (rooms in a hostel should point to the hostel supervisor).
+        if ($room->getSupervisor() === null || $room->getSupervisor()?->getId() !== $supervisor->getId()) {
+            $room->setSupervisor($supervisor);
+        }
+
         $em->persist($assignment);
         $em->flush();
 
@@ -349,7 +454,7 @@ class AdminController extends AbstractController
                 "Dear %s,\n\nYou have been assigned to Room %s (%s).\n\nPlease contact the hostel office if you have any questions.\n\nUIU Hostel Administration",
                 $student->getUser()->getName(),
                 $room->getRoomNumber(),
-                $room->getBlock(),
+                $room->getHostel(),
             )
         );
 
@@ -357,10 +462,13 @@ class AdminController extends AbstractController
         $this->logAudit($em, 'room.assign', [
             'studentId'   => $student->getId(),
             'studentName' => $student->getUser()->getName(),
+            'hostel'      => $hostel,
+            'supervisorId' => $supervisor->getId(),
+            'supervisorName' => $supervisor->getUser()->getName(),
             'roomNumber'  => $room->getRoomNumber(),
         ]);
 
-        $this->addFlash('success', $student->getUser()->getName() . ' assigned to Room ' . $room->getRoomNumber() . '.');
+        $this->addFlash('success', $student->getUser()->getName() . ' assigned to ' . $hostel . ', Room ' . $room->getRoomNumber() . ', under supervisor ' . $supervisor->getUser()->getName() . '.');
         return $this->redirectToRoute('admin_room_assign');
     }
 
@@ -371,6 +479,7 @@ class AdminController extends AbstractController
         if ($assignment && $assignment->getStatus() === AssignmentStatus::Active) {
             $assignment->setStatus(AssignmentStatus::Vacated);
             $assignment->setVacatedDate(new DateTimeImmutable());
+            $assignment->getStudent()?->setSupervisor(null);
             $em->flush();
             $assignment->getRoom()->recalculateOccupancy();
             $em->flush();
@@ -382,11 +491,15 @@ class AdminController extends AbstractController
     // ─── Supervisors ──────────────────────────────────────────────────────────
 
     #[Route('/supervisors', name: 'admin_supervisors')]
-    public function supervisors(SupervisorRepository $supervisorRepository): Response
+    public function supervisors(
+        SupervisorRepository $supervisorRepository,
+        RoomRepository $roomRepository,
+    ): Response
     {
-        $supervisors = $supervisorRepository->findBy([], ['id' => 'DESC']);
+        $supervisors = $supervisorRepository->findBy([], ['hostelAssigned' => 'ASC', 'id' => 'ASC']);
         return $this->render('admin/supervisors.html.twig', [
             'supervisors' => $supervisors,
+            'hostels'     => $roomRepository->findDistinctHostelNames(),
         ]);
     }
 
@@ -400,10 +513,12 @@ class AdminController extends AbstractController
         $name  = trim((string) $request->request->get('name'));
         $email = trim((string) $request->request->get('email'));
         $phone = trim((string) $request->request->get('phone'));
-        $block = trim((string) $request->request->get('block'));
+        $hostel = trim((string) $request->request->get('hostel', (string) $request->request->get('block')));
+        $nidNumber = trim((string) $request->request->get('nidNumber', (string) $request->request->get('nid')));
+        $genderRaw = trim((string) $request->request->get('gender'));
 
-        if (!$name || !$email) {
-            $this->addFlash('error', 'Name and email are required.');
+        if (!$name || !$email || !$hostel || !$nidNumber) {
+            $this->addFlash('error', 'Name, email, hostel, and NID are required.');
             return $this->redirectToRoute('admin_supervisors');
         }
 
@@ -418,15 +533,6 @@ class AdminController extends AbstractController
             return $this->redirectToRoute('admin_supervisors');
         }
 
-        // B-08: check block uniqueness before persisting
-        if ($block) {
-            $blockTaken = $em->getRepository(Supervisor::class)->findOneBy(['blockAssigned' => $block]);
-            if ($blockTaken) {
-                $this->addFlash('error', 'Block "' . $block . '" is already assigned to supervisor "' . $blockTaken->getUser()->getName() . '". Each block can have only one supervisor.');
-                return $this->redirectToRoute('admin_supervisors');
-            }
-        }
-
         $user = new User();
         $user->setName($name);
         $user->setEmail($email);
@@ -436,14 +542,78 @@ class AdminController extends AbstractController
         $supervisor = new Supervisor();
         $supervisor->setUser($user);
         $supervisor->setPhone($phone ?: null);
-        $supervisor->setBlockAssigned($block ?: null);
+        $supervisor->setHostelAssigned($hostel);
+        $supervisor->setNidNumber($nidNumber);
+
+        $gender = match (strtolower($genderRaw)) {
+            Gender::Male->value => Gender::Male,
+            Gender::Female->value => Gender::Female,
+            Gender::Other->value => Gender::Other,
+            default => null,
+        };
+        $supervisor->setGender($gender);
 
         $em->persist($user);
         $em->persist($supervisor);
         $em->flush();
 
+        // Keep Room↔Supervisor relation consistent: tag all rooms in this hostel to this supervisor.
+        $roomsInHostel = $em->getRepository(Room::class)->findBy(['hostel' => $hostel]);
+        foreach ($roomsInHostel as $room) {
+            $room->setSupervisor($supervisor);
+        }
+        $em->flush();
+
         // B-20: audit log
-        $this->logAudit($em, 'supervisor.create', ['name' => $name, 'email' => $email, 'block' => $block]);
+        $this->logAudit($em, 'supervisor.create', ['name' => $name, 'email' => $email, 'hostel' => $hostel]);
+
+        // Supervisor identity docs (optional uploads)
+        $baseUploadsDir = $this->getParameter('kernel.project_dir') . '/public/uploads/supervisors';
+        if (!is_dir($baseUploadsDir)) {
+            @mkdir($baseUploadsDir, 0775, true);
+        }
+        $folder = 'sup-' . $supervisor->getId() . '-' . bin2hex(random_bytes(4));
+        $uploadsDir = $baseUploadsDir . '/' . $folder;
+        if (!is_dir($uploadsDir)) {
+            @mkdir($uploadsDir, 0775, true);
+        }
+
+        /** @var \Symfony\Component\HttpFoundation\File\UploadedFile|null $nidDoc */
+        $nidDoc = $request->files->get('nidDocument');
+        if ($nidDoc) {
+            try {
+                $ext = $nidDoc->guessExtension() ?: 'bin';
+                $filename = 'nid-' . bin2hex(random_bytes(6)) . '.' . $ext;
+                $nidDoc->move($uploadsDir, $filename);
+                $supervisor->setNidDocumentPath('/uploads/supervisors/' . $folder . '/' . $filename);
+            } catch (FileException) {
+                $this->addFlash('error', 'Failed to upload NID document.');
+            }
+        }
+
+        $additionalDocPaths = [];
+        /** @var array<int, \Symfony\Component\HttpFoundation\File\UploadedFile|null> $additionalDocs */
+        $additionalDocs = $request->files->get('additionalDocs') ?? [];
+        if (is_array($additionalDocs)) {
+            foreach ($additionalDocs as $doc) {
+                if (!$doc) {
+                    continue;
+                }
+                try {
+                    $ext = $doc->guessExtension() ?: 'bin';
+                    $filename = 'doc-' . bin2hex(random_bytes(6)) . '.' . $ext;
+                    $doc->move($uploadsDir, $filename);
+                    $additionalDocPaths[] = '/uploads/supervisors/' . $folder . '/' . $filename;
+                } catch (FileException) {
+                    $this->addFlash('error', 'Failed to upload one of the additional documents.');
+                }
+            }
+        }
+        if ($additionalDocPaths !== []) {
+            $supervisor->setAdditionalDocs($additionalDocPaths);
+        }
+
+        $em->flush();
 
         // B-18: email supervisor their credentials
         $this->sendNotification(
@@ -495,57 +665,6 @@ class AdminController extends AbstractController
         return $this->redirectToRoute('admin_supervisors');
     }
 
-    // ─── Supervisor Student Assignment (B-11) ────────────────────────────────
-
-    /**
-     * B-11: Actually persist which students are "managed" by a supervisor.
-     * We use the supervisor's blockAssigned to tag students; alternatively,
-     * this endpoint records the association in the audit log and optionally
-     * updates the student's room block linkage for display purposes.
-     * Since the data model uses block-scoped supervisors (not a direct
-     * supervisor→student FK), we return a JSON confirmation.
-     */
-    #[Route('/supervisors/{id}/assign-students', name: 'admin_supervisor_assign_students', methods: ['POST'])]
-    public function supervisorAssignStudents(
-        int $id,
-        Request $request,
-        SupervisorRepository $repo,
-        StudentRepository $studentRepo,
-        EntityManagerInterface $em,
-    ): JsonResponse {
-        $supervisor = $repo->find($id);
-        if (!$supervisor) {
-            return $this->json(['status' => 'error', 'message' => 'Supervisor not found.'], 404);
-        }
-
-        $studentIds = $request->request->all('studentIds') ?? [];
-        if (empty($studentIds)) {
-            return $this->json(['status' => 'error', 'message' => 'No students selected.'], 400);
-        }
-
-        $assigned = [];
-        foreach ($studentIds as $sid) {
-            $student = $studentRepo->find((int)$sid);
-            if ($student) {
-                $assigned[] = $student->getUser()->getName();
-            }
-        }
-
-        // B-20: audit log
-        $this->logAudit($em, 'supervisor.assign_students', [
-            'supervisorId'   => $supervisor->getId(),
-            'supervisorName' => $supervisor->getUser()->getName(),
-            'studentIds'     => $studentIds,
-        ]);
-
-        return $this->json([
-            'status'   => 'success',
-            'message'  => count($assigned) . ' student(s) noted under supervisor ' . $supervisor->getUser()->getName() . '.',
-            'assigned' => $assigned,
-        ]);
-    }
-
-    // ─── Tasks ────────────────────────────────────────────────────────────────
 
     #[Route('/tasks', name: 'admin_tasks')]
     public function tasks(SupervisorRepository $supervisorRepo, EntityManagerInterface $em): Response

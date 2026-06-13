@@ -51,6 +51,10 @@ class Student
     #[ORM\OneToMany(mappedBy: 'student', targetEntity: Complaint::class, orphanRemoval: true)]
     private Collection $complaints;
 
+    #[ORM\ManyToOne(targetEntity: Supervisor::class)]
+    #[ORM\JoinColumn(name: 'supervisor_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?Supervisor $supervisor = null;
+
     public function __construct()
     {
         $this->roomAssignments = new ArrayCollection();
@@ -219,6 +223,18 @@ class Student
     public function getComplaints(): Collection
     {
         return $this->complaints;
+    }
+
+    public function getSupervisor(): ?Supervisor
+    {
+        return $this->supervisor;
+    }
+
+    public function setSupervisor(?Supervisor $supervisor): self
+    {
+        $this->supervisor = $supervisor;
+
+        return $this;
     }
 
     public function getRoom(): ?Room

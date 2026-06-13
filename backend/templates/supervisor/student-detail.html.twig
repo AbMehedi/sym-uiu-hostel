@@ -11,7 +11,7 @@
     </div>
     <div class="admin-profile">
         <div class="avatar sup-avatar"></div>
-        <span>{{ supervisor ? supervisor.blockAssigned : '' }} Supervisor</span>
+        <span>{{ supervisor ? supervisor.hostelAssigned : '' }} Supervisor</span>
     </div>
 </header>
 
@@ -51,8 +51,8 @@
             <dt>Room Number</dt>
             <dd><span class="room-badge">{{ room.roomNumber }}</span></dd>
 
-            <dt>Block</dt>
-            <dd>{{ room.block }}</dd>
+            <dt>Hostel</dt>
+            <dd>{{ room.hostel }}</dd>
 
             <dt>Floor</dt>
             <dd>Floor {{ room.floor }}</dd>

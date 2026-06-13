@@ -86,7 +86,7 @@ class StudentWorkflowRemainingTest extends WebTestCase
 
         $student = $studentUser->getStudent();
         $room = $student->getRoom();
-        $block = $room ? $room->getBlock() : 'A';
+        $block = $room ? $room->getHostel() : 'UIU Boys Hostel I';
 
         $supervisor = $this->entityManager->getRepository(Supervisor::class)->findOneBy([]);
         $this->assertNotNull($supervisor, 'No supervisor found in database to link announcements to');
@@ -101,7 +101,7 @@ class StudentWorkflowRemainingTest extends WebTestCase
         $ann2 = new Announcement();
         $ann2->setTitle('Test Other block notice');
         $ann2->setBody('This is for block other');
-        $ann2->setTargetBlock($block === 'A' ? 'B' : 'A');
+        $ann2->setTargetBlock($block === 'UIU Boys Hostel I' ? 'UIU Boys Hostel II' : 'UIU Boys Hostel I');
         $ann2->setSupervisor($supervisor);
 
         $this->entityManager->persist($ann1);
@@ -161,7 +161,7 @@ class StudentWorkflowRemainingTest extends WebTestCase
 
     public function testGuardedPagesRedirectNonApprovedStudent(): void
     {
-        $pendingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'student9@hostel.com']);
+        $pendingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'student13@hostel.com']);
         $this->assertNotNull($pendingUser);
 
         $this->client->loginUser($pendingUser);
@@ -178,7 +178,7 @@ class StudentWorkflowRemainingTest extends WebTestCase
 
     public function testGuardedJsonEndpointsReturn403ForNonApprovedStudent(): void
     {
-        $pendingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'student9@hostel.com']);
+        $pendingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'student13@hostel.com']);
         $this->assertNotNull($pendingUser);
 
         $this->client->loginUser($pendingUser);
@@ -205,7 +205,7 @@ class StudentWorkflowRemainingTest extends WebTestCase
 
     public function testSupervisorLogin(): void
     {
-        $supervisorUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'supervisor.a@hostel.com']);
+        $supervisorUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'supervisor.bh1a@hostel.com']);
         $this->assertNotNull($supervisorUser);
 
         $this->client->loginUser($supervisorUser);
@@ -215,7 +215,7 @@ class StudentWorkflowRemainingTest extends WebTestCase
 
     public function testSupervisorDashboardDisplaysPendingRoomChanges(): void
     {
-        $supervisorUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'supervisor.a@hostel.com']);
+        $supervisorUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'supervisor.bh1a@hostel.com']);
         $this->assertNotNull($supervisorUser);
 
         $this->client->loginUser($supervisorUser);
