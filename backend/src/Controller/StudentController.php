@@ -166,9 +166,14 @@ class StudentController extends AbstractController
         $student = $this->getUser()->getStudent();
 
         if ($request->isMethod('POST')) {
-            $subject     = $request->request->get('subject');
-            $type        = $request->request->get('type');
-            $description = $request->request->get('description');
+            $subject     = trim((string) $request->request->get('subject'));
+            $type        = trim((string) $request->request->get('type'));
+            $description = trim((string) $request->request->get('description'));
+
+            if ($subject === '' || $description === '') {
+                $this->addFlash('error', 'Subject and description are required.');
+                return $this->redirectToRoute('student_complaints');
+            }
 
             // ── Phase 1 fix: block submission if student has no room ──
             $room = $student->getRoom();
@@ -182,13 +187,14 @@ class StudentController extends AbstractController
             $photoUrl  = null;
 
             if ($photoFile && $photoFile->isValid()) {
-                $newFilename = uniqid() . '.' . $photoFile->guessExtension();
+                $extension = $photoFile->guessExtension() ?: 'jpg';
+                $newFilename = bin2hex(random_bytes(8)) . '.' . $extension;
                 try {
                     $photoFile->move(
-                        $this->getParameter('kernel.project_dir') . '/public/uploads',
+                        $this->getParameter('kernel.project_dir') . '/public/uploads/complaints',
                         $newFilename
                     );
-                    $photoUrl = '/uploads/' . $newFilename;
+                    $photoUrl = '/uploads/complaints/' . $newFilename;
                 } catch (FileException $e) {
                     $this->addFlash('error', 'Failed to upload photo.');
                 }
@@ -202,6 +208,7 @@ class StudentController extends AbstractController
             $complaint->setPhotoUrl($photoUrl);
             $complaint->setStatus(ComplaintStatus::Pending);
             $complaint->setRoom($room);
+            $complaint->setAssignedTo($student->getSupervisor() ?: $room->getSupervisor());
 
             try {
                 $category = ComplaintCategory::from(strtolower($type));
@@ -211,6 +218,12 @@ class StudentController extends AbstractController
             $complaint->setCategory($category);
 
             $em->persist($complaint);
+            $initialUpdate = new ComplaintUpdate();
+            $initialUpdate->setComplaint($complaint);
+            $initialUpdate->setUpdatedBy($this->getUser());
+            $initialUpdate->setStatus(ComplaintStatus::Pending);
+            $initialUpdate->setNote('Complaint submitted by student.');
+            $em->persist($initialUpdate);
             $em->flush();
             $this->addFlash('success', 'Complaint submitted successfully!');
 

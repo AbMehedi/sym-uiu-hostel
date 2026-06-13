@@ -233,4 +233,11 @@ class Complaint
         }
         return $total;
     }
+
+    public function getEffectiveSupervisor(): ?Supervisor
+    {
+        return $this->assignedTo 
+            ?? $this->room?->getSupervisor() 
+            ?? $this->student?->getSupervisor();
+    }
 }

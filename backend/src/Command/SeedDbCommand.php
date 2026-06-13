@@ -313,12 +313,15 @@ class SeedDbCommand extends Command
         $complaints = [];
         foreach ($complaintData as [$sNum, $rNum, $subject, $desc, $category, $status]) {
             $c = new Complaint();
-            $c->setStudent($students[$sNum]);
-            $c->setRoom($rooms[$rNum]);
+            $student = $students[$sNum];
+            $room    = $rooms[$rNum];
+            $c->setStudent($student);
+            $c->setRoom($room);
             $c->setSubject($subject);
             $c->setDescription($desc);
             $c->setCategory($category);
             $c->setStatus($status);
+            $c->setAssignedTo($student->getSupervisor() ?: $room->getSupervisor());
             if ($status === ComplaintStatus::Resolved) {
                 $c->setResolvedAt(new DateTimeImmutable('-' . random_int(1, 10) . ' days'));
             }

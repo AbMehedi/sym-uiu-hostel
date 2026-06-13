@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Announcement;
 use App\Entity\ChatMessage;
+use App\Entity\RepairCost;
 use App\Entity\RoomAssignment;
 use App\Enum\AssignmentStatus;
 use App\Enum\ComplaintStatus;
@@ -187,14 +188,31 @@ class SupervisorController extends AbstractController
     #[Route('/complaints/update/{id}', name: 'supervisor_complaint_update', methods: ['POST'])]
     public function updateComplaint(int $id, Request $request, ComplaintRepository $repo, EntityManagerInterface $em): Response
     {
+        /** @var \App\Entity\User $user */
+        $user       = $this->getUser();
+        $supervisor = $user->getSupervisor();
+
         $complaint = $repo->find($id);
         if (!$complaint) {
             return $this->json(['status' => 'error', 'message' => 'Complaint not found.'], 404);
         }
 
-        $data         = json_decode($request->getContent(), true);
-        $newStatusStr = $data['status'] ?? '';
-        $notes        = $data['notes'] ?? '';
+        if (!$supervisor) {
+            return $this->json(['status' => 'error', 'message' => 'Supervisor profile not found.'], 403);
+        }
+
+        $hostel = $supervisor->getHostelAssigned() ?? '';
+        if ($hostel !== '' && $complaint->getRoom()?->getHostel() !== $hostel) {
+            return $this->json(['status' => 'error', 'message' => 'Access denied for this complaint.'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        if (!is_array($data)) {
+            $data = [];
+        }
+        $newStatusStr = trim((string) ($data['status'] ?? ''));
+        $notes        = trim((string) ($data['notes'] ?? ''));
+        $amountRaw    = trim((string) ($data['amount'] ?? ''));
 
         $statusMap = [
             'Pending'     => ComplaintStatus::Pending,
@@ -202,33 +220,54 @@ class SupervisorController extends AbstractController
             'Resolved'    => ComplaintStatus::Resolved,
         ];
 
-        $statusChanged = false;
-        if (isset($statusMap[$newStatusStr])) {
-            if ($complaint->getStatusEnum() !== $statusMap[$newStatusStr]) {
-                $statusChanged = true;
-            }
-            $complaint->setStatus($statusMap[$newStatusStr]);
+        if (!isset($statusMap[$newStatusStr])) {
+            return $this->json(['status' => 'error', 'message' => 'Invalid complaint status.'], 400);
         }
+
+        $newStatus = $statusMap[$newStatusStr];
+        $statusChanged = $complaint->getStatusEnum() !== $newStatus;
+        if ($statusChanged) {
+            $complaint->setStatus($newStatus);
+        }
+
+        $complaint->setAssignedTo($supervisor);
 
         if (!empty($notes) || $statusChanged) {
             $update = new \App\Entity\ComplaintUpdate();
             $update->setComplaint($complaint);
             $update->setNote(!empty($notes) ? $notes : null);
             $update->setUpdatedBy($this->getUser());
-            $update->setStatus($complaint->getStatusEnum());
+            $update->setStatus($newStatus);
             $em->persist($update);
         }
 
-        if ($newStatusStr === 'Resolved') {
+        if ($newStatus === ComplaintStatus::Resolved) {
             $complaint->setResolvedAt(new DateTimeImmutable());
         } else {
             // Clear resolvedAt if reverting from Resolved back to Pending/InProgress
             $complaint->setResolvedAt(null);
         }
 
+        if ($amountRaw !== '') {
+            if (!is_numeric($amountRaw) || (float)$amountRaw <= 0) {
+                return $this->json(['status' => 'error', 'message' => 'Repair cost must be a positive number.'], 400);
+            }
+
+            $repairCost = new RepairCost();
+            $repairCost->setComplaint($complaint);
+            $repairCost->setAmount((string) $amountRaw);
+            $repairCost->setDescription($notes !== '' ? $notes : null);
+            $repairCost->setCostDate(new DateTimeImmutable());
+            $repairCost->setRecordedBy($this->getUser());
+            $em->persist($repairCost);
+        }
+
         $em->flush();
 
-        return $this->json(['status' => 'success']);
+        return $this->json([
+            'status' => 'success',
+            'totalCost' => number_format($complaint->getCost(), 2, '.', ''),
+        ]);
     }
 
     // ─── Announcements ────────────────────────────────────────────────────────

@@ -52,7 +52,10 @@
                 <div style="margin-bottom: 10px;">
                     <h3 style="color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Attached Photo</h3>
                     <div style="background: rgba(30, 41, 59, 0.4); border: 1px solid #1e293b; border-radius: 8px; padding: 10px; display: inline-block;">
-                        <img src="{{ asset(complaint.photoUrl) }}" alt="Complaint photo attachment" style="max-width: 100%; max-height: 350px; border-radius: 6px; object-fit: contain;">
+                        {% set normalizedPhoto = complaint.photoUrl starts with('/')
+                            ? complaint.photoUrl|slice(1)
+                            : (complaint.photoUrl matches '/\\//' ? complaint.photoUrl : 'uploads/complaints/' ~ complaint.photoUrl) %}
+                        <img src="{{ asset(normalizedPhoto) }}" alt="Complaint photo attachment" style="max-width: 100%; max-height: 350px; border-radius: 6px; object-fit: contain;">
                     </div>
                 </div>
             {% endif %}
@@ -115,7 +118,7 @@
                         {% endif %}
 
                         <h4 style="margin: 0; color: white; font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center;">
-                            <span>Status Updated to: {{ update.status.value|capitalize }}</span>
+                            <span>Status Updated to: {{ update.status.value|replace({'_': ' '})|title }}</span>
                         </h4>
                         <span style="font-size: 0.8rem; color: #64748b; display: block; margin-top: 2px;">
                             By {{ update.updatedBy.name }} &bull; {{ update.updatedAt|date('M d, Y @ h:i A') }}

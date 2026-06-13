@@ -3,61 +3,125 @@
 {% block title %}Reports & Analytics{% endblock %}
 
 {% block body %}
-    <!-- Top Header -->
     <header class="dashboard-header">
         <div>
-            <h1>System Reports & Analytics</h1>
-            <p class="date-display">Generate PDF exports and view detailed financial maintenance records.</p>
+            <h1>Operations & Exports Center</h1>
+            <p class="date-display">One place for room occupancy, complaint tracking, repair-cost statistics, and PDF exports.</p>
         </div>
     </header>
 
-    <!-- PDF Generation Section -->
-    <div class="dashboard-box report-section">
+    <div class="dashboard-box" style="margin-bottom:16px;padding:12px 16px;border:1px solid rgba(59,130,246,.35);background:rgba(37,99,235,.12);">
+        <strong style="color:#93c5fd;">Tracking only:</strong>
+        <span style="color:#cbd5e1;">Supervisors handle complaint updates and repair-cost entry. Admin monitors and exports.</span>
+    </div>
+
+    <div class="dashboard-box" style="margin-bottom:16px;">
         <div class="box-header profile-section-header">
-            <h3>Generate & Download PDF Logs</h3>
-            <span class="text-muted">Select a report to export data for offline use.</span>
+            <h3>PDF Exports</h3>
+            <span class="text-muted">Generate required admin documents.</span>
         </div>
-        
         <div class="document-grid">
-            
-            <!-- Report Card 1: Room Allocation (B-02) -->
             <div class="document-card report-card-lg">
                 <div class="doc-info flex-grow">
-                    <h4 class="report-title">Room Allocation Report</h4>
-                    <p class="text-muted report-desc">A complete list of all students currently assigned to hostel blocks and specific rooms.</p>
-                    <a href="{{ path('admin_pdf_room_allocation') }}" class="btn btn-outline btn-full">Download PDF</a>
+                    <h4 class="report-title">Room Allocation PDF</h4>
+                    <p class="text-muted report-desc">Current room assignments by hostel and room.</p>
+                    <a href="{{ path('admin_pdf_room_allocation') }}" class="btn btn-outline btn-full">Export</a>
                 </div>
             </div>
-
-            <!-- Report Card 2: Complaint Logs (B-02) -->
             <div class="document-card report-card-lg">
                 <div class="doc-info flex-grow">
                     <h4 class="report-title">Monthly Complaint Logs</h4>
-                    <p class="text-muted report-desc">A chronological log of all maintenance issues, reporter IDs, and resolution statuses.</p>
-                    <a href="{{ path('admin_pdf_complaint_log', {month: 'now'|date('Y-m')}) }}" class="btn btn-outline btn-full">Download PDF</a>
+                    <p class="text-muted report-desc">Chronological complaint register with statuses and totals.</p>
+                    <a href="{{ path('admin_pdf_complaint_log', {month: 'now'|date('Y-m')}) }}" class="btn btn-outline btn-full">Export</a>
                 </div>
             </div>
-
-            <!-- Report Card 3: Repair Costs (B-02 / B-22) -->
             <div class="document-card report-card-lg">
                 <div class="doc-info flex-grow">
                     <h4 class="report-title">Repair Cost Report</h4>
-                    <p class="text-muted report-desc">Full breakdown of maintenance expenditure by category and supervisor for the current month.</p>
-                    <a href="{{ path('admin_pdf_repair_costs') }}" class="btn btn-outline btn-full">Print Cost Report</a>
+                    <p class="text-muted report-desc">Repair-cost details and supervisor/category statistics.</p>
+                    <a href="{{ path('admin_pdf_repair_costs') }}" class="btn btn-outline btn-full">Export</a>
                 </div>
             </div>
-
         </div>
     </div>
 
-    <!-- Detailed Cost Breakdown Section — B-01 / B-13: live data from $categoryStats -->
-    <div class="dashboard-box">
+    <div class="dashboard-box" id="complaint-tracker" style="margin-bottom:16px;">
         <div class="box-header profile-section-header">
-            <h3>Detailed Maintenance Cost Analysis</h3>
-            <span class="text-muted">{{ monthLabel }} — live data from the database</span>
+            <h3>Complaint & Repair-Cost Tracker</h3>
+            <span class="text-muted">Read-only view of supervisor-maintained complaint operations.</span>
         </div>
 
-        <!-- Financial Data Table -->
+        <form method="GET" action="{{ path('admin_reports') }}" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <label style="color:#94a3b8;font-size:.85rem;white-space:nowrap;">Type:</label>
+                <select name="type" class="form-control form-control-sm" style="min-width:130px;">
+                    <option value="">All Types</option>
+                    {% for cat in complaintCategories %}
+                        <option value="{{ cat.value }}" {{ activeType == cat.value ? 'selected' : '' }}>{{ cat.value|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <label style="color:#94a3b8;font-size:.85rem;white-space:nowrap;">Status:</label>
+                <select name="status" class="form-control form-control-sm" style="min-width:130px;">
+                    <option value="">All Statuses</option>
+                    <option value="pending" {{ activeStatus == 'pending' ? 'selected' : '' }}>Pending</option>
+                    <option value="in_progress" {{ activeStatus == 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                    <option value="resolved" {{ activeStatus == 'resolved' ? 'selected' : '' }}>Resolved</option>
+                </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <label style="color:#94a3b8;font-size:.85rem;white-space:nowrap;">From:</label>
+                <input type="date" name="from" value="{{ activeFrom }}" class="form-control form-control-sm" style="min-width:130px;">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <label style="color:#94a3b8;font-size:.85rem;white-space:nowrap;">To:</label>
+                <input type="date" name="to" value="{{ activeTo }}" class="form-control form-control-sm" style="min-width:130px;">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+            <a href="{{ path('admin_reports') }}#complaint-tracker" class="btn btn-outline btn-sm">Clear</a>
+        </form>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Ticket</th>
+                    <th>Date</th>
+                    <th>Room</th>
+                    <th>Student</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Supervisor</th>
+                    <th style="text-align:right;">Repair Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for complaint in complaints %}
+                    <tr>
+                        <td>#CMP-{{ complaint.id }}</td>
+                        <td>{{ complaint.createdAt|date('d M Y') }}</td>
+                        <td>{{ complaint.room ? complaint.room.roomNumber : '—' }}</td>
+                        <td>{{ complaint.student ? complaint.student.user.name : '—' }}</td>
+                        <td>{{ complaint.category.value|capitalize }}</td>
+                        <td><span class="status {{ complaint.status|lower|replace({' ': '-'}) }} status-sm">{{ complaint.status }}</span></td>
+                        <td>{{ complaint.effectiveSupervisor ? complaint.effectiveSupervisor.user.name : 'Unassigned' }}</td>
+                        <td style="text-align:right;">৳ {{ complaint.cost|number_format(2) }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="9" style="text-align:center;padding:24px;color:#64748b;">No complaints match the selected filters.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="dashboard-box">
+        <div class="box-header profile-section-header">
+            <h3>Cost Details Report & Statistics</h3>
+            <span class="text-muted">{{ monthLabel }} aggregated by complaint category.</span>
+        </div>
+
         <table class="data-table">
             <thead>
                 <tr>
@@ -104,12 +168,9 @@
             </tfoot>
         </table>
 
-        <!-- Bottom Print Button (B-22) -->
         <div class="profile-footer footer-spread">
-            <p class="text-muted footer-note">* Note: Pending tickets are not included in the finalized monthly cost until marked resolved.</p>
-            <a href="{{ path('admin_pdf_repair_costs') }}" class="btn btn-outline">
-                Print Cost Report
-            </a>
+            <p class="text-muted footer-note">Room availability, occupancy, complaints, and repair costs are centralized in this module.</p>
+            <a href="{{ path('admin_pdf_repair_costs') }}" class="btn btn-outline">Export Cost PDF</a>
         </div>
     </div>
 {% endblock %}

@@ -64,6 +64,8 @@ class ComplaintRepository extends ServiceEntityRepository
             ->leftJoin('c.room', 'r')->addSelect('r')
             ->leftJoin('c.student', 's')->addSelect('s')
             ->leftJoin('s.user', 'u')->addSelect('u')
+            ->leftJoin('c.assignedTo', 'a')->addSelect('a')
+            ->leftJoin('a.user', 'au')->addSelect('au')
             ->orderBy('c.createdAt', 'DESC')
             ->setMaxResults($limit)
             ->getQuery()
@@ -111,6 +113,11 @@ class ComplaintRepository extends ServiceEntityRepository
         ?DateTimeInterface $to = null,
     ): array {
         $qb = $this->createQueryBuilder('c')
+            ->leftJoin('c.room', 'r')->addSelect('r')
+            ->leftJoin('c.student', 's')->addSelect('s')
+            ->leftJoin('s.user', 'u')->addSelect('u')
+            ->leftJoin('c.assignedTo', 'a')->addSelect('a')
+            ->leftJoin('a.user', 'au')->addSelect('au')
             ->orderBy('c.createdAt', 'DESC');
 
         if ($type) {

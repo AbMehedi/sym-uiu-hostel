@@ -74,14 +74,23 @@ class AdminController extends AbstractController
 
         $totalRepairCost = $repairCostRepo->findGrandTotal();
         $pendingRequests = $admissionRepo->findPending();
+        $totalComplaints = count($complaintRepo->findAll());
+        $pendingComplaints = count($complaintRepo->findBy(['status' => \App\Enum\ComplaintStatus::Pending]));
+        $inProgressComplaints = count($complaintRepo->findBy(['status' => \App\Enum\ComplaintStatus::InProgress]));
+        $resolvedComplaints = count($complaintRepo->findBy(['status' => \App\Enum\ComplaintStatus::Resolved]));
+        $occupancyRate = count($rooms) > 0 ? round(($occupiedRooms / count($rooms)) * 100, 1) : 0.0;
 
         return $this->render('admin/dashboard.html.twig', [
             'totalRooms'        => count($rooms),
             'occupiedRooms'     => $occupiedRooms,   // rooms with ≥1 resident
             'fullRooms'         => $fullRooms,        // rooms at full capacity
             'vacantRooms'       => $vacantRooms,
+            'occupancyRate'     => $occupancyRate,
             'totalStudents'     => count($studentRepo->findAll()),
-            'pendingComplaints' => count($complaintRepo->findBy(['status' => \App\Enum\ComplaintStatus::Pending])),
+            'totalComplaints'   => $totalComplaints,
+            'pendingComplaints' => $pendingComplaints,
+            'inProgressComplaints' => $inProgressComplaints,
+            'resolvedComplaints' => $resolvedComplaints,
             'pendingAdmissions' => count($pendingRequests),
             'pendingRequests'   => $pendingRequests,
             'recentComplaints'  => $complaintRepo->findRecent(5),
@@ -836,37 +845,7 @@ class AdminController extends AbstractController
         ComplaintRepository $complaintRepository,
         RepairCostRepository $repairCostRepository,
     ): Response {
-        // B-10: wire type/status filters; B-23: wire date range
-        $activeType   = $request->query->get('type', '');
-        $activeStatus = $request->query->get('status', '');
-        $activeFrom   = $request->query->get('from', '');
-        $activeTo     = $request->query->get('to', '');
-
-        $fromDate = $activeFrom ? new DateTimeImmutable($activeFrom . ' 00:00:00') : null;
-        $toDate   = $activeTo   ? new DateTimeImmutable($activeTo   . ' 23:59:59') : null;
-
-        $complaints = ($activeType || $activeStatus || $fromDate || $toDate)
-            ? $complaintRepository->findFiltered($activeType ?: null, $activeStatus ?: null, $fromDate, $toDate)
-            : $complaintRepository->findBy([], ['createdAt' => 'DESC']);
-
-        $startOfMonth     = new DateTimeImmutable('first day of this month midnight');
-        $startOfNextMonth = $startOfMonth->modify('first day of next month midnight');
-
-        $pendingCount        = $complaintRepository->countByStatus(ComplaintStatus::Pending);
-        $resolvedThisMonth   = $complaintRepository->countResolvedBetween($startOfMonth, $startOfNextMonth);
-        $totalSpentThisMonth = $repairCostRepository->findTotalBetween($startOfMonth, $startOfNextMonth);
-
-        return $this->render('admin/complaints.html.twig', [
-            'complaints'          => $complaints,
-            'pendingCount'        => $pendingCount,
-            'resolvedThisMonth'   => $resolvedThisMonth,
-            'totalSpentThisMonth' => $totalSpentThisMonth,
-            'activeType'          => $activeType,
-            'activeStatus'        => $activeStatus,
-            'activeFrom'          => $activeFrom,
-            'activeTo'            => $activeTo,
-            'complaintCategories' => ComplaintCategory::cases(),
-        ]);
+        return $this->redirectToRoute('admin_reports', $request->query->all());
     }
 
     // B-03: New complaint update endpoint — persists status + logs repair cost
@@ -876,6 +855,10 @@ class AdminController extends AbstractController
         Request $request,
         EntityManagerInterface $em,
     ): Response {
+        $this->addFlash('error', 'Admins can only track complaints and costs. Supervisor updates are required.');
+        return $this->redirectToRoute('admin_complaints');
+
+        /*
         // CSRF validation
         if (!$this->isCsrfTokenValid('complaint_update_' . $id, $request->request->get('_csrf_token', $request->request->get('_token')))) {
             $this->addFlash('error', 'Invalid security token.');
@@ -944,6 +927,7 @@ class AdminController extends AbstractController
 
         $this->addFlash('success', 'Complaint #CMP-' . $id . ' updated successfully.');
         return $this->redirectToRoute('admin_complaints');
+        */
     }
 
     // ─── Reports ──────────────────────────────────────────────────────────────
@@ -953,11 +937,33 @@ class AdminController extends AbstractController
         Request $request,
         ComplaintRepository $complaintRepo,
         RepairCostRepository $repairCostRepo,
+        RoomRepository $roomRepo,
     ): Response {
         $countByCategory        = $complaintRepo->findCountByCategory();
         $countByCategoryStatus  = $complaintRepo->findCountByCategoryAndStatus();
         $costByCategory         = $repairCostRepo->findTotalByCategory();
         $grandTotal             = $repairCostRepo->findGrandTotal();
+        $rooms                  = $roomRepo->findAll();
+
+        $occupiedRooms = 0;
+        $fullRooms = 0;
+        foreach ($rooms as $room) {
+            if ($room->getActualOccupancy() > 0) {
+                $occupiedRooms++;
+                if ($room->isFull()) {
+                    $fullRooms++;
+                }
+            }
+        }
+        $vacantRooms = count($rooms) - $occupiedRooms;
+        $occupancyRate = count($rooms) > 0 ? round(($occupiedRooms / count($rooms)) * 100, 1) : 0.0;
+
+        $complaintCounts = [
+            'total' => count($complaintRepo->findAll()),
+            'pending' => $complaintRepo->countByStatus(ComplaintStatus::Pending),
+            'inProgress' => $complaintRepo->countByStatus(ComplaintStatus::InProgress),
+            'resolved' => $complaintRepo->countByStatus(ComplaintStatus::Resolved),
+        ];
 
         $categoryStats = [];
         foreach (ComplaintCategory::cases() as $cat) {
@@ -987,10 +993,47 @@ class AdminController extends AbstractController
 
         $monthLabel = (new DateTimeImmutable())->format('F Y');
 
+        // Complaint tracking filters are now integrated into this single module.
+        $activeType   = (string) $request->query->get('type', '');
+        $activeStatus = (string) $request->query->get('status', '');
+        $activeFrom   = (string) $request->query->get('from', '');
+        $activeTo     = (string) $request->query->get('to', '');
+
+        $fromDate = $activeFrom ? new DateTimeImmutable($activeFrom . ' 00:00:00') : null;
+        $toDate   = $activeTo   ? new DateTimeImmutable($activeTo   . ' 23:59:59') : null;
+
+        $complaints = $complaintRepo->findFiltered(
+            $activeType ?: null,
+            $activeStatus ?: null,
+            $fromDate,
+            $toDate
+        );
+
+        $startOfMonth     = new DateTimeImmutable('first day of this month midnight');
+        $startOfNextMonth = $startOfMonth->modify('first day of next month midnight');
+        $resolvedThisMonth   = $complaintRepo->countResolvedBetween($startOfMonth, $startOfNextMonth);
+        $totalSpentThisMonth = $repairCostRepo->findTotalBetween($startOfMonth, $startOfNextMonth);
+
         return $this->render('admin/reports.html.twig', [
             'categoryStats' => $categoryStats,
             'grandTotal'    => $grandTotal,
             'monthLabel'    => $monthLabel,
+            'roomStats'     => [
+                'total' => count($rooms),
+                'occupied' => $occupiedRooms,
+                'vacant' => $vacantRooms,
+                'full' => $fullRooms,
+                'occupancyRate' => $occupancyRate,
+            ],
+            'complaintCounts' => $complaintCounts,
+            'complaints'          => $complaints,
+            'resolvedThisMonth'   => $resolvedThisMonth,
+            'totalSpentThisMonth' => $totalSpentThisMonth,
+            'activeType'          => $activeType,
+            'activeStatus'        => $activeStatus,
+            'activeFrom'          => $activeFrom,
+            'activeTo'            => $activeTo,
+            'complaintCategories' => ComplaintCategory::cases(),
         ]);
     }
 
@@ -1001,6 +1044,10 @@ class AdminController extends AbstractController
         Request $request,
         EntityManagerInterface $em,
     ): Response {
+        $this->addFlash('error', 'Admins can only track costs. Supervisors must record repair costs.');
+        return $this->redirectToRoute('admin_complaints');
+
+        /*
         $complaintId  = (int) $request->request->get('complaintId');
         $amount       = $request->request->get('amount');
         $description  = trim((string) $request->request->get('description', ''));
@@ -1036,11 +1083,16 @@ class AdminController extends AbstractController
 
         $this->addFlash('success', 'Repair cost of ৳' . number_format((float)$amount, 2) . ' recorded.');
         return $this->redirectToRoute('admin_complaints');
+        */
     }
 
     #[Route('/repair-costs/{id}/delete', name: 'admin_repair_cost_delete', methods: ['POST'])]
     public function repairCostDelete(int $id, EntityManagerInterface $em): Response
     {
+        $this->addFlash('error', 'Admins can only track costs. Supervisors must manage repair cost entries.');
+        return $this->redirectToRoute('admin_complaints');
+
+        /*
         $rc = $em->getRepository(RepairCost::class)->find($id);
         if ($rc) {
             $amount = $rc->getAmount();
@@ -1051,6 +1103,7 @@ class AdminController extends AbstractController
             $this->addFlash('success', 'Repair cost entry removed.');
         }
         return $this->redirectToRoute('admin_complaints');
+        */
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────

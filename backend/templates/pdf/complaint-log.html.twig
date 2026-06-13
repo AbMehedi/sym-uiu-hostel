@@ -6,37 +6,58 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #1e293b; padding: 30px; }
-        .header { text-align: center; margin-bottom: 24px; border-bottom: 3px solid #7c3aed; padding-bottom: 16px; }
-        .header h1 { font-size: 22px; color: #4c1d95; font-weight: bold; margin-bottom: 4px; }
+
+        /* Header */
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 3px solid #7c3aed; padding-bottom: 14px; }
+        .header h1 { font-size: 20px; color: #4c1d95; font-weight: bold; margin-bottom: 4px; }
         .header p { font-size: 11px; color: #64748b; }
-        .meta-row { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 11px; color: #64748b; }
-        .section-title { font-size: 13px; font-weight: bold; color: #4c1d95; margin-bottom: 10px; border-left: 4px solid #7c3aed; padding-left: 8px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+
+        /* Meta row — use table layout (flex not supported in dompdf) */
+        .meta-table { width: 100%; margin-bottom: 18px; }
+        .meta-table td { font-size: 11px; color: #64748b; padding: 0; }
+
+        /* Section title */
+        .section-title { font-size: 12px; font-weight: bold; color: #4c1d95; margin-bottom: 8px;
+                         border-left: 4px solid #7c3aed; padding-left: 8px; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         thead { background: #ede9fe; }
-        th { padding: 7px 8px; text-align: left; font-size: 10px; color: #4c1d95; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 1px solid #c4b5fd; }
-        td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; font-size: 10px; }
-        tr:nth-child(even) td { background: #faf5ff; }
-        .badge { padding: 2px 6px; border-radius: 8px; font-size: 9px; font-weight: bold; }
+        th { padding: 7px 8px; text-align: left; font-size: 10px; color: #4c1d95;
+             text-transform: uppercase; border-bottom: 2px solid #c4b5fd; }
+        td { padding: 6px 8px; border-bottom: 1px solid #e8e0fd; font-size: 10px; }
+        .row-even td { background: #faf5ff; }
+
+        /* Summary table */
+        .summary-table thead { background: #7c3aed; }
+        .summary-table th { color: #ffffff; border-bottom: 2px solid #6d28d9; }
+        .total-row td { font-weight: bold; background: #ede9fe; }
+
+        /* Badges */
+        .badge { padding: 2px 6px; font-size: 9px; font-weight: bold; }
         .badge-pending { background: #fef3c7; color: #92400e; }
         .badge-progress { background: #dbeafe; color: #1e40af; }
         .badge-resolved { background: #dcfce7; color: #166534; }
-        .summary-table { background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 6px; }
-        .summary-table th { background: #7c3aed; color: white; }
-        .total-row td { font-weight: bold; background: #ede9fe !important; }
-        .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+
+        /* Footer */
+        .footer { margin-top: 24px; text-align: center; font-size: 10px; color: #94a3b8;
+                  border-top: 1px solid #e2e8f0; padding-top: 10px; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>📋 UIU Hostel Management System</h1>
-        <p>Monthly Complaint Log &amp; Cost Report — {{ monthLabel }}</p>
+        <h1>UIU Hostel Management System</h1>
+        <p>Monthly Complaint Log &amp; Cost Report &mdash; {{ monthLabel }}</p>
     </div>
 
-    <div class="meta-row">
-        <span><strong>Period:</strong> {{ monthLabel }}</span>
-        <span><strong>Generated:</strong> {{ generatedAt|date('d M Y, H:i') }}</span>
-        <span><strong>Total Complaints:</strong> {{ complaints|length }}</span>
-    </div>
+    <!-- Meta row using table for dompdf compatibility -->
+    <table class="meta-table">
+        <tr>
+            <td><strong>Period:</strong> {{ monthLabel }}</td>
+            <td style="text-align:center;"><strong>Generated:</strong> {{ generatedAt|date('d M Y, H:i') }}</td>
+            <td style="text-align:right;"><strong>Total Complaints:</strong> {{ complaints|length }}</td>
+        </tr>
+    </table>
 
     <!-- Category Summary Table -->
     <div class="section-title">Category Summary &amp; Cost Breakdown</div>
@@ -51,7 +72,6 @@
             </tr>
         </thead>
         <tbody>
-            {% set grandTotal = 0 %}
             {% for key, stat in categoryStats %}
             {% if stat.total > 0 %}
             <tr>
@@ -59,7 +79,7 @@
                 <td>{{ stat.total }}</td>
                 <td>{{ stat.resolved }}</td>
                 <td>{{ stat.pending }}</td>
-                <td>৳ {{ stat.cost|number_format(2, '.', ',') }}</td>
+                <td>BDT {{ stat.cost|number_format(2, '.', ',') }}</td>
             </tr>
             {% endif %}
             {% endfor %}
@@ -67,7 +87,7 @@
         <tfoot>
             <tr class="total-row">
                 <td colspan="4" style="text-align:right;">Grand Total:</td>
-                <td>৳ {{ grandTotal|number_format(2, '.', ',') }}</td>
+                <td>BDT {{ grandTotal|number_format(2, '.', ',') }}</td>
             </tr>
         </tfoot>
     </table>
@@ -92,13 +112,13 @@
         </thead>
         <tbody>
             {% for i, c in complaints %}
-            <tr>
+            <tr class="{{ loop.index is even ? 'row-even' : '' }}">
                 <td>{{ i + 1 }}</td>
                 <td>{{ c.createdAt|date('d M') }}</td>
                 <td>{{ c.student.user.name }}</td>
-                <td>{{ c.room ? c.room.roomNumber : '—' }}</td>
+                <td>{{ c.room ? c.room.roomNumber : '&mdash;' }}</td>
                 <td>{{ c.category.value|capitalize }}</td>
-                <td>{{ c.subject ?? c.description|slice(0, 40) ~ '…' }}</td>
+                <td>{{ c.subject ?? c.description|slice(0, 40) ~ '...' }}</td>
                 <td>
                     {% if c.status == 'Resolved' %}
                         <span class="badge badge-resolved">Resolved</span>
@@ -108,7 +128,7 @@
                         <span class="badge badge-pending">Pending</span>
                     {% endif %}
                 </td>
-                <td>{% if c.cost > 0 %}৳ {{ c.cost|number_format(2, '.', ',') }}{% else %}—{% endif %}</td>
+                <td>{% if c.cost > 0 %}BDT {{ c.cost|number_format(2, '.', ',') }}{% else %}&mdash;{% endif %}</td>
             </tr>
             {% endfor %}
         </tbody>

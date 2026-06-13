@@ -6,33 +6,52 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #1e293b; padding: 30px; }
-        .header { text-align: center; margin-bottom: 24px; border-bottom: 3px solid #ef4444; padding-bottom: 16px; }
-        .header h1 { font-size: 22px; color: #7f1d1d; font-weight: bold; margin-bottom: 4px; }
+
+        /* Header */
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 3px solid #ef4444; padding-bottom: 14px; }
+        .header h1 { font-size: 20px; color: #7f1d1d; font-weight: bold; margin-bottom: 4px; }
         .header p { font-size: 11px; color: #64748b; }
-        .meta-row { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 11px; color: #64748b; }
-        .section-title { font-size: 13px; font-weight: bold; color: #7f1d1d; margin-bottom: 10px; border-left: 4px solid #ef4444; padding-left: 8px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+
+        /* Meta row — use table layout (flex not supported in dompdf) */
+        .meta-table { width: 100%; margin-bottom: 18px; }
+        .meta-table td { font-size: 11px; color: #64748b; padding: 0; }
+
+        /* Section title */
+        .section-title { font-size: 12px; font-weight: bold; color: #7f1d1d; margin-bottom: 8px;
+                         border-left: 4px solid #ef4444; padding-left: 8px; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         thead { background: #fee2e2; }
-        th { padding: 7px 8px; text-align: left; font-size: 10px; color: #7f1d1d; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 1px solid #fca5a5; }
-        td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; font-size: 10px; }
-        tr:nth-child(even) td { background: #fff5f5; }
-        .summary-table { background: #fff5f5; border: 1px solid #fca5a5; border-radius: 6px; }
-        .summary-table th { background: #ef4444; color: white; }
-        .total-row td { font-weight: bold; background: #fee2e2 !important; }
-        .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+        th { padding: 7px 8px; text-align: left; font-size: 10px; color: #7f1d1d;
+             text-transform: uppercase; border-bottom: 2px solid #fca5a5; }
+        td { padding: 6px 8px; border-bottom: 1px solid #fde8e8; font-size: 10px; }
+        .row-even td { background: #fff5f5; }
+
+        /* Summary table */
+        .summary-table thead { background: #ef4444; }
+        .summary-table th { color: #ffffff; border-bottom: 2px solid #dc2626; }
+        .total-row td { font-weight: bold; background: #fee2e2; }
+
+        /* Footer */
+        .footer { margin-top: 24px; text-align: center; font-size: 10px; color: #94a3b8;
+                  border-top: 1px solid #e2e8f0; padding-top: 10px; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>📊 UIU Hostel Management System</h1>
+        <h1>UIU Hostel Management System</h1>
         <p>Repair Cost Statistics Report</p>
     </div>
 
-    <div class="meta-row">
-        <span><strong>From:</strong> {{ from|date('d M Y') }} &nbsp; <strong>To:</strong> {{ to|date('d M Y') }}</span>
-        <span><strong>Generated:</strong> {{ generatedAt|date('d M Y, H:i') }}</span>
-        <span><strong>Total Cost:</strong> ৳ {{ grandTotal|number_format(2, '.', ',') }}</span>
-    </div>
+    <!-- Meta row using table for dompdf compatibility -->
+    <table class="meta-table">
+        <tr>
+            <td><strong>From:</strong> {{ from|date('d M Y') }} &nbsp; <strong>To:</strong> {{ to|date('d M Y') }}</td>
+            <td style="text-align:center;"><strong>Generated:</strong> {{ generatedAt|date('d M Y, H:i') }}</td>
+            <td style="text-align:right;"><strong>Total Cost:</strong> BDT {{ grandTotal|number_format(2, '.', ',') }}</td>
+        </tr>
+    </table>
 
     <!-- Category Summary -->
     <div class="section-title">Category-wise Cost Summary</div>
@@ -45,18 +64,16 @@
         </thead>
         <tbody>
             {% for cat, cost in categoryCosts %}
-            {% if cost > 0 or true %}
-            <tr>
+            <tr class="{{ loop.index is even ? 'row-even' : '' }}">
                 <td><strong>{{ cat|capitalize }}</strong></td>
-                <td>৳ {{ cost|number_format(2, '.', ',') }}</td>
+                <td>BDT {{ cost|number_format(2, '.', ',') }}</td>
             </tr>
-            {% endif %}
             {% endfor %}
         </tbody>
         <tfoot>
             <tr class="total-row">
                 <td>Grand Total:</td>
-                <td>৳ {{ grandTotal|number_format(2, '.', ',') }}</td>
+                <td>BDT {{ grandTotal|number_format(2, '.', ',') }}</td>
             </tr>
         </tfoot>
     </table>
@@ -73,10 +90,10 @@
         </thead>
         <tbody>
             {% for name, stats in supervisorCosts %}
-            <tr>
+            <tr class="{{ loop.index is even ? 'row-even' : '' }}">
                 <td><strong>{{ name }}</strong></td>
                 <td>{{ stats.count }}</td>
-                <td>৳ {{ stats.cost|number_format(2, '.', ',') }}</td>
+                <td>BDT {{ stats.cost|number_format(2, '.', ',') }}</td>
             </tr>
             {% else %}
             <tr>
@@ -104,13 +121,13 @@
             </thead>
             <tbody>
                 {% for i, rc in repairCosts %}
-                <tr>
+                <tr class="{{ loop.index is even ? 'row-even' : '' }}">
                     <td>{{ i + 1 }}</td>
                     <td>{{ rc.costDate|date('d M Y') }}</td>
-                    <td>{{ rc.complaint ? rc.complaint.category.value|capitalize : '—' }}</td>
-                    <td>{{ rc.complaint ? rc.complaint.subject : rc.description|slice(0, 45) }}</td>
-                    <td>{{ (rc.complaint and rc.complaint.assignedTo) ? rc.complaint.assignedTo.user.name : 'Unassigned' }}</td>
-                    <td>৳ {{ rc.amount|number_format(2, '.', ',') }}</td>
+                    <td>{{ rc.complaint ? rc.complaint.category.value|capitalize : '&mdash;' }}</td>
+                    <td>{{ rc.complaint ? (rc.complaint.subject ?? rc.description|slice(0, 45)) : rc.description|slice(0, 45) }}</td>
+                    <td>{{ (rc.complaint and rc.complaint.effectiveSupervisor) ? rc.complaint.effectiveSupervisor.user.name : 'Unassigned' }}</td>
+                    <td>BDT {{ rc.amount|number_format(2, '.', ',') }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

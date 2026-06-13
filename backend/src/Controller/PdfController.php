@@ -220,7 +220,7 @@ class PdfController extends AbstractController
             }
 
             // Supervisor breakdown
-            $supervisor = $rc->getComplaint()?->getAssignedTo();
+            $supervisor = $rc->getComplaint()?->getEffectiveSupervisor();
             $supName = $supervisor ? $supervisor->getUser()->getName() : 'Unassigned / System';
             if (!isset($supervisorCosts[$supName])) {
                 $supervisorCosts[$supName] = [
