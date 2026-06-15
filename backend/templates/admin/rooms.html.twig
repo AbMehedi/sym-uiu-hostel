@@ -3,102 +3,623 @@
 {% block title %}Room Management{% endblock %}
 
 {% block body %}
-    <!-- Top Header -->
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="flash-{{ type }}">{{ message }}</div>
+        {% endfor %}
+    {% endfor %}
+
+    <style>
+        /* ── Page-scoped variables ── */
+        :root {
+            --rm-green:  #10b981;
+            --rm-amber:  #f59e0b;
+            --rm-red:    #ef4444;
+            --rm-blue:   #3b82f6;
+            --rm-muted:  #64748b;
+            --rm-border: #1e2a3a;
+            --rm-surface:#0b1120;
+            --rm-card:   #0f172a;
+        }
+
+        /* ── Summary strip ── */
+        .rm-stats {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-bottom: 28px;
+        }
+        .rm-stat {
+            flex: 1 1 120px;
+            background: var(--rm-card);
+            border: 1px solid var(--rm-border);
+            border-radius: 12px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .rm-stat-icon {
+            width: 42px; height: 42px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+        .rm-stat-text .label { font-size: 0.72rem; color: var(--rm-muted); margin-bottom: 2px; }
+        .rm-stat-text .value { font-size: 1.45rem; font-weight: 700; }
+
+        /* ── Filter / search toolbar ── */
+        .rm-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+        .rm-search {
+            flex: 1 1 220px;
+            background: var(--rm-card);
+            border: 1px solid var(--rm-border);
+            border-radius: 8px;
+            padding: 9px 14px;
+            color: #e2e8f0;
+            font-size: 0.88rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .rm-search:focus { border-color: var(--primary-color, #3b82f6); }
+        .rm-search::placeholder { color: var(--rm-muted); }
+        .rm-filter-select {
+            background: var(--rm-card);
+            border: 1px solid var(--rm-border);
+            border-radius: 8px;
+            padding: 9px 14px;
+            color: #e2e8f0;
+            font-size: 0.88rem;
+            outline: none;
+            cursor: pointer;
+        }
+        .rm-filter-select:focus { border-color: var(--primary-color, #3b82f6); }
+
+        /* ── Rooms list table ── */
+        .rm-table-wrap {
+            background: var(--rm-card);
+            border: 1px solid var(--rm-border);
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 36px;
+        }
+        .rm-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        .rm-table thead tr {
+            background: #060e1c;
+            border-bottom: 1px solid var(--rm-border);
+        }
+        .rm-table thead th {
+            padding: 13px 16px;
+            text-align: left;
+            font-size: 0.73rem;
+            font-weight: 700;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--rm-muted);
+            white-space: nowrap;
+        }
+        .rm-table tbody tr {
+            border-bottom: 1px solid var(--rm-border);
+            transition: background 0.15s;
+        }
+        .rm-table tbody tr:last-child { border-bottom: none; }
+        .rm-table tbody tr:hover { background: rgba(59,130,246,0.04); }
+        .rm-table td {
+            padding: 13px 16px;
+            vertical-align: middle;
+        }
+
+        /* Room number badge */
+        .rm-num-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 0.92rem;
+            color: #e2e8f0;
+        }
+        .rm-num-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* Hostel + floor cell */
+        .rm-meta-primary { color: #cbd5e1; font-weight: 500; font-size: 0.88rem; }
+        .rm-meta-sub { color: var(--rm-muted); font-size: 0.75rem; margin-top: 2px; }
+
+        /* Occupancy bar */
+        .rm-occ-wrap { min-width: 130px; }
+        .rm-occ-bar-bg {
+            background: #1f2937;
+            border-radius: 999px;
+            height: 6px;
+            overflow: hidden;
+            margin: 5px 0 3px;
+        }
+        .rm-occ-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.4s ease;
+        }
+        .rm-occ-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            color: var(--rm-muted);
+        }
+        .rm-occ-label .rm-occ-val { color: #e2e8f0; font-weight: 600; }
+
+        /* Status pill */
+        .rm-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.71rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            padding: 3px 10px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        .rm-pill-vacant     { background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid #10b981; }
+        .rm-pill-partial    { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid #f59e0b; }
+        .rm-pill-full       { background: rgba(239,68,68,0.12);  color: #ef4444; border: 1px solid #ef4444; }
+
+        /* Delete button */
+        .rm-del-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 7px;
+            border: 1px solid rgba(239,68,68,0.45);
+            color: #ef4444;
+            background: rgba(239,68,68,0.07);
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .rm-del-btn:hover { background: rgba(239,68,68,0.16); border-color: #ef4444; }
+
+        .rm-no-action { color: var(--rm-muted); font-size: 0.8rem; }
+
+        /* Empty state */
+        .rm-empty {
+            text-align: center;
+            padding: 64px 20px;
+            color: var(--rm-muted);
+        }
+        .rm-empty .rm-empty-icon { font-size: 2.5rem; margin-bottom: 14px; }
+        .rm-empty p { font-size: 0.92rem; }
+
+        /* ── Add Room form ── */
+        .rm-form-box {
+            background: var(--rm-card);
+            border: 1px solid var(--rm-border);
+            border-radius: 14px;
+            padding: 28px 30px 32px;
+        }
+        .rm-form-header { margin-bottom: 24px; }
+        .rm-form-header h3 { margin: 0 0 6px; }
+        .rm-form-header p { font-size: 0.84rem; color: var(--rm-muted); margin: 0; }
+
+        .rm-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+        @media (max-width: 680px) { .rm-form-grid { grid-template-columns: 1fr; } }
+
+        .rm-field-hint { font-size: 0.75rem; color: var(--rm-muted); margin-top: 4px; }
+
+        /* Occupancy max badge inside input */
+        .rm-occ-field { position: relative; }
+        .rm-occ-field .max-badge {
+            position: absolute; right: 12px; top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.7rem; color: var(--rm-muted); pointer-events: none;
+        }
+
+        /* Capacity full-room warning inside form */
+        .rm-val-error {
+            display: none;
+            background: rgba(239,68,68,0.08);
+            border: 1px solid #ef4444;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #ef4444;
+        }
+
+        .rm-form-footer {
+            margin-top: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        .rm-form-footer .hint { font-size: 0.8rem; color: var(--rm-muted); }
+
+        /* Row fade-in animation */
+        @keyframes rmRowIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .rm-table tbody tr { animation: rmRowIn 0.25s ease both; }
+        {% for i in 1..50 %}
+        .rm-table tbody tr:nth-child({{ i }}) { animation-delay: {{ (i - 1) * 0.03 }}s; }
+        {% endfor %}
+    </style>
+
+    <!-- ── Page header ── -->
     <header class="dashboard-header">
         <div>
             <h1>Room Management</h1>
-            <p class="date-display">Add, edit, and monitor physical room infrastructure.</p>
+            <p class="date-display">Monitor bed availability and manage all hostel rooms.</p>
         </div>
-        <div style="display: flex; gap: 15px;">
-            <a href="{{ path('admin_room_assign') }}" class="btn btn-outline" style="background:transparent;">Go to Student Allocation &rarr;</a>
-            <button class="btn btn-primary" onclick="document.getElementById('add-room').scrollIntoView({behavior: 'smooth'})">
-                + Add New Room
-            </button>
-        </div>
+        <button class="btn btn-primary" onclick="document.getElementById('add-room').scrollIntoView({behavior:'smooth'})">
+            + Add New Room
+        </button>
     </header>
 
-    <!-- Current Rooms Grid -->
-    <div class="dashboard-box" style="margin-bottom: 40px; background: transparent; border: none; box-shadow: none; padding: 0;">
-        <h3 style="margin-bottom: 20px;">Current Hostel Rooms</h3>
-        <div class="admin-room-grid">
-            
-            {% for room in rooms %}
-            <div class="admin-room-card">
-                <div class="room-photo">Room Photo</div>
-                <div class="room-card-body">
-                    <div class="room-card-header">
-                        <h4>Room {{ room.roomNumber }}</h4>
-                         <span class="status {{ room.currentOccupancy == room.capacity ? 'reject' : (room.currentOccupancy > 0 ? 'in-progress' : 'resolved') }}" style="font-size: 0.75rem;">
-                             {{ room.currentOccupancy == room.capacity ? 'Full' : (room.currentOccupancy > 0 ? 'Available' : 'Vacant') }}
-                             ({{ room.currentOccupancy }}/{{ room.capacity }})
-                         </span>
-                     </div>
-                     <p class="room-meta">{{ room.hostelBlock }} • Floor {{ room.floor }}</p>
-                     <p class="room-desc">{{ room.roomType ?? 'Standard Room' }}</p>
-                    <div class="room-actions">
-                        {% if room.currentOccupancy == 0 %}
-                        <form method="POST" action="{{ path('admin_rooms_delete', {id: room.id}) }}" style="display:inline;">
-                            <button type="submit" class="btn-action reject" style="font-size:0.75rem;"
-                                    onclick="return confirm('Delete Room {{ room.roomNumber }}?')">Delete</button>
-                        </form>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
+    {# ── Computed stats ── #}
+    {% set totalRooms    = rooms|length %}
+    {% set totalCapacity = rooms|reduce((c, r) => c + r.capacity, 0) %}
+    {% set totalOccupied = rooms|reduce((c, r) => c + r.actualOccupancy, 0) %}
+    {% set fullRooms     = rooms|filter(r => r.isFull)|length %}
+    {% set vacantRooms   = rooms|filter(r => r.actualOccupancy == 0)|length %}
 
+    <!-- ── Stats strip ── -->
+    <div class="rm-stats">
+        <div class="rm-stat">
+            <div class="rm-stat-icon" style="background:rgba(59,130,246,0.12);">🏠</div>
+            <div class="rm-stat-text">
+                <div class="label">Total Rooms</div>
+                <div class="value" style="color:#3b82f6;">{{ totalRooms }}</div>
+            </div>
+        </div>
+        <div class="rm-stat">
+            <div class="rm-stat-icon" style="background:rgba(148,163,184,0.1);">🛏️</div>
+            <div class="rm-stat-text">
+                <div class="label">Total Beds</div>
+                <div class="value" style="color:#cbd5e1;">{{ totalCapacity }}</div>
+            </div>
+        </div>
+        <div class="rm-stat">
+            <div class="rm-stat-icon" style="background:rgba(245,158,11,0.12);">👥</div>
+            <div class="rm-stat-text">
+                <div class="label">Occupied Beds</div>
+                <div class="value" style="color:#f59e0b;">{{ totalOccupied }}</div>
+            </div>
+        </div>
+        <div class="rm-stat">
+            <div class="rm-stat-icon" style="background:rgba(16,185,129,0.12);">✅</div>
+            <div class="rm-stat-text">
+                <div class="label">Available Beds</div>
+                <div class="value" style="color:#10b981;">{{ totalCapacity - totalOccupied }}</div>
+            </div>
+        </div>
+        <div class="rm-stat">
+            <div class="rm-stat-icon" style="background:rgba(239,68,68,0.1);">🚫</div>
+            <div class="rm-stat-text">
+                <div class="label">Full Rooms</div>
+                <div class="value" style="color:#ef4444;">{{ fullRooms }}</div>
+            </div>
+        </div>
+        <div class="rm-stat">
+            <div class="rm-stat-icon" style="background:rgba(16,185,129,0.08);">🟢</div>
+            <div class="rm-stat-text">
+                <div class="label">Vacant Rooms</div>
+                <div class="value" style="color:#10b981;">{{ vacantRooms }}</div>
+            </div>
         </div>
     </div>
 
-    <!-- Add/Edit Room Form -->
-    <div id="add-room" class="dashboard-box">
-        <div class="box-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 25px;">
-            <h3>Add / Edit Room Setup</h3>
-            <p class="text-muted" style="font-size: 0.85rem; color: #64748b;">Enter details for the new room. These details will be visible to students applying.</p>
+    <!-- ── Toolbar ── -->
+    <div class="rm-toolbar">
+        <input type="text" class="rm-search" id="rm-search" placeholder="🔍  Search by room number, hostel, type…"
+               oninput="filterRooms()">
+        <select class="rm-filter-select" id="rm-filter-status" onchange="filterRooms()">
+            <option value="">All Statuses</option>
+            <option value="vacant">Vacant</option>
+            <option value="partial">Partially Occupied</option>
+            <option value="full">Full</option>
+        </select>
+        <select class="rm-filter-select" id="rm-filter-hostel" onchange="filterRooms()">
+            <option value="">All Hostels</option>
+            {% for hostel in hostels %}
+                <option value="{{ hostel|lower }}">{{ hostel }}</option>
+            {% endfor %}
+        </select>
+        <span id="rm-row-count" style="font-size:0.8rem;color:#64748b;margin-left:4px;"></span>
+    </div>
+
+    <!-- ── Room list table ── -->
+    <div class="rm-table-wrap">
+        {% if rooms is empty %}
+            <div class="rm-empty">
+                <div class="rm-empty-icon">🚪</div>
+                <p>No rooms added yet. Use the form below to add your first room.</p>
+            </div>
+        {% else %}
+        <table class="rm-table" id="rm-table">
+            <thead>
+                <tr>
+                    <th>Room No.</th>
+                    <th>Hostel</th>
+                    <th>Floor</th>
+                    <th>Type</th>
+                    <th>Occupancy</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="rm-tbody">
+                {% for room in rooms %}
+                {% set occ      = room.actualOccupancy %}
+                {% set cap      = room.capacity %}
+                {% set pct      = cap > 0 ? ((occ / cap) * 100)|round : 0 %}
+                {% set isFull   = room.isFull %}
+                {% set barColor = isFull ? '#ef4444' : (pct >= 50 ? '#f59e0b' : '#10b981') %}
+                {% set dotColor = isFull ? '#ef4444' : (occ > 0 ? '#f59e0b' : '#10b981') %}
+                {% set pillClass = isFull ? 'rm-pill-full' : (occ > 0 ? 'rm-pill-partial' : 'rm-pill-vacant') %}
+                {% set pillLabel = isFull ? '🚫 Full' : (occ > 0 ? '🟡 Partial' : '✅ Vacant') %}
+                {% set statusKey = isFull ? 'full' : (occ > 0 ? 'partial' : 'vacant') %}
+
+                <tr class="rm-row"
+                    data-room="{{ room.roomNumber|lower }}"
+                    data-hostel="{{ room.hostel|lower }}"
+                    data-type="{{ (room.roomType ?? 'standard')|lower }}"
+                    data-status="{{ statusKey }}">
+
+                    {# Room number #}
+                    <td>
+                        <span class="rm-num-badge">
+                            <span class="rm-num-dot" style="background:{{ dotColor }};"></span>
+                            {{ room.roomNumber }}
+                        </span>
+                    </td>
+
+                    {# Hostel + supervisor #}
+                    <td>
+                        <div class="rm-meta-primary">{{ room.hostel }}</div>
+                        {% if room.supervisor %}
+                            <div class="rm-meta-sub">👤 {{ room.supervisor.user.name }}</div>
+                        {% endif %}
+                    </td>
+
+                    {# Floor #}
+                    <td>
+                        <span style="color:#94a3b8; font-size:0.88rem;">
+                            {{ room.floor == 0 ? 'Ground' : 'Floor ' ~ room.floor }}
+                        </span>
+                    </td>
+
+                    {# Type #}
+                    <td>
+                        <span style="color:#cbd5e1; font-size:0.88rem;">{{ room.roomType ?? 'Standard' }}</span>
+                    </td>
+
+                    {# Occupancy bar #}
+                    <td>
+                        <div class="rm-occ-wrap">
+                            <div class="rm-occ-label">
+                                <span>{{ occ }} / {{ cap }} beds</span>
+                                <span class="rm-occ-val">{{ pct }}%</span>
+                            </div>
+                            <div class="rm-occ-bar-bg">
+                                <div class="rm-occ-bar-fill" style="width:{{ pct }}%; background:{{ barColor }};"></div>
+                            </div>
+                        </div>
+                    </td>
+
+                    {# Status pill #}
+                    <td><span class="rm-pill {{ pillClass }}">{{ pillLabel }}</span></td>
+
+                    {# Actions #}
+                    <td>
+                        {% if occ == 0 %}
+                        <form method="POST" action="{{ path('admin_rooms_delete', {id: room.id}) }}" style="display:inline;">
+                            <button type="submit" class="rm-del-btn"
+                                    onclick="return confirm('Delete Room {{ room.roomNumber }}? This cannot be undone.')">
+                                🗑 Delete
+                            </button>
+                        </form>
+                        {% else %}
+                            <span class="rm-no-action">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+
+    <!-- ── Add New Room Form ── -->
+    <div id="add-room" class="rm-form-box">
+        <div class="rm-form-header">
+            <h3>Add New Room</h3>
+            <p>Set the room's capacity (max beds) and initial occupancy. Occupancy cannot exceed capacity.</p>
         </div>
-        
-        <form class="auth-form" action="{{ path('admin_rooms_new') }}" method="POST">
-            <div class="form-grid">
+
+        <form class="auth-form" action="{{ path('admin_rooms_new') }}" method="POST"
+              onsubmit="return validateRoomForm(this)">
+            <div class="rm-form-grid">
+
                 <!-- Room Number -->
                 <div class="form-group">
-                    <label for="roomNumber">Room Number</label>
-                    <input type="text" id="roomNumber" name="roomNumber" class="form-control" placeholder="e.g. 101, 205B" required>
+                    <label for="roomNumber">Room Number <span style="color:#ef4444;">*</span></label>
+                    <input type="text" id="roomNumber" name="roomNumber" class="form-control"
+                           placeholder="e.g. BH1-301, GH-205" maxlength="20" required>
+                    <div class="rm-field-hint">Must be unique across all rooms.</div>
                 </div>
 
-                <!-- Block / Building -->
+                <!-- Hostel -->
                 <div class="form-group">
-                    <label for="roomBlock">Hostel Block</label>
-                    <select id="roomBlock" name="block" class="form-control" required>
-                        <option value="" disabled selected>Select Block</option>
-                        <option value="A">Block A</option>
-                        <option value="B">Block B</option>
-                        <option value="C">Block C</option>
-                    </select>
+                    <label for="roomHostel">Hostel <span style="color:#ef4444;">*</span></label>
+                    {% if hostels is empty %}
+                        <p style="color:#ef4444; font-size:0.85rem; padding:8px 0;">
+                            ⚠️ No hostels found. Run <code>app:seed-db</code> first.
+                        </p>
+                        <input type="text" id="roomHostel" name="hostel" class="form-control" placeholder="Hostel name" required>
+                    {% else %}
+                        <select id="roomHostel" name="hostel" class="form-control" required>
+                            <option value="" disabled selected>Select a hostel…</option>
+                            {% for hostel in hostels %}
+                                <option value="{{ hostel }}">{{ hostel }}</option>
+                            {% endfor %}
+                        </select>
+                    {% endif %}
                 </div>
 
                 <!-- Floor -->
                 <div class="form-group">
-                    <label for="roomFloor">Floor</label>
-                    <input type="number" id="roomFloor" name="floor" class="form-control" placeholder="e.g. 1, 2, 3" min="0" max="20" required>
+                    <label for="roomFloor">Floor <span style="color:#ef4444;">*</span></label>
+                    <input type="number" id="roomFloor" name="floor" class="form-control"
+                           placeholder="0 = Ground, 1, 2…" min="0" max="20" required>
+                    <div class="rm-field-hint">Ground floor = 0.</div>
                 </div>
 
-                <!-- Total Capacity -->
+                <!-- Room Type -->
                 <div class="form-group">
-                    <label for="roomCapacity">Total Capacity (Beds)</label>
-                    <input type="number" id="roomCapacity" name="capacity" class="form-control" placeholder="e.g. 1, 2, 4" min="1" max="10" required>
+                    <label for="roomType">Room Type <span style="color:#ef4444;">*</span></label>
+                    <select id="roomType" name="roomType" class="form-control" required>
+                        <option value="" disabled selected>Select type…</option>
+                        <option value="Single">Single (1 bed)</option>
+                        <option value="Double">Double (2 beds)</option>
+                        <option value="Triple">Triple (3 beds)</option>
+                        <option value="Quad">Quad (4 beds)</option>
+                    </select>
+                </div>
+
+                <!-- Capacity -->
+                <div class="form-group">
+                    <label for="roomCapacity">Capacity — Max Beds <span style="color:#ef4444;">*</span></label>
+                    <input type="number" id="roomCapacity" name="capacity" class="form-control"
+                           placeholder="1 – 10" min="1" max="10" required
+                           oninput="updateOccMax(this.value)">
+                    <div class="rm-field-hint">Maximum number of students this room can hold.</div>
+                </div>
+
+                <!-- Initial Occupancy -->
+                <div class="form-group">
+                    <label for="roomOccupancy">
+                        Initial Occupancy
+                        <span style="color:#64748b; font-weight:400; font-size:0.8rem;">(optional, default 0)</span>
+                    </label>
+                    <div class="rm-occ-field">
+                        <input type="number" id="roomOccupancy" name="currentOccupancy" class="form-control"
+                               placeholder="0" value="0" min="0" max="10"
+                               oninput="liveOccCheck()">
+                        <span class="max-badge" id="occ-max-badge">max: —</span>
+                    </div>
+                    <div class="rm-field-hint" id="occ-hint" style="color:#64748b;">
+                        Set to &gt; 0 only if beds are already occupied outside the assignment system. Must be ≤ capacity.
+                    </div>
                 </div>
             </div>
 
-            <!-- Room Type -->
-            <div class="form-group" style="margin-top: 15px;">
-                <label for="roomDescription">Room Type / Description</label>
-                <input type="text" id="roomDescription" name="roomType" class="form-control" placeholder="e.g. AC room, attached bathroom, south-facing...">
+            <!-- Validation error -->
+            <div class="rm-val-error" id="occ-error">
+                ⛔ Occupancy cannot exceed capacity. Please correct before saving.
             </div>
 
-            <!-- Submit Button -->
-            <div style="margin-top: 25px; text-align: right;">
-                <button type="submit" class="btn btn-primary">Save Room Configuration</button>
+            <!-- Submit row -->
+            <div class="rm-form-footer">
+                <span class="hint">All fields marked <span style="color:#ef4444;">*</span> are required.</span>
+                <button type="submit" class="btn btn-primary" id="submit-room-btn">Save Room</button>
             </div>
         </form>
     </div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+    /* ── Live search / filter ── */
+    function filterRooms() {
+        const q       = document.getElementById('rm-search').value.toLowerCase();
+        const status  = document.getElementById('rm-filter-status').value;
+        const hostel  = document.getElementById('rm-filter-hostel').value;
+        const rows    = document.querySelectorAll('#rm-tbody .rm-row');
+        let visible   = 0;
+
+        rows.forEach(row => {
+            const matchQ      = !q || (row.dataset.room + ' ' + row.dataset.hostel + ' ' + row.dataset.type).includes(q);
+            const matchStatus = !status || row.dataset.status === status;
+            const matchHostel = !hostel || row.dataset.hostel === hostel;
+            const show        = matchQ && matchStatus && matchHostel;
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+
+        const counter = document.getElementById('rm-row-count');
+        if (counter) counter.textContent = `${visible} room${visible !== 1 ? 's' : ''} shown`;
+    }
+
+    // Initialise counter on load
+    document.addEventListener('DOMContentLoaded', filterRooms);
+
+    /* ── Form helpers ── */
+    function updateOccMax(capVal) {
+        const cap      = parseInt(capVal, 10);
+        const occInput = document.getElementById('roomOccupancy');
+        const badge    = document.getElementById('occ-max-badge');
+
+        if (!isNaN(cap) && cap > 0) {
+            occInput.max        = cap;
+            badge.textContent   = 'max: ' + cap;
+        } else {
+            occInput.max        = 10;
+            badge.textContent   = 'max: —';
+        }
+        liveOccCheck();
+    }
+
+    function liveOccCheck() {
+        const cap    = parseInt(document.getElementById('roomCapacity').value, 10);
+        const occ    = parseInt(document.getElementById('roomOccupancy').value, 10);
+        const errBox = document.getElementById('occ-error');
+        const btn    = document.getElementById('submit-room-btn');
+        const hint   = document.getElementById('occ-hint');
+
+        const invalid = !isNaN(cap) && !isNaN(occ) && occ > cap;
+        errBox.style.display = invalid ? 'block' : 'none';
+        btn.disabled         = invalid;
+        btn.style.opacity    = invalid ? '0.5' : '1';
+
+        if (!isNaN(occ) && !isNaN(cap) && occ > 0 && occ <= cap) {
+            hint.style.color = '#f59e0b';
+            hint.textContent = `⚠️ Room will be created with ${occ} bed${occ > 1 ? 's' : ''} already occupied out of ${cap}.`;
+        } else {
+            hint.style.color = '#64748b';
+            hint.textContent = 'Set to > 0 only if beds are already occupied outside the assignment system. Must be ≤ capacity.';
+        }
+    }
+
+    function validateRoomForm(form) {
+        const cap = parseInt(form.capacity.value, 10);
+        const occ = parseInt(form.currentOccupancy.value, 10);
+        if (!isNaN(cap) && !isNaN(occ) && occ > cap) {
+            alert(`Occupancy (${occ}) cannot exceed capacity (${cap}).`);
+            return false;
+        }
+        return true;
+    }
+</script>
 {% endblock %}

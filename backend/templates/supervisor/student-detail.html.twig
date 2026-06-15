@@ -1,0 +1,117 @@
+{% extends 'supervisor/base.html.twig' %}
+
+{% block title %}{{ student.user.name }} — Student Detail{% endblock %}
+
+{% block body %}
+<header class="dashboard-header">
+    <div>
+        <a href="{{ path('supervisor_students') }}" class="back-link">← Back to Students</a>
+        <h1>{{ student.user.name }}</h1>
+        <p class="date-display">Student ID: {{ student.studentNumber }}</p>
+    </div>
+    <div class="admin-profile">
+        <div class="avatar sup-avatar"></div>
+        <span>{{ supervisor ? supervisor.hostelAssigned : '' }} Supervisor</span>
+    </div>
+</header>
+
+{# Profile + Room cards in a 2-col grid #}
+<div class="detail-grid">
+
+    {# Left: Student profile card #}
+    <div class="detail-card">
+        <h3>👤 Profile</h3>
+        <dl class="detail-list">
+            <dt>Email</dt>
+            <dd>{{ student.user.email }}</dd>
+
+            <dt>Phone</dt>
+            <dd>{{ student.phone ?? '—' }}</dd>
+
+            <dt>Emergency Contact</dt>
+            <dd>{{ student.emergencyContact ?? '—' }}</dd>
+
+            <dt>Admission Status</dt>
+            <dd>
+                <span class="status-badge status-{{ student.admissionStatus.value|lower }}">
+                    {{ student.admissionStatus.value }}
+                </span>
+            </dd>
+
+            <dt>Admission Date</dt>
+            <dd>{{ student.admissionDate ? student.admissionDate|date('d M Y') : '—' }}</dd>
+
+            <dt>Documents</dt>
+            <dd style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
+                {% if student.idCardPicturePath %}
+                    <a href="{{ student.idCardPicturePath }}" target="_blank" class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem; border: 1px solid #334155; border-radius: 4px; color: #e2e8f0; text-decoration: none;">📄 ID Card</a>
+                {% endif %}
+                {% if student.nidOrBirthCertPath %}
+                    <a href="{{ student.nidOrBirthCertPath }}" target="_blank" class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem; border: 1px solid #334155; border-radius: 4px; color: #e2e8f0; text-decoration: none;">📄 NID / Birth Cert</a>
+                {% endif %}
+                {% if not student.idCardPicturePath and not student.nidOrBirthCertPath %}
+                    <span style="color: #94a3b8; font-size: 0.8rem;">No documents</span>
+                {% endif %}
+            </dd>
+        </dl>
+    </div>
+
+    {# Right: Room info card #}
+    <div class="detail-card">
+        <h3>🏠 Room Info</h3>
+        {% if room %}
+        <dl class="detail-list">
+            <dt>Room Number</dt>
+            <dd><span class="room-badge">{{ room.roomNumber }}</span></dd>
+
+            <dt>Hostel</dt>
+            <dd>{{ room.hostel }}</dd>
+
+            <dt>Floor</dt>
+            <dd>Floor {{ room.floor }}</dd>
+
+            <dt>Type</dt>
+            <dd>{{ room.roomType ?? '—' }}</dd>
+
+            <dt>Occupancy</dt>
+            <dd>{{ room.actualOccupancy }} / {{ room.capacity }}</dd>
+        </dl>
+        {% else %}
+        <p class="empty-note">No active room assignment.</p>
+        {% endif %}
+    </div>
+</div>
+
+{# Complaints history #}
+<div class="dashboard-box full-width-box" style="margin-top:1.5rem;">
+    <h3 style="margin-bottom:1rem;">📋 Complaint History</h3>
+    {% if student.complaints|length > 0 %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Subject</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Filed On</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for complaint in student.complaints %}
+            <tr>
+                <td>{{ complaint.subject ?? '(No subject)' }}</td>
+                <td>{{ complaint.category.value }}</td>
+                <td>
+                    <span class="status-badge status-{{ complaint.statusEnum.value|lower|replace({' ': '-'}) }}">
+                        {{ complaint.status }}
+                    </span>
+                </td>
+                <td>{{ complaint.createdAt|date('d M Y') }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-note">✅ No complaints filed — room is in good shape!</p>
+    {% endif %}
+</div>
+{% endblock %}

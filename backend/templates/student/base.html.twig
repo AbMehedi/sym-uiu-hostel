@@ -5,7 +5,7 @@
         <title>{% block title %}Welcome!{% endblock %}</title>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text></svg>">
         {% block stylesheets %}
-            <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+            <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ date().timestamp }}">
         {% endblock %}
 
         {% block javascripts %}
@@ -23,15 +23,22 @@
 
                 <ul class="sidebar-nav">
                     <li><a href="{{ path('student_dashboard') }}" class="{{ app.request.attributes.get('_route') == 'student_dashboard' ? 'active' : '' }}">🏠 Dashboard Overview</a></li>
-                    <li><a href="{{ path('student_complaints') }}" class="{{ app.request.attributes.get('_route') == 'student_complaints' ? 'active' : '' }}">📋 My Complaints</a></li>
-                    <li><a href="{{ path('student_room_change') }}" class="{{ app.request.attributes.get('_route') == 'student_room_change' ? 'active' : '' }}">🔄 Room Change Request</a></li>
-                    <li>
-                        <a href="{{ path('student_announcements') }}" class="{{ app.request.attributes.get('_route') == 'student_announcements' ? 'active' : '' }}">📢 Announcements
-                            <span class="nav-notif-dot" id="ann-notif-dot" style="display:none;"></span>
-                        </a>
-                    </li>
-                    <li><a href="{{ path('student_chat_supervisor') }}" class="{{ app.request.attributes.get('_route') == 'student_chat_supervisor' ? 'active' : '' }}">💬 Chat with Supervisor</a></li>
-                    <li><a href="{{ path('student_chat_roommate') }}" class="{{ app.request.attributes.get('_route') == 'student_chat_roommate' ? 'active' : '' }}">🛏️ Chat with Roommate</a></li>
+                    <li><a href="{{ path('student_profile') }}" class="{{ app.request.attributes.get('_route') == 'student_profile' ? 'active' : '' }}">👤 My Profile</a></li>
+                    {% if app.user.student and app.user.student.admissionStatus.value == 'approved' %}
+                        <li><a href="{{ path('student_my_room') }}" class="{{ app.request.attributes.get('_route') == 'student_my_room' ? 'active' : '' }}">🛏️ My Room</a></li>
+                        <li><a href="{{ path('student_complaints') }}" class="{{ app.request.attributes.get('_route') == 'student_complaints' ? 'active' : '' }}">📋 My Complaints</a></li>
+                        <li><a href="{{ path('student_room_change') }}" class="{{ app.request.attributes.get('_route') == 'student_room_change' ? 'active' : '' }}">🔄 Room Change Request</a></li>
+                        <li>
+                            <a href="{{ path('student_announcements') }}" class="{{ app.request.attributes.get('_route') == 'student_announcements' ? 'active' : '' }}">📢 Announcements
+                                <span class="nav-notif-dot" id="ann-notif-dot" style="display:none;"></span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ path('student_chat') }}" class="{{ app.request.attributes.get('_route') starts with 'student_chat' ? 'active' : '' }}">💬 Messages
+                                <span class="nav-notif-dot" id="msg-notif-dot" style="display:none;"></span>
+                            </a>
+                        </li>
+                    {% endif %}
                 </ul>
 
                 <div class="sidebar-bottom">
@@ -41,8 +48,27 @@
 
             <!-- Main Content Area -->
             <main class="dashboard-main">
+                {% for type, flashes in app.flashes %}
+                    {% for message in flashes %}
+                        <div class="flash-message flash-{{ type }}" style="margin-bottom:16px;">{{ message }}</div>
+                    {% endfor %}
+                {% endfor %}
                 {% block body %}{% endblock %}
             </main>
         </div>
+
+        {% if app.user and app.user.student %}
+            {% set annCount = unread_announcements_count(app.user) %}
+            <script>
+                (function initSidebarBadge() {
+                    const unread = {{ annCount }};
+                    const dot = document.getElementById('ann-notif-dot');
+                    if (dot && unread > 0) {
+                        dot.style.display = 'inline-flex';
+                        dot.textContent   = unread;
+                    }
+                })();
+            </script>
+        {% endif %}
     </body>
 </html>

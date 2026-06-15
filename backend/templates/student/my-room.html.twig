@@ -1,0 +1,210 @@
+{% extends 'student/base.html.twig' %}
+
+{% block title %}My Room - UIU HMS{% endblock %}
+
+{% block body %}
+    <header class="dashboard-header">
+        <div>
+            <h1>My Room</h1>
+            <p class="date-display">Assigned space and roommates overview</p>
+        </div>
+        <div class="admin-profile">
+            <div class="avatar stu-avatar"></div>
+            <span>Room {{ room ? room.roomNumber : 'N/A' }}</span>
+        </div>
+    </header>
+
+    {% if not room %}
+        <div class="dashboard-box" style="text-align: center; padding: 50px 20px;">
+            <div style="font-size: 3rem; margin-bottom: 20px;">🛏️</div>
+            <h2 style="color: #cbd5e1; margin-bottom: 10px;">No Room Assigned Yet</h2>
+            <p style="color: #64748b; max-width: 500px; margin: 0 auto 20px;">
+                You are approved, but the administrator has not assigned you a specific room yet. Please check back later or contact the supervisor.
+            </p>
+        </div>
+    {% else %}
+        <div class="profile-layout" style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 30px;">
+            
+            {# Left Column: Room Card #}
+            <div class="dashboard-box" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+                {% if room.photoPath %}
+                    <img src="{{ asset(room.photoPath) }}" alt="Room {{ room.roomNumber }}" style="width: 100%; height: 220px; object-fit: cover; border-bottom: 1px solid var(--primary-color);">
+                {% else %}
+                    <div style="width: 100%; height: 220px; background: linear-gradient(135deg, #1e293b, #0f172a); display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 1px solid var(--primary-color); gap: 8px;">
+                        <span style="font-size: 3.5rem;">🏢</span>
+                        <h3 style="margin: 0; color: white;">Room {{ room.roomNumber }}</h3>
+                        <span style="font-size: 0.85rem; color: #3b82f6; text-transform: uppercase; font-weight: 600; letter-spacing: 1px;">
+                            {{ room.roomType ?? (room.capacity ~ ' Sharing') }}
+                        </span>
+                    </div>
+                {% endif %}
+                
+                <div style="padding: 25px;">
+                    <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.25rem; color: white; display: flex; justify-content: space-between; align-items: center;">
+                        <span>Room Info</span>
+                        <span class="status resolved" style="font-size: 0.75rem;">Active</span>
+                    </h3>
+                    
+                    <div class="profile-info-list" style="display: flex; flex-direction: column; gap: 14px;">
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 8px;">
+                            <span style="color: #64748b; font-size: 0.9rem;">Room Number</span>
+                            <span style="color: white; font-weight: 600;">{{ room.roomNumber }}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 8px;">
+                            <span style="color: #64748b; font-size: 0.9rem;">Hostel</span>
+                            <span style="color: white; font-weight: 600;">{{ room.hostel }}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 8px;">
+                            <span style="color: #64748b; font-size: 0.9rem;">Floor</span>
+                            <span style="color: white; font-weight: 600;">{{ room.floor }}{{ room.floor == 1 ? 'st' : (room.floor == 2 ? 'nd' : (room.floor == 3 ? 'rd' : 'th')) }} Floor</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 8px;">
+                            <span style="color: #64748b; font-size: 0.9rem;">Capacity</span>
+                            <span style="color: white; font-weight: 600;">{{ room.capacity }} Resident{{ room.capacity > 1 ? 's' : '' }}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 8px;">
+                            <span style="color: #64748b; font-size: 0.9rem;">Current Occupancy</span>
+                            <span style="color: #3b82f6; font-weight: 600;">{{ room.actualOccupancy }} Resident{{ room.actualOccupancy > 1 ? 's' : '' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Right Column: Roommates and Supervisor #}
+            <div style="display: flex; flex-direction: column; gap: 30px;">
+                
+                {# Supervisor Card #}
+                <div class="dashboard-box" style="padding: 20px;">
+                    <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Hostel Supervisor</h3>
+                    {% if supervisor %}
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div class="avatar sup-avatar" style="width: 45px; height: 45px; font-size: 1.1rem;">
+                                    {{ supervisor.name|slice(0, 2)|upper }}
+                                </div>
+                                <div>
+                                    <h4 style="margin: 0; color: white;">{{ supervisor.name }}</h4>
+                                    <p style="margin: 2px 0 0 0; font-size: 0.85rem; color: #64748b;">Hostel {{ room.hostel }} Supervisor</p>
+                                </div>
+                            </div>
+                            <a href="{{ path('student_chat') }}?partner={{ supervisor.id }}" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                                💬 Message
+                            </a>
+                        </div>
+                    {% else %}
+                        <p style="margin: 0; color: #64748b; font-style: italic;">No supervisor assigned to Hostel {{ room.hostel }} yet.</p>
+                    {% endif %}
+                </div>
+
+                {# Roommates List #}
+                <div class="dashboard-box" style="flex: 1;">
+                    <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 1.2rem; color: white;">My Roommates</h3>
+                    
+                    {% if roommates is empty %}
+                        <div style="text-align: center; padding: 40px; color: #64748b;">
+                            🛏️ You are currently the only occupant in this room.
+                        </div>
+                    {% else %}
+                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                            {% for roommate in roommates %}
+                                <div style="background: rgba(30, 41, 59, 0.4); border: 1px solid #1e293b; border-radius: 8px; padding: 16px; display: flex; align-items: center; justify-content: space-between;">
+                                    <div style="display: flex; align-items: center; gap: 15px;">
+                                        <div class="avatar" style="width: 45px; height: 45px; font-size: 1.1rem; background-color: #475569;">
+                                            {{ roommate.user.name|slice(0, 2)|upper }}
+                                        </div>
+                                        <div>
+                                            <h4 style="margin: 0; color: white; font-size: 1rem;">{{ roommate.user.name }}</h4>
+                                            <div style="display: flex; flex-direction: column; gap: 2px; margin-top: 4px; font-size: 0.85rem; color: #94a3b8;">
+                                                <span>🆔 ID: {{ roommate.studentNumber }}</span>
+                                                <span>📱 Phone: {{ roommate.phone ?? '—' }}</span>
+                                                <span>📧 Email: {{ roommate.user.email }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button class="btn btn-outline btn-sm" onclick="openRoommateModal({{ roommate.id }})" style="display: inline-flex; align-items: center; gap: 6px;">
+                                            📋 Details
+                                        </button>
+                                        <a href="{{ path('student_chat') }}?partner={{ roommate.user.id }}" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                                            💬 Message
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+        </div>
+    {% endif %}
+
+    {# ── Roommate Detail Modals (data-driven) ── #}
+    {% for roommate in roommates %}
+    <div class="modal-overlay" id="roommate-modal-{{ roommate.id }}" onclick="closeRoommateModal(event, '{{ roommate.id }}')">
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="roommate-modal-title-{{ roommate.id }}">
+            <div class="modal-header">
+                <h3 id="roommate-modal-title-{{ roommate.id }}">Roommate Profile</h3>
+                <button class="modal-close-btn" onclick="closeRoommateModal(null, '{{ roommate.id }}')" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+                    <div class="roommate-avatar" style="width:60px;height:60px;font-size:1.4rem;">
+                        {{ roommate.user.name|slice(0,2)|upper }}
+                    </div>
+                    <div>
+                        <h4 style="margin:0 0 4px 0;font-size:1.1rem;color:white;">{{ roommate.user.name }}</h4>
+                        <span style="font-size:0.85rem;color:#94a3b8;">Room {{ room ? room.roomNumber : 'N/A' }} · Hostel {{ room ? room.hostel : 'N/A' }}</span>
+                    </div>
+                </div>
+                <div class="modal-detail-grid">
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Student ID</span>
+                        <span class="modal-detail-value">{{ roommate.studentNumber }}</span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Phone</span>
+                        <span class="modal-detail-value">{{ roommate.phone ?? '—' }}</span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Email</span>
+                        <span class="modal-detail-value">{{ roommate.user.email }}</span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Emergency Contact</span>
+                        <span class="modal-detail-value">{{ roommate.emergencyContact ?? '—' }}</span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Admission Date</span>
+                        <span class="modal-detail-value">{{ roommate.admissionDate ? roommate.admissionDate|date('M Y') : '—' }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="{{ path('student_chat') }}?partner={{ roommate.user.id }}" class="btn btn-primary">💬 Message</a>
+                <button type="button" class="btn" onclick="closeRoommateModal(null, '{{ roommate.id }}')">Close</button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        function openRoommateModal(roommateId) {
+            document.getElementById('roommate-modal-' + roommateId).classList.add('active');
+        }
+        function closeRoommateModal(e, roommateId) {
+            const overlay = document.getElementById('roommate-modal-' + roommateId);
+            if (e && e.target !== overlay) return;
+            overlay.classList.remove('active');
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(el => el.classList.remove('active'));
+            }
+        });
+    </script>
+{% endblock %}

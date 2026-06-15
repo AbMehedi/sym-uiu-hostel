@@ -10,7 +10,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity]
 #[ORM\Table(name: 'rooms')]
 #[ORM\UniqueConstraint(name: 'uniq_rooms_number', columns: ['room_number'])]
-#[ORM\Index(name: 'idx_rooms_block_status', columns: ['block', 'status'])]
+#[ORM\Index(name: 'idx_rooms_hostel_status', columns: ['hostel', 'status'])]
 class Room
 {
     #[ORM\Id]
@@ -22,7 +22,7 @@ class Room
     private string $roomNumber;
 
     #[ORM\Column(length: 50)]
-    private string $block;
+    private string $hostel;
 
     #[ORM\Column(type: 'integer')]
     private int $floor;
@@ -36,8 +36,15 @@ class Room
     #[ORM\Column(name: 'room_type', length: 50, nullable: true)]
     private ?string $roomType = null;
 
+    #[ORM\Column(name: 'photo_path', length: 255, nullable: true)]
+    private ?string $photoPath = null;
+
     #[ORM\Column(enumType: RoomStatus::class)]
     private RoomStatus $status = RoomStatus::Available;
+
+    #[ORM\ManyToOne(targetEntity: Supervisor::class, inversedBy: 'rooms')]
+    #[ORM\JoinColumn(name: 'supervisor_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?Supervisor $supervisor = null;
 
     #[ORM\OneToMany(mappedBy: 'room', targetEntity: RoomAssignment::class, orphanRemoval: true)]
     private Collection $roomAssignments;
@@ -68,26 +75,15 @@ class Room
         return $this;
     }
 
-    public function getBlock(): string
+
+    public function getHostel(): string
     {
-        return $this->block;
+        return $this->hostel;
     }
 
-    public function setBlock(string $block): self
+    public function setHostel(string $hostel): self
     {
-        $this->block = $block;
-
-        return $this;
-    }
-
-    public function getHostelBlock(): string
-    {
-        return $this->block;
-    }
-
-    public function setHostelBlock(string $hostelBlock): self
-    {
-        $this->block = $hostelBlock;
+        $this->hostel = $hostel;
 
         return $this;
     }
@@ -152,6 +148,18 @@ class Room
         return $this;
     }
 
+    public function getSupervisor(): ?Supervisor
+    {
+        return $this->supervisor;
+    }
+
+    public function setSupervisor(?Supervisor $supervisor): self
+    {
+        $this->supervisor = $supervisor;
+
+        return $this;
+    }
+
     /** @return Collection<int, RoomAssignment> */
     public function getRoomAssignments(): Collection
     {
@@ -181,5 +189,67 @@ class Room
     public function getComplaints(): Collection
     {
         return $this->complaints;
+    }
+
+    // ─── Photo ────────────────────────────────────────────────────────────────
+
+    public function getPhotoPath(): ?string
+    {
+        return $this->photoPath;
+    }
+
+    public function setPhotoPath(?string $photoPath): self
+    {
+        $this->photoPath = $photoPath;
+
+        return $this;
+    }
+
+    // ─── Occupancy helpers ────────────────────────────────────────────────────
+
+    /**
+     * Computed occupancy from actual active RoomAssignment records.
+     * Always use this instead of getCurrentOccupancy() for display/logic.
+     */
+    public function getActualOccupancy(): int
+    {
+        return $this->roomAssignments
+            ->filter(fn($a) => $a->getStatus() === \App\Enum\AssignmentStatus::Active)
+            ->count();
+    }
+
+    /** True when the room has no space left (based on live assignments). */
+    public function isFull(): bool
+    {
+        return $this->getActualOccupancy() >= $this->capacity;
+    }
+
+    /**
+     * Recalculates currentOccupancy from active assignments and updates
+     * the RoomStatus accordingly. Call this after any assignment change
+     * instead of manually doing +1/-1.
+     */
+    public function recalculateOccupancy(): self
+    {
+        $this->currentOccupancy = $this->getActualOccupancy();
+        $this->syncStatus();
+
+        return $this;
+    }
+
+    /**
+     * Sets Room status based on current occupancy vs capacity.
+     * Available → occupied partially; Full → at/over capacity; keeps Maintenance.
+     */
+    public function syncStatus(): self
+    {
+        if ($this->status === \App\Enum\RoomStatus::UnderMaintenance) {
+            return $this; // never auto-change maintenance rooms
+        }
+        $this->status = $this->isFull()
+            ? \App\Enum\RoomStatus::Full
+            : \App\Enum\RoomStatus::Available;
+
+        return $this;
     }
 }

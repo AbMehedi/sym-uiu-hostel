@@ -64,6 +64,8 @@ class ComplaintRepository extends ServiceEntityRepository
             ->leftJoin('c.room', 'r')->addSelect('r')
             ->leftJoin('c.student', 's')->addSelect('s')
             ->leftJoin('s.user', 'u')->addSelect('u')
+            ->leftJoin('c.assignedTo', 'a')->addSelect('a')
+            ->leftJoin('a.user', 'au')->addSelect('au')
             ->orderBy('c.createdAt', 'DESC')
             ->setMaxResults($limit)
             ->getQuery()
@@ -96,5 +98,58 @@ class ComplaintRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
 
         return (int) $count;
+    }
+
+    /**
+     * Filter complaints by category type, status string, and/or date range.
+     * B-10 (type/status filters) + B-23 (date range filter).
+     *
+     * @return Complaint[]
+     */
+    public function findFiltered(
+        ?string $type,
+        ?string $status,
+        ?DateTimeInterface $from = null,
+        ?DateTimeInterface $to = null,
+    ): array {
+        $qb = $this->createQueryBuilder('c')
+            ->leftJoin('c.room', 'r')->addSelect('r')
+            ->leftJoin('c.student', 's')->addSelect('s')
+            ->leftJoin('s.user', 'u')->addSelect('u')
+            ->leftJoin('c.assignedTo', 'a')->addSelect('a')
+            ->leftJoin('a.user', 'au')->addSelect('au')
+            ->orderBy('c.createdAt', 'DESC');
+
+        if ($type) {
+            try {
+                $categoryEnum = \App\Enum\ComplaintCategory::from(strtolower($type));
+                $qb->andWhere('c.category = :category')->setParameter('category', $categoryEnum);
+            } catch (\ValueError) {
+                // invalid category — ignore filter
+            }
+        }
+
+        if ($status) {
+            $statusMap = [
+                'pending'     => ComplaintStatus::Pending,
+                'in_progress' => ComplaintStatus::InProgress,
+                'resolved'    => ComplaintStatus::Resolved,
+            ];
+            if (isset($statusMap[$status])) {
+                $qb->andWhere('c.status = :status')->setParameter('status', $statusMap[$status]);
+            }
+        }
+
+        if ($from) {
+            $qb->andWhere('c.createdAt >= :from')
+               ->setParameter('from', DateTimeImmutable::createFromInterface($from));
+        }
+
+        if ($to) {
+            $qb->andWhere('c.createdAt <= :to')
+               ->setParameter('to', DateTimeImmutable::createFromInterface($to));
+        }
+
+        return $qb->getQuery()->getResult();
     }
 }

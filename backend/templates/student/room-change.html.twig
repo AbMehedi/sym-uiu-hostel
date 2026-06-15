@@ -27,8 +27,8 @@
         </div>
         <div class="block-info-divider"></div>
         <div class="block-info-item">
-            <span class="block-info-label">Block</span>
-            <span class="block-info-value stu-value">{{ app.user.student.room ? app.user.student.room.hostelBlock : 'N/A' }}</span>
+            <span class="block-info-label">Hostel</span>
+            <span class="block-info-value stu-value">{{ app.user.student.room ? app.user.student.room.hostel : 'N/A' }}</span>
         </div>
         <div class="block-info-divider"></div>
         <div class="block-info-item">
@@ -48,7 +48,23 @@
             <form class="announce-form" id="rc-form" onsubmit="submitRoomChange(event)">
                 <div class="form-group">
                     <label>Current Room</label>
-                    <input type="text" class="form-control announce-input" value="{{ app.user.student.room ? app.user.student.room.roomNumber : 'N/A' }}" readonly style="opacity:0.6;cursor:not-allowed;">
+                    <input type="text" class="form-control announce-input" value="{{ currentRoom ? currentRoom.roomNumber : 'N/A' }}" readonly style="opacity:0.6;cursor:not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label for="rc-preferred-room">Preferred Room <span style="color:#ef4444;">*</span></label>
+                    <select id="rc-preferred-room" class="form-control announce-input" required>
+                        <option value="">— Select a Room —</option>
+                        {% for room in availableRooms %}
+                            <option value="{{ room.id }}"
+                                    data-hostel="{{ room.hostel }}"
+                                    data-free="{{ room.capacity - room.actualOccupancy }}">
+                                Room {{ room.roomNumber }} — Hostel {{ room.hostel }}
+                                ({{ room.capacity - room.actualOccupancy }}/{{ room.capacity }} beds available)
+                            </option>
+                        {% else %}
+                            <option value="" disabled>No available rooms at this time</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="rc-reason">Reason for Change <span style="color:#ef4444;">*</span></label>
@@ -85,6 +101,12 @@
                         <span class="ann-date">{{ request.reviewedAt ? request.reviewedAt|date('M d, Y') : 'Pending' }}</span>
                     </div>
                     <h4 class="ann-card-title">{{ request.reason }}</h4>
+                    <div style="font-size:0.82rem;color:#64748b;margin-top:4px;">
+                        {{ request.currentRoom ? 'From Room ' ~ request.currentRoom.roomNumber : '' }}
+                        {% if request.requestedRoom %}
+                            → Room {{ request.requestedRoom.roomNumber }} (Hostel {{ request.requestedRoom.hostel }})
+                        {% endif %}
+                    </div>
                     <div class="rc-supervisor-note">
                         <span class="rc-note-label">Supervisor Note:</span>
                         <span class="rc-note-text" style="color:#94a3b8;">
@@ -111,17 +133,27 @@
 
         if (hasPending) {
             document.getElementById('pending-notice').style.display = 'block';
-            document.getElementById('rc-submit-btn').disabled = true;
-            document.getElementById('rc-submit-btn').style.opacity = '0.5';
         }
 
         function submitRoomChange(e) {
             e.preventDefault();
-            if (hasPending) return;
+            if (hasPending) {
+                alert('You already have a pending room change request. Please wait for a supervisor decision before submitting another.');
+                return;
+            }
 
-            const reason  = document.getElementById('rc-reason').value;
-            const details = document.getElementById('rc-details').value.trim();
-            const dateStr = new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+            const roomId   = document.getElementById('rc-preferred-room').value;
+            const reason   = document.getElementById('rc-reason').value;
+            const details  = document.getElementById('rc-details').value.trim();
+            const selectedOpt = document.getElementById('rc-preferred-room').selectedOptions[0];
+            const requestedHostel = selectedOpt ? selectedOpt.dataset.hostel : '';
+            const currentRoomStr = "{{ currentRoom ? 'From Room ' ~ currentRoom.roomNumber : '' }}";
+            const dateStr  = new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+
+            if (!roomId) {
+                alert('Please select a preferred room.');
+                return;
+            }
 
             fetch('{{ path('student_room_change') }}', {
                 method: 'POST',
@@ -130,7 +162,8 @@
                     'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: JSON.stringify({
-                    reason: reason,
+                    roomId:  parseInt(roomId),
+                    reason:  reason,
                     details: details
                 })
             })
@@ -145,7 +178,8 @@
                             <span class="ann-category-badge general">Pending</span>
                             <span class="ann-date">${dateStr}</span>
                         </div>
-                        <h4 class="ann-card-title">${reason}</h4>
+                        <h4 class="ann-card-title">${reason}: ${details.slice(0,60)}${details.length>60?'…':''}</h4>
+                        <div style="font-size:0.82rem;color:#64748b;margin-top:4px;">${currentRoomStr} → Room ${data.requestedRoom} (Hostel ${requestedHostel})</div>
                         <div class="rc-supervisor-note"><span class="rc-note-label">Supervisor Note:</span><span class="rc-note-text" style="color:#64748b;">Awaiting review…</span></div>
                     `;
                     const hist = document.getElementById('rc-history');
@@ -156,8 +190,6 @@
 
                     hasPending = true;
                     document.getElementById('pending-notice').style.display = 'block';
-                    document.getElementById('rc-submit-btn').disabled = true;
-                    document.getElementById('rc-submit-btn').style.opacity = '0.5';
 
                     const msg = document.getElementById('rc-success');
                     msg.style.display = 'block';
@@ -167,7 +199,7 @@
                     document.getElementById('rc-char').textContent = '0';
                     document.getElementById('no-rc-msg').style.display = 'none';
                 } else {
-                    alert('Error submitting request: ' + data.message);
+                    alert('Error: ' + data.message);
                 }
             })
             .catch(err => {

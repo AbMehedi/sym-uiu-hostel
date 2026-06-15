@@ -7,9 +7,23 @@
     <header class="dashboard-header">
         <div>
             <h1>Complaints & Maintenance</h1>
-            <p class="date-display">Track student issues, update statuses, and log repair costs.</p>
+            <p class="date-display">Tracking view only. Supervisors update statuses and record repair costs.</p>
         </div>
     </header>
+
+    <!-- Flash Messages -->
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="flash flash-{{ type }}" style="margin-bottom:16px;padding:12px 20px;border-radius:8px;background:{{ type == 'success' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }};color:{{ type == 'success' ? '#10b981' : '#ef4444' }};border:1px solid {{ type == 'success' ? '#10b981' : '#ef4444' }};">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    <div class="dashboard-box" style="margin-bottom:16px;padding:12px 16px;border:1px solid rgba(59,130,246,.35);background:rgba(37,99,235,.12);">
+        <strong style="color:#93c5fd;">Tracking Mode:</strong>
+        <span style="color:#cbd5e1;">Supervisors update complaint status and log repair costs. Admin can monitor and report only.</span>
+    </div>
 
     <!-- Quick Stats Row -->
     <div class="dashboard-stats stats-row-margin">
@@ -25,9 +39,52 @@
             <div class="stat-title">Total Spent (This Month)</div>
             <div class="stat-value">৳ {{ totalSpentThisMonth|number_format(0, '.', ',') }}</div>
         </div>
+        <div class="stat-card">
+            <div class="stat-title">Mode</div>
+            <div class="stat-value" style="font-size:1rem;">Admin Tracking Only</div>
+        </div>
     </div>
 
-    <!-- Interactive Master-Detail Grid (Pure CSS No-JS Version) -->
+    <!-- B-10: Filter Bar -->
+    <div class="dashboard-box" style="margin-bottom:20px;padding:16px 24px;">
+        <form method="GET" action="{{ path('admin_complaints') }}" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <label style="color:#94a3b8;font-size:.85rem;white-space:nowrap;">Type:</label>
+                <select name="type" class="form-control form-control-sm" style="min-width:140px;">
+                    <option value="">All Types</option>
+                    {% for cat in complaintCategories %}
+                        <option value="{{ cat.value }}" {{ activeType == cat.value ? 'selected' : '' }}>
+                            {{ cat.value|capitalize }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <label style="color:#94a3b8;font-size:.85rem;white-space:nowrap;">Status:</label>
+                <select name="status" class="form-control form-control-sm" style="min-width:140px;">
+                    <option value="">All Statuses</option>
+                    <option value="pending"     {{ activeStatus == 'pending'     ? 'selected' : '' }}>Pending</option>
+                    <option value="in_progress" {{ activeStatus == 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                    <option value="resolved"    {{ activeStatus == 'resolved'    ? 'selected' : '' }}>Resolved</option>
+                </select>
+            </div>
+            <!-- B-23: Date range -->
+            <div style="display:flex;align-items:center;gap:8px;">
+                <label style="color:#94a3b8;font-size:.85rem;white-space:nowrap;">From:</label>
+                <input type="date" name="from" value="{{ activeFrom }}"
+                       class="form-control form-control-sm" style="min-width:140px;">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <label style="color:#94a3b8;font-size:.85rem;white-space:nowrap;">To:</label>
+                <input type="date" name="to" value="{{ activeTo }}"
+                       class="form-control form-control-sm" style="min-width:140px;">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Apply Filter</button>
+            <a href="{{ path('admin_complaints') }}" class="btn btn-outline btn-sm">Clear</a>
+        </form>
+    </div>
+
+    <!-- Interactive Master-Detail Grid -->
     <div class="css-interactive-wrapper">
         
         {% for complaint in complaints %}
@@ -40,13 +97,7 @@
             <div class="dashboard-box">
                 <div class="box-header">
                     <h3>Active Complaints</h3>
-                    <div class="nav-buttons">
-                        <select class="form-control form-control-sm">
-                            <option>All Types</option>
-                            <option>Plumbing</option>
-                            <option>Electricity</option>
-                        </select>
-                    </div>
+                    <span class="badge-count">{{ complaints|length }}</span>
                 </div>
                 
                 <!-- CSS Grid Table -->
@@ -64,6 +115,11 @@
                              <div class="css-td"><span class="status {{ complaint.status|lower|replace({' ': '-'}) }} status-sm">{{ complaint.status }}</span></div>
                          </label>
                          {% endfor %}
+                         {% if complaints is empty %}
+                             <div class="css-tr" style="text-align:center;padding:30px;color:#64748b;">
+                                 No complaints match your filter.
+                             </div>
+                         {% endif %}
                      </div>
                  </div>
              </div>
@@ -72,14 +128,15 @@
              <div class="dashboard-box right-container">
                  <div class="box-header profile-section-header">
                      <h3>Complaint Details</h3>
-                     <span class="text-muted">Ticket ID: #CMP-892</span>
                  </div>
  
                  {% for complaint in complaints %}
                  <div class="profile-view" id="view-comp-{{ complaint.id }}">
                      <div class="complaint-header">
+                         {# B-14: Use real complaint ID instead of hardcoded #CMP-892 #}
+                         <p style="color:#64748b;font-size:.8rem;margin-bottom:6px;">Ticket ID: #CMP-{{ complaint.id }}</p>
                          <h2 class="complaint-title">{{ complaint.subject }}</h2>
-                         <p class="complaint-meta">Type: <strong class="text-primary">{{ complaint.category.value }}</strong> • {{ complaint.room ? complaint.room.hostelBlock : 'N/A' }}, Room {{ complaint.room ? complaint.room.roomNumber : 'N/A' }}</p>
+                         <p class="complaint-meta">Type: <strong class="text-primary">{{ complaint.category.value|capitalize }}</strong> • {{ complaint.room ? complaint.room.hostel : 'N/A' }}, Room {{ complaint.room ? complaint.room.roomNumber : 'N/A' }}</p>
                          <p class="complaint-meta">Submitted by: <strong>{{ complaint.student ? complaint.student.user.name : 'N/A' }} (ID: {{ complaint.student ? complaint.student.studentNumber : 'N/A' }})</strong> on {{ complaint.createdAt|date('M d, Y') }}</p>
                      </div>
  
@@ -91,34 +148,66 @@
                      {% if complaint.photoUrl %}
                      <h4 class="profile-subheading">Attached Photo</h4>
                      <div class="complaint-photo">
-                         <img src="{{ asset('uploads/complaints/' ~ complaint.photoUrl) }}" alt="Complaint photo">
+                         {% set normalizedPhoto = complaint.photoUrl starts with('/')
+                             ? complaint.photoUrl|slice(1)
+                             : (complaint.photoUrl matches '/\\//' ? complaint.photoUrl : 'uploads/complaints/' ~ complaint.photoUrl) %}
+                         <img src="{{ asset(normalizedPhoto) }}" alt="Complaint photo">
                      </div>
                      {% endif %}
  
-                     <h4 class="profile-subheading">Update Status & Cost</h4>
+                     <h4 class="profile-subheading">Supervisor Handling Status</h4>
                      <div class="form-grid complaint-update-box">
                          <div class="form-group">
                              <label>Current Status</label>
-                             <select class="form-control">
-                                 <option {{ complaint.status == 'Pending' ? 'selected' : '' }}>Pending</option>
-                                 <option {{ complaint.status == 'In Progress' ? 'selected' : '' }}>In Progress</option>
-                                 <option {{ complaint.status == 'Resolved' ? 'selected' : '' }}>Resolved</option>
-                             </select>
+                             <div class="form-control" style="display:flex;align-items:center;">
+                                 <span class="status {{ complaint.status|lower|replace({' ': '-'}) }} status-sm">{{ complaint.status }}</span>
+                             </div>
                          </div>
                          <div class="form-group">
-                             <label>Repair Cost (৳ BDT)</label>
-                             <input type="number" class="form-control" placeholder="Enter cost amount" value="{{ complaint.cost }}">
+                             <label>Total Logged Repair Cost (৳ BDT)</label>
+                             <div class="form-control" style="display:flex;align-items:center;font-weight:700;">
+                                 ৳ {{ complaint.cost|number_format(2) }}
+                             </div>
+                         </div>
+                         <div class="form-group" style="grid-column:1/-1;">
+                             <label>Assigned Supervisor</label>
+                             <div class="form-control" style="display:flex;align-items:center;">
+                                 {{ complaint.effectiveSupervisor ? complaint.effectiveSupervisor.user.name : 'Not assigned yet' }}
+                             </div>
                          </div>
                      </div>
+
+                     <!-- Existing repair cost entries -->
+                     {% if complaint.repairCosts is not empty %}
+                     <h4 class="profile-subheading" style="margin-top:20px;">Repair Cost History</h4>
+                     <table class="data-table" style="font-size:.85rem;">
+                         <thead>
+                             <tr><th>Date</th><th>Amount</th><th>Description</th><th>By</th><th></th></tr>
+                         </thead>
+                         <tbody>
+                             {% for rc in complaint.repairCosts %}
+                             <tr>
+                                 <td>{{ rc.costDate|date('d M Y') }}</td>
+                                 <td>৳ {{ rc.amount|number_format(2) }}</td>
+                                 <td>{{ rc.description ?? '—' }}</td>
+                                 <td>{{ rc.recordedBy ? rc.recordedBy.name : '—' }}</td>
+                                 <td>—</td>
+                             </tr>
+                             {% endfor %}
+                         </tbody>
+                     </table>
+                     {% endif %}
+
                  </div>
-                {% endfor %}
+                 {% endfor %}
 
-                <!-- Universal Action Button -->
-                <div class="profile-footer footer-margin">
-                    <button class="btn btn-primary">Save Changes & Log Cost</button>
-                </div>
+                 {% if complaints is empty %}
+                 <div style="text-align:center;padding:60px;color:#64748b;">
+                     No complaints found. Try clearing the filter.
+                 </div>
+                 {% endif %}
 
-            </div>
-        </div>
-    </div>
+             </div>
+         </div>
+     </div>
 {% endblock %}

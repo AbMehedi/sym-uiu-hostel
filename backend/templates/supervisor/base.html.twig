@@ -17,9 +17,11 @@
                 <ul class="sidebar-nav">
                     <li><a href="{{ path('supervisor_dashboard') }}" class="{{ app.request.attributes.get('_route') == 'supervisor_dashboard' ? 'active' : '' }}">🏠 Dashboard</a></li>
                     <li><a href="{{ path('supervisor_students') }}" class="{{ app.request.attributes.get('_route') == 'supervisor_students' ? 'active' : '' }}">🎓 Students</a></li>
+                    <li><a href="{{ path('supervisor_rooms') }}" class="{{ app.request.attributes.get('_route') == 'supervisor_rooms' ? 'active' : '' }}">🛏️ Rooms</a></li>
                     <li><a href="{{ path('supervisor_complaints') }}" class="{{ app.request.attributes.get('_route') starts with 'supervisor_complaint' ? 'active' : '' }}">📋 Complaints</a></li>
                     <li><a href="{{ path('supervisor_room_changes') }}" class="{{ app.request.attributes.get('_route') starts with 'supervisor_room_change' ? 'active' : '' }}">🔄 Room Changes</a></li>
                     <li><a href="{{ path('supervisor_announcements') }}" class="{{ app.request.attributes.get('_route') == 'supervisor_announcements' ? 'active' : '' }}">📢 Announcements</a></li>
+                    <li><a href="{{ path('supervisor_chat') }}" class="{{ app.request.attributes.get('_route') starts with 'supervisor_chat' ? 'active' : '' }}">💬 Chat</a></li>
                 </ul>
                 <div class="sidebar-bottom">
                     <a href="{{ path('app_logout') }}" class="logout-btn">Log Out</a>

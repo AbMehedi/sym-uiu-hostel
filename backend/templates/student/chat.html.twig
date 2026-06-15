@@ -1,0 +1,325 @@
+{% extends 'student/base.html.twig' %}
+
+{% block title %}Messages{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('css/chat-premium.css') }}?v={{ date().timestamp }}">
+    <style>
+        /* Fallback / Page-specific override to ensure full layout */
+        .dashboard-main {
+            padding: 0 !important;
+            height: 100vh !important;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+    </style>
+{% endblock %}
+
+{% set activeRole = '' %}
+{% if activeContact %}
+    {% for c in contacts %}
+        {% if c.user.id == activeContact.id %}{% set activeRole = c.role %}{% endif %}
+    {% endfor %}
+{% endif %}
+
+{% block body %}
+<div class="messenger-page">
+
+    {# ── Left Panel: Contact List ─────────────────────────────────────────── #}
+    <div class="messenger-contacts" id="contact-panel">
+        <div class="messenger-contacts-header">
+            <div class="messenger-contacts-title-row">
+                <h2>Messages</h2>
+                {% set totalUnread = contacts|reduce((carry, c) => carry + c.unread, 0) %}
+                {% if totalUnread > 0 %}
+                    <span class="messenger-unread-total">{{ totalUnread }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if contacts is empty %}
+            <div class="messenger-empty-contacts">
+                <span class="messenger-empty-icon">💬</span>
+                <p>No contacts yet.</p>
+                <small>You need a room assignment to start chatting.</small>
+            </div>
+        {% else %}
+            <ul class="messenger-contact-list">
+                {% for contact in contacts %}
+                    {% set isActive = activeContact and activeContact.id == contact.user.id %}
+                    <li class="messenger-contact-item {{ isActive ? 'active' : '' }}">
+                        <a href="{{ path('student_chat') }}?partner={{ contact.user.id }}"
+                           class="messenger-contact-link"
+                           id="contact-link-{{ contact.user.id }}">
+                            <div class="messenger-avatar {{ contact.role starts with 'Supervisor' ? 'avatar-supervisor' : 'avatar-roommate' }}">
+                                {{ contact.user.name|slice(0,2)|upper }}
+                            </div>
+                            <div class="messenger-contact-info">
+                                <div class="messenger-contact-top">
+                                    <span class="messenger-contact-name">{{ contact.user.name }}</span>
+                                    <span class="messenger-contact-time">
+                                        {% if contact.lastMessage %}
+                                            {{ contact.lastMessage.sentAt|date('H:i') }}
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="messenger-contact-bottom">
+                                    <span class="messenger-contact-preview">
+                                        {% if contact.lastMessage %}
+                                            {% if contact.lastMessage.sender.id == app.user.id %}You: {% endif %}
+                                            {{ contact.lastMessage.message|slice(0,40) }}{{ contact.lastMessage.message|length > 40 ? '…' : '' }}
+                                        {% else %}
+                                            <em>No messages yet</em>
+                                        {% endif %}
+                                    </span>
+                                    {% if contact.unread > 0 %}
+                                        <span class="messenger-unread-badge">{{ contact.unread }}</span>
+                                    {% endif %}
+                                </div>
+                                <span class="messenger-contact-role">{{ contact.role }}</span>
+                            </div>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+
+    {# ── Right Panel: Chat Window ─────────────────────────────────────────── #}
+    <div class="messenger-chat" id="chat-panel">
+        {% if activeContact %}
+            {# Chat Header #}
+            <div class="messenger-chat-header">
+                <button class="messenger-back-btn" id="back-btn" onclick="showContactPanel()" aria-label="Back">
+                    ←
+                </button>
+                <div class="messenger-avatar {{ activeRole starts with 'Supervisor' ? 'avatar-supervisor' : 'avatar-roommate' }} messenger-avatar-lg">
+                    {{ activeContact.name|slice(0,2)|upper }}
+                </div>
+                <div class="messenger-chat-header-info">
+                    <h3>{{ activeContact.name }}</h3>
+                    <span class="messenger-chat-role">{{ activeRole }}</span>
+                </div>
+                <span class="messenger-online-dot"></span>
+            </div>
+
+            {# Message Area #}
+            <div class="messenger-messages" id="msg-area">
+                {% if messages is empty %}
+                    <div class="messenger-no-msgs">
+                        <span>👋</span>
+                        <p>No messages yet. Say hello!</p>
+                    </div>
+                {% else %}
+                    {% for msg in messages %}
+                        {% set isMine = msg.sender.id == app.user.id %}
+                        <div class="msg-row {{ isMine ? 'msg-row-sent' : 'msg-row-received' }}">
+                            {% if not isMine %}
+                                <div class="msg-avatar-sm {{ activeRole starts with 'Supervisor' ? 'avatar-supervisor' : 'avatar-roommate' }}">
+                                    {{ msg.sender.name|slice(0,2)|upper }}
+                                </div>
+                            {% endif %}
+                            <div class="msg-col">
+                                <div class="msg-bubble {{ isMine ? 'msg-bubble-sent' : 'msg-bubble-received' }}">
+                                    {{ msg.message }}
+                                </div>
+                                <span class="msg-time {{ isMine ? 'msg-time-right' : '' }}">
+                                    {{ msg.sentAt|date('M j, H:i') }}
+                                    {% if isMine %}
+                                        <span class="msg-status-ticks {{ msg.isRead ? 'read' : 'unread' }}">✓✓</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            {# Floating Input Bar #}
+            <div class="messenger-input-bar-container">
+                <div class="messenger-input-bar">
+                    <textarea id="msg-input"
+                              class="messenger-textarea"
+                              placeholder="Type a message… (Enter to send)"
+                              rows="1"
+                              oninput="autoGrow(this); toggleSend(this.value)"
+                              onkeydown="handleEnter(event)"></textarea>
+                    <button class="messenger-send-btn"
+                            id="send-btn"
+                            disabled
+                            onclick="sendMessage()"
+                            aria-label="Send">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="3"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"/>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+        {% else %}
+            {# No conversation selected (desktop empty state) #}
+            <div class="messenger-select-prompt" id="select-prompt">
+                <div class="messenger-select-art">
+                    <span class="messenger-select-icon">💬</span>
+                </div>
+                <h3>Select a conversation</h3>
+                <p>Choose a contact from the left panel to start chatting.</p>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        const PARTNER_ID = {{ activeContact ? activeContact.id : 'null' }};
+        const SEND_URL   = PARTNER_ID
+            ? '/student/chat/' + PARTNER_ID + '/send'
+            : null;
+        const POLL_URL   = PARTNER_ID
+            ? '/student/chat/' + PARTNER_ID + '/poll'
+            : null;
+
+        const PARTNER_INITIALS = '{{ activeContact ? activeContact.name|slice(0,2)|upper : '' }}';
+        const PARTNER_AVATAR_CLASS = '{{ activeRole starts with 'Supervisor' ? 'avatar-supervisor' : 'avatar-roommate' }}';
+
+        let lastId = {{ lastId ?? 0 }};
+
+        // ── Auto-resize textarea ────────────────────────────────────────────
+        function autoGrow(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+        }
+
+        function toggleSend(value) {
+            const btn = document.getElementById('send-btn');
+            if (btn) btn.disabled = value.trim() === '';
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // ── Send message ────────────────────────────────────────────────────
+        function sendMessage() {
+            if (!SEND_URL) return;
+            const input = document.getElementById('msg-input');
+            const text  = input.value.trim();
+            if (!text) return;
+
+            const btn = document.getElementById('send-btn');
+            btn.disabled = true;
+
+            fetch(SEND_URL, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ message: text }),
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.id) {
+                    appendBubble(data.message, data.sentAt, true);
+                    lastId = data.id;
+                    input.value = '';
+                    input.style.height = 'auto';
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+            });
+        }
+
+        // ── Append a message bubble ─────────────────────────────────────────
+        function appendBubble(text, time, mine) {
+            const area = document.getElementById('msg-area');
+            if (!area) return;
+
+            // Remove empty-state placeholder if present
+            const placeholder = area.querySelector('.messenger-no-msgs');
+            if (placeholder) placeholder.remove();
+
+            const row = document.createElement('div');
+            row.className = 'msg-row ' + (mine ? 'msg-row-sent' : 'msg-row-received');
+
+            if (mine) {
+                row.innerHTML = `
+                    <div class="msg-col">
+                        <div class="msg-bubble msg-bubble-sent">${escHtml(text)}</div>
+                        <span class="msg-time msg-time-right">
+                            ${escHtml(time)}
+                            <span class="msg-status-ticks unread">✓✓</span>
+                        </span>
+                    </div>`;
+            } else {
+                row.innerHTML = `
+                    <div class="msg-avatar-sm ${PARTNER_AVATAR_CLASS}">${PARTNER_INITIALS}</div>
+                    <div class="msg-col">
+                        <div class="msg-bubble msg-bubble-received">${escHtml(text)}</div>
+                        <span class="msg-time">${escHtml(time)}</span>
+                    </div>`;
+            }
+
+            area.appendChild(row);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function escHtml(str) {
+            const d = document.createElement('div');
+            d.appendChild(document.createTextNode(str));
+            return d.innerHTML;
+        }
+
+        // ── Polling ─────────────────────────────────────────────────────────
+        function poll() {
+            if (!POLL_URL) return;
+            fetch(`${POLL_URL}?after=${lastId}`)
+                .then(r => r.json())
+                .then(msgs => {
+                    msgs.forEach(m => {
+                        if (!m.mine) {
+                            appendBubble(m.message, m.sentAt, false);
+                        }
+                        if (m.id > lastId) lastId = m.id;
+                    });
+                })
+                .catch(() => {});
+        }
+
+        // ── Scroll to bottom on load ────────────────────────────────────────
+        window.addEventListener('load', () => {
+            const area = document.getElementById('msg-area');
+            if (area) area.scrollTop = area.scrollHeight;
+
+            // Start polling only if a conversation is active
+            if (PARTNER_ID) {
+                setInterval(poll, 3000);
+            }
+        });
+
+        // ── Mobile: toggle panels ────────────────────────────────────────────
+        function showContactPanel() {
+            document.getElementById('contact-panel').classList.remove('mobile-hidden');
+            document.getElementById('chat-panel').classList.add('mobile-hidden');
+        }
+
+        // On mobile, hide contact panel when a contact is tapped
+        document.querySelectorAll('.messenger-contact-link').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    document.getElementById('contact-panel').classList.add('mobile-hidden');
+                    document.getElementById('chat-panel').classList.remove('mobile-hidden');
+                }
+            });
+        });
+    </script>
+{% endblock %}

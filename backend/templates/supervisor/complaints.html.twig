@@ -5,12 +5,12 @@
 {% block body %}
     <header class="dashboard-header">
         <div>
-            <h1>{{ app.user.supervisor ? app.user.supervisor.hostelBlock : 'My Block' }} — Complaints</h1>
-            <p class="date-display">View and resolve complaints for your block students</p>
+            <h1>{{ app.user.supervisor ? app.user.supervisor.hostelAssigned : 'My Hostel' }} — Complaints</h1>
+            <p class="date-display">View and resolve complaints for your hostel students</p>
         </div>
         <div class="admin-profile">
             <div class="avatar sup-avatar"></div>
-            <span>{{ app.user.supervisor ? app.user.supervisor.hostelBlock : '' }} Supervisor</span>
+            <span>{{ app.user.supervisor ? app.user.supervisor.hostelAssigned : '' }} Supervisor</span>
         </div>
     </header>
 
@@ -58,7 +58,7 @@
     <!-- Complaints Table -->
     <div class="dashboard-box full-width-box">
         <div class="box-header">
-            <h3>All Block Complaints</h3>
+            <h3>All Hostel Complaints</h3>
         </div>
         <table class="data-table" id="complaints-table">
             <thead>
@@ -74,12 +74,17 @@
             </thead>
             <tbody id="complaints-tbody">
                 {% for complaint in complaints %}
-                <tr data-id="{{ complaint.id }}" data-type="{{ complaint.category.value }}" data-status="{{ complaint.status }}" data-room="{{ complaint.room ? complaint.room.roomNumber : 'N/A' }}" data-subject="{{ complaint.subject }}" data-student="{{ complaint.student ? complaint.student.user.name : 'N/A' }}" data-desc="{{ complaint.description }}" data-cost="{{ complaint.cost }}">
+                <tr data-id="{{ complaint.id }}" data-type="{{ complaint.category.value }}" data-status="{{ complaint.status }}" data-room="{{ complaint.room ? complaint.room.roomNumber : 'N/A' }}" data-subject="{{ complaint.subject }}" data-student="{{ complaint.student ? complaint.student.user.name : 'N/A' }}" data-desc="{{ complaint.description }}" data-cost="{{ complaint.cost }}" data-photo="{{ complaint.photoUrl ? complaint.photoUrl : '' }}">
                     <td><span class="room-badge">{{ complaint.room ? complaint.room.roomNumber : 'N/A' }}</span></td>
                     <td>{{ complaint.student ? complaint.student.user.name : 'N/A' }}</td>
                     <td><span class="type-badge {{ complaint.category.value|lower }}">{{ complaint.category.value }}</span></td>
-                    <td>{{ complaint.subject }}</td>
-                    <td>{{ complaint.cost }}</td>
+                    <td>
+                        {{ complaint.subject }}
+                        {% if complaint.photoUrl %}
+                            <span title="Has photo attachment" style="margin-left:6px; font-size:0.85rem;">📎</span>
+                        {% endif %}
+                    </td>
+                    <td>৳ {{ complaint.cost|number_format(2) }}</td>
                     <td class="comp-status-cell"><span class="status {{ complaint.status|lower|replace({' ': '-'}) }}">{{ complaint.status }}</span></td>
                     <td><button class="btn-action approve" onclick="openComplaintModal(this)">View</button></td>
                 </tr>
@@ -136,6 +141,13 @@
                         <span class="modal-detail-label">Current Status</span>
                         <span id="cm-status-badge"></span>
                     </div>
+                    <div class="modal-detail-item" id="cm-photo-wrapper" style="grid-column: 1 / -1; display: none;">
+                        <span class="modal-detail-label">📎 Attached Photo</span>
+                        <div style="margin-top: 8px; background: rgba(30, 41, 59, 0.4); border: 1px solid #1e293b; border-radius: 8px; padding: 10px;">
+                            <img id="cm-photo" src="" alt="Complaint photo attachment" style="max-width: 100%; max-height: 300px; border-radius: 6px; object-fit: contain; display:block;">
+                            <a id="cm-photo-link" href="" target="_blank" style="display:block; margin-top:8px; font-size:0.82rem; color:var(--primary-color);">Open full image in new tab ↗</a>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Status Update -->
@@ -147,6 +159,10 @@
                             <option value="In Progress">In Progress</option>
                             <option value="Resolved">Resolved</option>
                         </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label for="cm-amount" style="font-size:0.82rem;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;display:block;margin-bottom:8px;">Add Repair Cost (BDT)</label>
+                        <input id="cm-amount" class="form-control announce-input" type="number" min="0" step="0.01" placeholder="Optional, e.g. 350.00">
                     </div>
                     <div class="form-group">
                         <label for="cm-notes" style="font-size:0.82rem;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;display:block;margin-bottom:8px;">Supervisor Notes</label>
@@ -170,14 +186,32 @@
             document.getElementById('cm-room').textContent    = d.room;
             document.getElementById('cm-student').textContent = d.student;
             document.getElementById('cm-type').textContent    = d.type;
-            document.getElementById('cm-cost').textContent    = 'BDT ' + d.cost;
+            document.getElementById('cm-cost').textContent    = 'BDT ' + Number(d.cost || 0).toFixed(2);
             document.getElementById('cm-subject').textContent = d.subject;
             document.getElementById('cm-desc').textContent    = d.desc;
 
             const classMap = { 'Pending': 'pending', 'In Progress': 'in-progress', 'Resolved': 'resolved' };
             document.getElementById('cm-status-badge').innerHTML = `<span class="status ${classMap[d.status]}">${d.status}</span>`;
             document.getElementById('cm-new-status').value = d.status;
+            document.getElementById('cm-amount').value = '';
             document.getElementById('cm-notes').value = '';
+
+            // Show or hide the photo attachment
+            const photoWrapper = document.getElementById('cm-photo-wrapper');
+            const photoEl = document.getElementById('cm-photo');
+            const photoLink = document.getElementById('cm-photo-link');
+            if (d.photo && d.photo.trim() !== '') {
+                const normalizedPhoto = d.photo.startsWith('/')
+                    ? d.photo
+                    : `/uploads/complaints/${d.photo}`;
+                photoEl.src = normalizedPhoto;
+                photoLink.href = normalizedPhoto;
+                photoWrapper.style.display = '';
+            } else {
+                photoEl.src = '';
+                photoLink.href = '';
+                photoWrapper.style.display = 'none';
+            }
 
             document.getElementById('complaint-modal-overlay').classList.add('active');
         }
@@ -192,6 +226,7 @@
             if (!activeComplaintRow) return;
             const newStatus = document.getElementById('cm-new-status').value;
             const notes = document.getElementById('cm-notes').value.trim();
+            const amount = document.getElementById('cm-amount').value.trim();
             const classMap  = { 'Pending': 'pending', 'In Progress': 'in-progress', 'Resolved': 'resolved' };
             const id = activeComplaintRow.dataset.id;
 
@@ -203,7 +238,8 @@
                 },
                 body: JSON.stringify({
                     status: newStatus,
-                    notes: notes
+                    notes: notes,
+                    amount: amount
                 })
             })
             .then(res => res.json())
@@ -211,6 +247,10 @@
                 if (data.status === 'success') {
                     // Update row data
                     activeComplaintRow.dataset.status = newStatus;
+                    if (data.totalCost !== undefined) {
+                        activeComplaintRow.dataset.cost = data.totalCost;
+                        activeComplaintRow.children[4].textContent = `৳ ${Number(data.totalCost).toFixed(2)}`;
+                    }
                     activeComplaintRow.querySelector('.comp-status-cell').innerHTML = `<span class="status ${classMap[newStatus]}">${newStatus}</span>`;
 
                     updateCounts();

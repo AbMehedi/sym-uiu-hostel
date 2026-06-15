@@ -11,32 +11,47 @@
         </div>
         <div class="admin-profile">
             <div class="avatar stu-avatar"></div>
-            <span>Student — Room {{ app.user.student.room ? app.user.student.room.roomNumber : 'N/A' }}</span>
+            <span>Student — {{ room ? 'Room ' ~ room.roomNumber : 'No Room' }}</span>
         </div>
     </header>
 
-    <!-- Room Info Banner -->
+    <!-- Room Info Banner / Application Review Banner -->
+    {% if admissionStatus and admissionStatus.value == 'approved' %}
     <div class="block-info-banner room-info-banner">
         <div class="block-info-item">
             <span class="block-info-label">Room Number</span>
-            <span class="block-info-value stu-value">{{ app.user.student.room ? app.user.student.room.roomNumber : 'N/A' }}</span>
+            <span class="block-info-value stu-value">{{ room ? room.roomNumber : 'N/A' }}</span>
         </div>
         <div class="block-info-divider"></div>
         <div class="block-info-item">
             <span class="block-info-label">Room Type</span>
-            <span class="block-info-value stu-value">{{ app.user.student.room ? app.user.student.room.capacity ~ ' Sharing' : 'N/A' }}</span>
+            <span class="block-info-value stu-value">{{ room ? room.capacity ~ ' Sharing' : 'N/A' }}</span>
         </div>
         <div class="block-info-divider"></div>
         <div class="block-info-item">
-            <span class="block-info-label">Block</span>
-            <span class="block-info-value stu-value">{{ app.user.student.room ? app.user.student.room.hostelBlock : 'N/A' }}</span>
+            <span class="block-info-label">Hostel</span>
+            <span class="block-info-value stu-value">{{ room ? room.hostel : 'N/A' }}</span>
         </div>
         <div class="block-info-divider"></div>
         <div class="block-info-item">
             <span class="block-info-label">Supervisor</span>
-            <span class="block-info-value stu-value" style="font-size:1.1rem;">N/A</span>
+            <span class="block-info-value stu-value" style="font-size:1.1rem;">{{ supervisor ? supervisor.name : 'Not Assigned' }}</span>
         </div>
     </div>
+    {% else %}
+    <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 12px; padding: 25px; margin-bottom: 30px; text-align: left;">
+        <h3 style="color: #f59e0b; margin-top: 0; margin-bottom: 10px; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+            ⏳ Application Status: {{ admissionStatus ? admissionStatus.value|upper : 'PENDING' }}
+        </h3>
+        <p style="margin: 0; color: #cbd5e1; font-size: 0.95rem; line-height: 1.6;">
+            {% if admissionStatus and admissionStatus.value == 'rejected' %}
+                ❌ Your admission request has been rejected. Please contact the hostel administration for further information.
+            {% else %}
+                Your admission request is currently pending administrator review. Once approved, you will be assigned to a room and will gain full access to all features (My Room, Complaints, Room Change Requests, Announcements, and Messenger Chat).
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
 
     <!-- Stats Cards -->
     <div class="dashboard-stats">
@@ -65,7 +80,9 @@
         <div class="dashboard-box">
             <div class="box-header">
                 <h3>My Roommate{{ roommates|length != 1 ? 's' : '' }}</h3>
-                <a href="{{ path('student_chat_roommate') }}" class="btn-link">Chat →</a>
+                {% if admissionStatus and admissionStatus.value == 'approved' %}
+                    <a href="{{ path('student_chat') }}" class="btn-link">Chat →</a>
+                {% endif %}
             </div>
             {% if roommates is empty %}
                 <div style="text-align:center;padding:30px;color:#64748b;">
@@ -82,7 +99,7 @@
                             <th>Avatar</th>
                             <th>Name</th>
                             <th>Student ID</th>
-                            <th>Phone</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -95,7 +112,9 @@
                             </td>
                             <td style="color:white;font-weight:500;">{{ roommate.user.name }}</td>
                             <td>{{ roommate.studentNumber }}</td>
-                            <td>{{ roommate.phone ?? '—' }}</td>
+                            <td>
+                                <button class="btn btn-outline btn-sm" onclick="openRoommateModal({{ roommate.id }})" style="padding: 4px 10px; font-size: 0.75rem;">📋 Details</button>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -107,7 +126,9 @@
         <div class="dashboard-box">
             <div class="box-header">
                 <h3>My Recent Complaints</h3>
-                <a href="{{ path('student_complaints') }}" class="btn-link">View All →</a>
+                {% if admissionStatus and admissionStatus.value == 'approved' %}
+                    <a href="{{ path('student_complaints') }}" class="btn-link">View All →</a>
+                {% endif %}
             </div>
             {% if recentComplaints is empty %}
                 <div style="text-align:center;padding:30px;color:#64748b;">No complaints submitted yet.</div>
@@ -147,8 +168,15 @@
         <!-- Latest Announcements (full-width) -->
         <div class="dashboard-box announcement-box stu-announcement-box">
             <div class="box-header">
-                <h3>Latest Announcements</h3>
-                <a href="{{ path('student_announcements') }}" class="btn-link">View All →</a>
+                <h3 style="display:flex;align-items:center;gap:10px;">
+                    Latest Announcements
+                    {% if unreadAnnouncements > 0 %}
+                        <span style="background:var(--danger-color);color:white;font-size:0.75rem;padding:2px 8px;border-radius:12px;font-weight:600;">{{ unreadAnnouncements }} New</span>
+                    {% endif %}
+                </h3>
+                {% if admissionStatus and admissionStatus.value == 'approved' %}
+                    <a href="{{ path('student_announcements') }}" class="btn-link">View All →</a>
+                {% endif %}
             </div>
             <div class="announcement-list">
                 {% for ann in recentAnnouncements %}
@@ -167,106 +195,79 @@
 
     </div> <!-- End Dashboard Grid -->
 
-    <!-- ── Roommate Detail Modal ── -->
-    <div class="modal-overlay" id="roommate-modal-overlay" onclick="closeRoommateModal(event)">
-        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="roommate-modal-title">
+    {# ── Roommate Detail Modals (data-driven) ── #}
+    {% for roommate in roommates %}
+    <div class="modal-overlay" id="roommate-modal-{{ roommate.id }}" onclick="closeRoommateModal(event, '{{ roommate.id }}')">
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="roommate-modal-title-{{ roommate.id }}">
             <div class="modal-header">
-                <h3 id="roommate-modal-title">Roommate Profile</h3>
-                <button class="modal-close-btn" onclick="closeRoommateModal()" aria-label="Close">×</button>
+                <h3 id="roommate-modal-title-{{ roommate.id }}">Roommate Profile</h3>
+                <button class="modal-close-btn" onclick="closeRoommateModal(null, '{{ roommate.id }}')" aria-label="Close">&times;</button>
             </div>
             <div class="modal-body">
                 <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
-                    <div class="roommate-avatar" style="width:60px;height:60px;font-size:1.4rem;">SR</div>
+                    <div class="roommate-avatar" style="width:60px;height:60px;font-size:1.4rem;">
+                        {{ roommate.user.name|slice(0,2)|upper }}
+                    </div>
                     <div>
-                        <h4 style="margin:0 0 4px 0;font-size:1.1rem;color:white;">Sakib Rahman</h4>
-                        <span style="font-size:0.85rem;color:#94a3b8;">Room A-205 · Block A</span>
+                        <h4 style="margin:0 0 4px 0;font-size:1.1rem;color:white;">{{ roommate.user.name }}</h4>
+                        <span style="font-size:0.85rem;color:#94a3b8;">Room {{ room ? room.roomNumber : 'N/A' }} · Hostel {{ room ? room.hostel : 'N/A' }}</span>
                     </div>
                 </div>
                 <div class="modal-detail-grid">
                     <div class="modal-detail-item">
                         <span class="modal-detail-label">Student ID</span>
-                        <span class="modal-detail-value">011201456</span>
-                    </div>
-                    <div class="modal-detail-item">
-                        <span class="modal-detail-label">Department</span>
-                        <span class="modal-detail-value">CSE</span>
+                        <span class="modal-detail-value">{{ roommate.studentNumber }}</span>
                     </div>
                     <div class="modal-detail-item">
                         <span class="modal-detail-label">Phone</span>
-                        <span class="modal-detail-value">+880 1712-345678</span>
+                        <span class="modal-detail-value">{{ roommate.phone ?? '—' }}</span>
                     </div>
                     <div class="modal-detail-item">
                         <span class="modal-detail-label">Email</span>
-                        <span class="modal-detail-value">sakib@uiu.ac.bd</span>
+                        <span class="modal-detail-value">{{ roommate.user.email }}</span>
                     </div>
                     <div class="modal-detail-item">
-                        <span class="modal-detail-label">Batch</span>
-                        <span class="modal-detail-value">53rd</span>
+                        <span class="modal-detail-label">Emergency Contact</span>
+                        <span class="modal-detail-value">{{ roommate.emergencyContact ?? '—' }}</span>
                     </div>
                     <div class="modal-detail-item">
-                        <span class="modal-detail-label">Joined</span>
-                        <span class="modal-detail-value">Jan 2024</span>
-                    </div>
-                </div>
-
-                <!-- Documents Section -->
-                <div style="border-top:1px solid #1f2937;padding-top:16px;margin-top:16px;">
-                    <p class="roommate-docs-label" style="margin-bottom:12px;">Submitted Documents</p>
-                    <div class="roommate-doc-list">
-                        <a href="#" class="stu-doc-item">
-                            <span class="stu-doc-icon">📄</span>
-                            <span>National ID Card</span>
-                        </a>
-                        <a href="#" class="stu-doc-item">
-                            <span class="stu-doc-icon">📄</span>
-                            <span>Student ID Card</span>
-                        </a>
-                        <a href="#" class="stu-doc-item">
-                            <span class="stu-doc-icon">📄</span>
-                            <span>Parent / Guardian ID</span>
-                        </a>
-                        <a href="#" class="stu-doc-item">
-                            <span class="stu-doc-icon">📄</span>
-                            <span>Medical Certificate</span>
-                        </a>
+                        <span class="modal-detail-label">Admission Date</span>
+                        <span class="modal-detail-value">{{ roommate.admissionDate ? roommate.admissionDate|date('M Y') : '—' }}</span>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="closeRoommateModal()">Close</button>
+                <a href="{{ path('student_chat') }}?partner={{ roommate.user.id }}" class="btn btn-primary">💬 Message</a>
+                <button type="button" class="btn" onclick="closeRoommateModal(null, '{{ roommate.id }}')">Close</button>
             </div>
         </div>
     </div>
+    {% endfor %}
 {% endblock %}
 
 {% block javascripts %}
     {{ parent() }}
     <script>
         // Live date display
-        const dateEl = document.getElementById('current-date');
-        const now = new Date();
-        dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-        // Roommate modal
-        function openRoommateModal() {
-            document.getElementById('roommate-modal-overlay').classList.add('active');
-        }
-        function closeRoommateModal(e) {
-            if (e && e.target !== document.getElementById('roommate-modal-overlay')) return;
-            document.getElementById('roommate-modal-overlay').classList.remove('active');
-        }
-
-        // ── Announcement unread badge on sidebar ──
-        (function initSidebarBadge() {
-            const TOTAL_ANN = 5;
-            const readIds   = JSON.parse(localStorage.getItem('hms_read_ann') || '[]');
-            const unread    = TOTAL_ANN - readIds.length;
-            const dot       = document.getElementById('ann-notif-dot');
-            if (dot && unread > 0) {
-                dot.style.display = 'inline-flex';
-                dot.textContent   = unread;
+        document.addEventListener('DOMContentLoaded', () => {
+            const dateEl = document.getElementById('current-date');
+            if (dateEl) {
+                const now = new Date();
+                dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             }
-        })();
+        });
+
+        // Roommate modal — now per-roommate IDs
+        function openRoommateModal(roommateId) {
+            document.getElementById('roommate-modal-' + roommateId).classList.add('active');
+        }
+        function closeRoommateModal(e, roommateId) {
+            const overlay = document.getElementById('roommate-modal-' + roommateId);
+            if (e && e.target !== overlay) return;
+            overlay.classList.remove('active');
+        }
+
+
 
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') {

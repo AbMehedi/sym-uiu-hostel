@@ -29,6 +29,9 @@ class AdmissionRequest
     #[ORM\Column(name: 'admin_notes', type: 'text', nullable: true)]
     private ?string $adminNotes = null;
 
+    #[ORM\Column(name: 'preferred_room_type', length: 50, nullable: true)]
+    private ?string $preferredRoomType = null;
+
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'reviewedAdmissionRequests')]
     #[ORM\JoinColumn(name: 'reviewed_by', nullable: true, onDelete: 'SET NULL')]
     private ?User $reviewedBy = null;
@@ -109,6 +112,18 @@ class AdmissionRequest
     public function setReviewedAt(?DateTimeImmutable $reviewedAt): self
     {
         $this->reviewedAt = $reviewedAt;
+
+        return $this;
+    }
+
+    public function getPreferredRoomType(): ?string
+    {
+        return $this->preferredRoomType;
+    }
+
+    public function setPreferredRoomType(?string $preferredRoomType): self
+    {
+        $this->preferredRoomType = $preferredRoomType;
 
         return $this;
     }

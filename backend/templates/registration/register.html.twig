@@ -27,7 +27,7 @@
                 <div class="alert alert-success" role="alert" style="color: #10b981; text-align:center; font-size:0.88rem; margin-top:10px; background:rgba(16,185,129,0.08); padding:8px; border-radius:6px;">{{ flash_success }}</div>
             {% endfor %}
 
-            <form class="auth-form" action="{{ path('app_register') }}" method="POST">
+            <form class="auth-form" action="{{ path('app_register') }}" method="POST" enctype="multipart/form-data">
                 
                 <!-- We wrap the inputs in a grid layout for better spacing -->
                 <div class="form-grid">
@@ -50,15 +50,15 @@
                         <input type="text" id="studentId" name="studentId" class="form-control" placeholder="011223344" required value="{{ app.request.request.get('studentId') }}">
                     </div>
 
-                    <!-- Department -->
+                    <!-- Preferred Room Type -->
                     <div class="form-group">
-                        <label for="department">Department</label>
-                        <select id="department" name="department" class="form-control" required>
-                            <option value="" disabled selected>Select Department</option>
-                            <option value="cse" {% if app.request.request.get('department') == 'cse' %}selected{% endif %}>Computer Science & Engineering (CSE)</option>
-                            <option value="eee" {% if app.request.request.get('department') == 'eee' %}selected{% endif %}>Electrical & Electronic Eng. (EEE)</option>
-                            <option value="bba" {% if app.request.request.get('department') == 'bba' %}selected{% endif %}>Business Administration (BBA)</option>
-                            <option value="other" {% if app.request.request.get('department') == 'other' %}selected{% endif %}>Other</option>
+                        <label for="preferredRoomType">Preferred Room Type</label>
+                        <select id="preferredRoomType" name="preferredRoomType" class="form-control" required>
+                            <option value="" disabled selected>Select Room Type</option>
+                            <option value="Single" {% if app.request.request.get('preferredRoomType') == 'Single' %}selected{% endif %}>Single Room</option>
+                            <option value="Double" {% if app.request.request.get('preferredRoomType') == 'Double' %}selected{% endif %}>Double Sharing</option>
+                            <option value="Triple" {% if app.request.request.get('preferredRoomType') == 'Triple' %}selected{% endif %}>Triple Sharing</option>
+                            <option value="Quad" {% if app.request.request.get('preferredRoomType') == 'Quad' %}selected{% endif %}>Quad Sharing</option>
                         </select>
                     </div>
 
@@ -85,21 +85,24 @@
                         <label for="confirmPassword">Confirm Password</label>
                         <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" placeholder="Retype password" required>
                     </div>
+
+                    <!-- ID Card Picture -->
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="idCardPicture">Student ID Card Picture</label>
+                        <input type="file" id="idCardPicture" name="idCardPicture" class="form-control" accept="image/*,application/pdf" required style="padding: 10px;">
+                        <small style="color: #94a3b8; font-size: 0.8rem;">Upload a clear picture of your university ID card (Image or PDF).</small>
+                    </div>
+
+                    <!-- NID / Birth Certificate -->
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="nidOrBirthCert">NID or Birth Certificate</label>
+                        <input type="file" id="nidOrBirthCert" name="nidOrBirthCert" class="form-control" accept="image/*,application/pdf" required style="padding: 10px;">
+                        <small style="color: #94a3b8; font-size: 0.8rem;">Upload your National ID or Birth Certificate (Image or PDF).</small>
+                    </div>
                     
                 </div> <!-- End of form-grid -->
 
-                <!-- NID Upload (Full Width) -->
-                <div class="form-group file-upload-group">
-                    <label for="nidUpload">Upload NID / Birth Certificate (PDF or Image)</label>
-                    <input type="file" id="nidUpload" name="nidUpload" class="form-control file-input" accept=".pdf, image/jpeg, image/png">
-                </div>
 
-                <!-- Other Documents Upload (Full Width, Optional) -->
-                <div class="form-group file-upload-group">
-                    <label for="otherDocsUpload">Upload Other Documents <span style="color:#64748b;font-weight:400;">(Optional)</span></label>
-                    <input type="file" id="otherDocsUpload" name="otherDocsUpload" class="form-control file-input" accept=".pdf, image/jpeg, image/png">
-                    <p style="font-size:0.8rem;color:#64748b;margin-top:6px;">e.g. Medical certificate, Guardian ID, etc.</p>
-                </div>
 
                 <!-- Terms and Conditions -->
                 <div class="form-options">

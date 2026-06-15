@@ -5,12 +5,12 @@
 {% block body %}
     <header class="dashboard-header">
         <div>
-            <h1>Block Announcements</h1>
-            <p class="date-display">Post notices and updates for {{ app.user.supervisor ? app.user.supervisor.blockAssigned : 'your block' }}'s students</p>
+            <h1>Hostel Announcements</h1>
+            <p class="date-display">Post notices and updates for {{ app.user.supervisor ? app.user.supervisor.hostelAssigned : 'your hostel' }} students</p>
         </div>
         <div class="admin-profile">
             <div class="avatar sup-avatar"></div>
-            <span>{{ app.user.supervisor ? app.user.supervisor.blockAssigned : '' }} Supervisor</span>
+            <span>{{ app.user.supervisor ? app.user.supervisor.hostelAssigned : '' }} Supervisor</span>
         </div>
     </header>
 

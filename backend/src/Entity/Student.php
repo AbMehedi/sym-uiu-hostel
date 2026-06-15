@@ -39,6 +39,12 @@ class Student
     #[ORM\Column(name: 'admission_date', type: 'date_immutable', nullable: true)]
     private ?DateTimeImmutable $admissionDate = null;
 
+    #[ORM\Column(name: 'id_card_picture_path', type: 'string', length: 255, nullable: true)]
+    private ?string $idCardPicturePath = null;
+
+    #[ORM\Column(name: 'nid_or_birth_cert_path', type: 'string', length: 255, nullable: true)]
+    private ?string $nidOrBirthCertPath = null;
+
     #[ORM\OneToMany(mappedBy: 'student', targetEntity: RoomAssignment::class, orphanRemoval: true)]
     private Collection $roomAssignments;
 
@@ -51,12 +57,23 @@ class Student
     #[ORM\OneToMany(mappedBy: 'student', targetEntity: Complaint::class, orphanRemoval: true)]
     private Collection $complaints;
 
+    #[ORM\ManyToOne(targetEntity: Supervisor::class)]
+    #[ORM\JoinColumn(name: 'supervisor_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?Supervisor $supervisor = null;
+
+    #[ORM\ManyToMany(targetEntity: Announcement::class)]
+    #[ORM\JoinTable(name: 'student_read_announcements')]
+    #[ORM\JoinColumn(name: 'student_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    #[ORM\InverseJoinColumn(name: 'announcement_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    private Collection $readAnnouncements;
+
     public function __construct()
     {
         $this->roomAssignments = new ArrayCollection();
         $this->admissionRequests = new ArrayCollection();
         $this->roomChangeRequests = new ArrayCollection();
         $this->complaints = new ArrayCollection();
+        $this->readAnnouncements = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -136,6 +153,30 @@ class Student
     public function setAdmissionDate(?DateTimeImmutable $admissionDate): self
     {
         $this->admissionDate = $admissionDate;
+
+        return $this;
+    }
+
+    public function getIdCardPicturePath(): ?string
+    {
+        return $this->idCardPicturePath;
+    }
+
+    public function setIdCardPicturePath(?string $idCardPicturePath): self
+    {
+        $this->idCardPicturePath = $idCardPicturePath;
+
+        return $this;
+    }
+
+    public function getNidOrBirthCertPath(): ?string
+    {
+        return $this->nidOrBirthCertPath;
+    }
+
+    public function setNidOrBirthCertPath(?string $nidOrBirthCertPath): self
+    {
+        $this->nidOrBirthCertPath = $nidOrBirthCertPath;
 
         return $this;
     }
@@ -221,6 +262,18 @@ class Student
         return $this->complaints;
     }
 
+    public function getSupervisor(): ?Supervisor
+    {
+        return $this->supervisor;
+    }
+
+    public function setSupervisor(?Supervisor $supervisor): self
+    {
+        $this->supervisor = $supervisor;
+
+        return $this;
+    }
+
     public function getRoom(): ?Room
     {
         foreach ($this->roomAssignments as $assignment) {
@@ -229,5 +282,25 @@ class Student
             }
         }
         return null;
+    }
+
+    /** @return Collection<int, Announcement> */
+    public function getReadAnnouncements(): Collection
+    {
+        return $this->readAnnouncements;
+    }
+
+    public function addReadAnnouncement(Announcement $announcement): self
+    {
+        if (!$this->readAnnouncements->contains($announcement)) {
+            $this->readAnnouncements->add($announcement);
+        }
+        return $this;
+    }
+
+    public function removeReadAnnouncement(Announcement $announcement): self
+    {
+        $this->readAnnouncements->removeElement($announcement);
+        return $this;
     }
 }

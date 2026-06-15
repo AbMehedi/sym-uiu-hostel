@@ -57,14 +57,14 @@
                         <td>{{ req.student.studentNumber }}</td>
                         <td>
                             <strong>{{ req.currentRoom.roomNumber }}</strong>
-                            <span style="color:#64748b;font-size:0.8rem;display:block;">Block {{ req.currentRoom.block }}</span>
+                            <span style="color:#64748b;font-size:0.8rem;display:block;">Hostel {{ req.currentRoom.hostel }}</span>
                         </td>
                         <td>
                             <strong>{{ req.requestedRoom.roomNumber }}</strong>
-                            <span style="color:#64748b;font-size:0.8rem;display:block;">Block {{ req.requestedRoom.block }}</span>
+                            <span style="color:#64748b;font-size:0.8rem;display:block;">Hostel {{ req.requestedRoom.hostel }}</span>
                         </td>
                         <td>
-                            {% set available = req.requestedRoom.capacity - req.requestedRoom.currentOccupancy %}
+                            {% set available = req.requestedRoom.capacity - req.requestedRoom.actualOccupancy %}
                             {% if available > 0 %}
                                 <span class="status resolved">{{ available }} bed{{ available > 1 ? 's' : '' }} free</span>
                             {% else %}

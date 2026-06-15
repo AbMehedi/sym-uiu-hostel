@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\TaskPriority;
 use App\Enum\TaskStatus;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
@@ -27,6 +28,9 @@ class SupervisorTask
 
     #[ORM\Column(enumType: TaskStatus::class)]
     private TaskStatus $status = TaskStatus::Pending;
+
+    #[ORM\Column(enumType: TaskPriority::class)]
+    private TaskPriority $priority = TaskPriority::Normal;
 
     #[ORM\Column(name: 'due_date', type: 'date_immutable', nullable: true)]
     private ?DateTimeImmutable $dueDate = null;
@@ -84,6 +88,18 @@ class SupervisorTask
     public function setStatus(TaskStatus $status): self
     {
         $this->status = $status;
+
+        return $this;
+    }
+
+    public function getPriority(): TaskPriority
+    {
+        return $this->priority;
+    }
+
+    public function setPriority(TaskPriority $priority): self
+    {
+        $this->priority = $priority;
 
         return $this;
     }
