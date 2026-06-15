@@ -61,10 +61,8 @@
             {% set annCount = unread_announcements_count(app.user) %}
             <script>
                 (function initSidebarBadge() {
-                    const TOTAL_ANN = {{ annCount }};
-                    const readIds   = JSON.parse(localStorage.getItem('hms_read_ann') || '[]');
-                    const unread    = Math.max(0, TOTAL_ANN - readIds.length);
-                    const dot       = document.getElementById('ann-notif-dot');
+                    const unread = {{ annCount }};
+                    const dot = document.getElementById('ann-notif-dot');
                     if (dot && unread > 0) {
                         dot.style.display = 'inline-flex';
                         dot.textContent   = unread;

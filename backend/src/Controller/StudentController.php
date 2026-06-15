@@ -100,13 +100,15 @@ class StudentController extends AbstractController
             ->getQuery()
             ->getResult();
 
-        // Total announcements for unread badge
         $totalAnnouncements = count($announcementRepo->createQueryBuilder('a')
             ->where('a.targetBlock = :hostel OR a.targetBlock = :general')
             ->setParameter('hostel', $hostel ?: 'General')
             ->setParameter('general', 'General')
             ->getQuery()
             ->getResult());
+
+        $readCount = $student ? $student->getReadAnnouncements()->count() : 0;
+        $unreadAnnouncements = max(0, $totalAnnouncements - $readCount);
 
         return $this->render('student/dashboard.html.twig', [
             'student'              => $student,
@@ -121,6 +123,7 @@ class StudentController extends AbstractController
             'recentComplaints'     => $recentComplaints,
             'recentAnnouncements'  => $recentAnnouncements,
             'totalAnnouncements'   => $totalAnnouncements,
+            'unreadAnnouncements'  => $unreadAnnouncements,
         ]);
     }
 
@@ -150,9 +153,26 @@ class StudentController extends AbstractController
             ->getQuery()
             ->getResult();
 
+        $readAnnouncements = $student->getReadAnnouncements()->map(fn($a) => $a->getId())->toArray();
+
         return $this->render('student/announcements.html.twig', [
             'announcements' => $announcements,
+            'readAnnouncements' => $readAnnouncements,
         ]);
+    }
+
+    #[Route('/announcements/{id}/read', name: 'student_announcements_read', methods: ['POST'])]
+    public function markAnnouncementRead(int $id, AnnouncementRepository $repo, EntityManagerInterface $em): JsonResponse
+    {
+        $student = $this->getUser()->getStudent();
+        $announcement = $repo->find($id);
+
+        if ($student && $announcement) {
+            $student->addReadAnnouncement($announcement);
+            $em->flush();
+            return $this->json(['success' => true]);
+        }
+        return $this->json(['error' => 'Not found'], 404);
     }
 
     // ─── Complaints ───────────────────────────────────────────────────────────

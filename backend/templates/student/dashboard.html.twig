@@ -99,12 +99,12 @@
                             <th>Avatar</th>
                             <th>Name</th>
                             <th>Student ID</th>
-                            <th>Phone</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for roommate in roommates %}
-                        <tr style="cursor:pointer;" onclick="openRoommateModal({{ roommate.id }})">
+                        <tr>
                             <td>
                                 <div class="roommate-avatar" style="width:36px;height:36px;font-size:0.85rem;">
                                     {{ roommate.user.name|slice(0,2)|upper }}
@@ -112,7 +112,9 @@
                             </td>
                             <td style="color:white;font-weight:500;">{{ roommate.user.name }}</td>
                             <td>{{ roommate.studentNumber }}</td>
-                            <td>{{ roommate.phone ?? '—' }}</td>
+                            <td>
+                                <button class="btn btn-outline btn-sm" onclick="openRoommateModal({{ roommate.id }})" style="padding: 4px 10px; font-size: 0.75rem;">📋 Details</button>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -166,7 +168,12 @@
         <!-- Latest Announcements (full-width) -->
         <div class="dashboard-box announcement-box stu-announcement-box">
             <div class="box-header">
-                <h3>Latest Announcements</h3>
+                <h3 style="display:flex;align-items:center;gap:10px;">
+                    Latest Announcements
+                    {% if unreadAnnouncements > 0 %}
+                        <span style="background:var(--danger-color);color:white;font-size:0.75rem;padding:2px 8px;border-radius:12px;font-weight:600;">{{ unreadAnnouncements }} New</span>
+                    {% endif %}
+                </h3>
                 {% if admissionStatus and admissionStatus.value == 'approved' %}
                     <a href="{{ path('student_announcements') }}" class="btn-link">View All →</a>
                 {% endif %}
@@ -256,17 +263,7 @@
             overlay.classList.remove('active');
         }
 
-        // ── Announcement unread badge (real count from DB via Twig) ──
-        (function initSidebarBadge() {
-            const TOTAL_ANN = {{ totalAnnouncements ?? 0 }};
-            const readIds   = JSON.parse(localStorage.getItem('hms_read_ann') || '[]');
-            const unread    = Math.max(0, TOTAL_ANN - readIds.length);
-            const dot       = document.getElementById('ann-notif-dot');
-            if (dot && unread > 0) {
-                dot.style.display = 'inline-flex';
-                dot.textContent   = unread;
-            }
-        })();
+
 
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') {

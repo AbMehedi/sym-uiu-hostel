@@ -27,7 +27,7 @@
                 <div class="alert alert-success" role="alert" style="color: #10b981; text-align:center; font-size:0.88rem; margin-top:10px; background:rgba(16,185,129,0.08); padding:8px; border-radius:6px;">{{ flash_success }}</div>
             {% endfor %}
 
-            <form class="auth-form" action="{{ path('app_register') }}" method="POST">
+            <form class="auth-form" action="{{ path('app_register') }}" method="POST" enctype="multipart/form-data">
                 
                 <!-- We wrap the inputs in a grid layout for better spacing -->
                 <div class="form-grid">
@@ -84,6 +84,20 @@
                     <div class="form-group">
                         <label for="confirmPassword">Confirm Password</label>
                         <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" placeholder="Retype password" required>
+                    </div>
+
+                    <!-- ID Card Picture -->
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="idCardPicture">Student ID Card Picture</label>
+                        <input type="file" id="idCardPicture" name="idCardPicture" class="form-control" accept="image/*,application/pdf" required style="padding: 10px;">
+                        <small style="color: #94a3b8; font-size: 0.8rem;">Upload a clear picture of your university ID card (Image or PDF).</small>
+                    </div>
+
+                    <!-- NID / Birth Certificate -->
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="nidOrBirthCert">NID or Birth Certificate</label>
+                        <input type="file" id="nidOrBirthCert" name="nidOrBirthCert" class="form-control" accept="image/*,application/pdf" required style="padding: 10px;">
+                        <small style="color: #94a3b8; font-size: 0.8rem;">Upload your National ID or Birth Certificate (Image or PDF).</small>
                     </div>
                     
                 </div> <!-- End of form-grid -->

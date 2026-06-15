@@ -11,6 +11,7 @@ use App\Repository\AdmissionRequestRepository;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -34,8 +35,11 @@ class RegistrationController extends AbstractController
             $password = (string) $request->request->get('password');
             $confirmPassword = (string) $request->request->get('confirmPassword');
 
-            if ($firstName === '' || $lastName === '' || $studentId === '' || $email === '' || $password === '') {
-                $this->addFlash('error', 'Please fill in all required fields.');
+            $idCardPicture = $request->files->get('idCardPicture');
+            $nidOrBirthCert = $request->files->get('nidOrBirthCert');
+
+            if ($firstName === '' || $lastName === '' || $studentId === '' || $email === '' || $password === '' || !$idCardPicture || !$nidOrBirthCert) {
+                $this->addFlash('error', 'Please fill in all required fields and upload the required documents.');
                 return $this->redirectToRoute('app_register');
             }
 
@@ -76,6 +80,27 @@ class RegistrationController extends AbstractController
             $student->setUser($user);
             $student->setStudentNumber($studentId);
             $student->setPhone($phone ?: null);
+
+            // Handle file uploads
+            $uploadsDir = $this->getParameter('kernel.project_dir') . '/public/uploads/students';
+            if (!is_dir($uploadsDir)) {
+                @mkdir($uploadsDir, 0775, true);
+            }
+
+            try {
+                $idExt = $idCardPicture->guessExtension() ?: 'bin';
+                $idFilename = 'id-' . bin2hex(random_bytes(6)) . '.' . $idExt;
+                $idCardPicture->move($uploadsDir, $idFilename);
+                $student->setIdCardPicturePath('/uploads/students/' . $idFilename);
+
+                $nidExt = $nidOrBirthCert->guessExtension() ?: 'bin';
+                $nidFilename = 'nid-' . bin2hex(random_bytes(6)) . '.' . $nidExt;
+                $nidOrBirthCert->move($uploadsDir, $nidFilename);
+                $student->setNidOrBirthCertPath('/uploads/students/' . $nidFilename);
+            } catch (FileException) {
+                $this->addFlash('error', 'Failed to upload documents. Please try again.');
+                return $this->redirectToRoute('app_register');
+            }
 
             $preferredRoomType = trim((string) $request->request->get('preferredRoomType'));
             if (!$preferredRoomType) {

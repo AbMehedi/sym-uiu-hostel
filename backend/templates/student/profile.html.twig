@@ -58,6 +58,24 @@
                     <span class="profile-info-value">{{ app.user.createdAt|date('d M Y') }}</span>
                 </div>
             </div>
+
+            {# ── My Documents ── #}
+            <div style="margin-top: 24px; border-top: 1px solid #1e293b; padding-top: 20px;">
+                <h3 style="margin: 0 0 16px 0; font-size: 1.1rem; color: #e2e8f0; display: flex; align-items: center; gap: 8px;">
+                    📂 My Documents
+                </h3>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    {% if student.idCardPicturePath %}
+                        <a href="{{ student.idCardPicturePath }}" target="_blank" class="btn btn-outline" style="flex: 1; min-width: 120px; text-align: center; padding: 10px; font-size: 0.85rem; border: 1px solid #3b82f6; border-radius: 8px; color: #60a5fa; text-decoration: none; transition: all 0.2s;">📄 View ID Card</a>
+                    {% endif %}
+                    {% if student.nidOrBirthCertPath %}
+                        <a href="{{ student.nidOrBirthCertPath }}" target="_blank" class="btn btn-outline" style="flex: 1; min-width: 120px; text-align: center; padding: 10px; font-size: 0.85rem; border: 1px solid #3b82f6; border-radius: 8px; color: #60a5fa; text-decoration: none; transition: all 0.2s;">📄 View NID / Birth Cert</a>
+                    {% endif %}
+                    {% if not student.idCardPicturePath and not student.nidOrBirthCertPath %}
+                        <span style="color: #94a3b8; font-size: 0.85rem; font-style: italic;">No documents uploaded.</span>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
         {# ── Right: Edit Form ── #}

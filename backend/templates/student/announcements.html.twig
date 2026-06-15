@@ -36,7 +36,8 @@
     <div class="dashboard-grid" style="grid-template-columns:1fr;" id="ann-grid">
 
         {% for announcement in announcements %}
-        <div class="announcement-card unread" data-id="ann-{{ announcement.id }}" data-cat="{{ announcement.category|lower }}" data-text="{{ announcement.title|lower }} {{ announcement.body|lower }}" onclick="markRead(this)">
+        {% set isRead = announcement.id in readAnnouncements %}
+        <div class="announcement-card {{ isRead ? '' : 'unread' }}" data-id="{{ announcement.id }}" data-cat="{{ announcement.category|lower }}" data-text="{{ announcement.title|lower }} {{ announcement.body|lower }}" onclick="markRead(this, {{ announcement.id }})">
             <div class="announcement-card-header">
                 <span class="ann-category-badge {{ announcement.category|lower }}">{{ announcement.category }}</span>
                 <span class="ann-date">{{ announcement.createdAt|date('M d, Y') }}</span>
@@ -54,29 +55,8 @@
 {% block javascripts %}
     {{ parent() }}
     <script>
-        // ── All announcement IDs ──
-        const ALL_ANN_IDS = [{% for ann in announcements %}'ann-{{ ann.id }}'{{ not loop.last ? ',' : '' }}{% endfor %}];
-        const STORAGE_KEY = 'hms_read_ann';
-
-        // ── Load read state from localStorage ──
-        function getReadIds() {
-            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        }
-        function setReadIds(ids) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
-        }
-
-        // ── Initialize page: restore read state, update badges ──
+        // ── Initialize page: update badges ──
         function initUnread() {
-            const readIds = getReadIds();
-            const cards   = document.querySelectorAll('#ann-grid .announcement-card');
-
-            cards.forEach(card => {
-                if (readIds.includes(card.dataset.id)) {
-                    card.classList.remove('unread');
-                }
-            });
-
             updateUnreadUI();
         }
 
@@ -88,24 +68,23 @@
             if (unreadCount > 0) {
                 badge.style.display = 'inline-flex';
                 badge.textContent   = unreadCount + ' Unread';
-                dot.style.display   = 'inline-flex';
-                dot.textContent     = unreadCount;
+                if (dot) {
+                    dot.style.display   = 'inline-flex';
+                    dot.textContent     = unreadCount;
+                }
             } else {
                 badge.style.display = 'none';
-                dot.style.display   = 'none';
+                if (dot) dot.style.display   = 'none';
             }
         }
 
         // ── Mark a card as read when clicked ──
-        function markRead(card) {
+        function markRead(card, id) {
             if (!card.classList.contains('unread')) return;
             card.classList.remove('unread');
 
-            const readIds = getReadIds();
-            if (!readIds.includes(card.dataset.id)) {
-                readIds.push(card.dataset.id);
-                setReadIds(readIds);
-            }
+            fetch(`/student/announcements/${id}/read`, { method: 'POST' }).catch(e => console.error(e));
+            
             updateUnreadUI();
         }
 

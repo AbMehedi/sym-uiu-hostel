@@ -121,9 +121,14 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <a href="{{ path('student_chat') }}?partner={{ roommate.user.id }}" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
-                                        💬 Message
-                                    </a>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button class="btn btn-outline btn-sm" onclick="openRoommateModal({{ roommate.id }})" style="display: inline-flex; align-items: center; gap: 6px;">
+                                            📋 Details
+                                        </button>
+                                        <a href="{{ path('student_chat') }}?partner={{ roommate.user.id }}" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                                            💬 Message
+                                        </a>
+                                    </div>
                                 </div>
                             {% endfor %}
                         </div>
@@ -133,4 +138,73 @@
             
         </div>
     {% endif %}
+
+    {# ── Roommate Detail Modals (data-driven) ── #}
+    {% for roommate in roommates %}
+    <div class="modal-overlay" id="roommate-modal-{{ roommate.id }}" onclick="closeRoommateModal(event, '{{ roommate.id }}')">
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="roommate-modal-title-{{ roommate.id }}">
+            <div class="modal-header">
+                <h3 id="roommate-modal-title-{{ roommate.id }}">Roommate Profile</h3>
+                <button class="modal-close-btn" onclick="closeRoommateModal(null, '{{ roommate.id }}')" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+                    <div class="roommate-avatar" style="width:60px;height:60px;font-size:1.4rem;">
+                        {{ roommate.user.name|slice(0,2)|upper }}
+                    </div>
+                    <div>
+                        <h4 style="margin:0 0 4px 0;font-size:1.1rem;color:white;">{{ roommate.user.name }}</h4>
+                        <span style="font-size:0.85rem;color:#94a3b8;">Room {{ room ? room.roomNumber : 'N/A' }} · Hostel {{ room ? room.hostel : 'N/A' }}</span>
+                    </div>
+                </div>
+                <div class="modal-detail-grid">
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Student ID</span>
+                        <span class="modal-detail-value">{{ roommate.studentNumber }}</span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Phone</span>
+                        <span class="modal-detail-value">{{ roommate.phone ?? '—' }}</span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Email</span>
+                        <span class="modal-detail-value">{{ roommate.user.email }}</span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Emergency Contact</span>
+                        <span class="modal-detail-value">{{ roommate.emergencyContact ?? '—' }}</span>
+                    </div>
+                    <div class="modal-detail-item">
+                        <span class="modal-detail-label">Admission Date</span>
+                        <span class="modal-detail-value">{{ roommate.admissionDate ? roommate.admissionDate|date('M Y') : '—' }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="{{ path('student_chat') }}?partner={{ roommate.user.id }}" class="btn btn-primary">💬 Message</a>
+                <button type="button" class="btn" onclick="closeRoommateModal(null, '{{ roommate.id }}')">Close</button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        function openRoommateModal(roommateId) {
+            document.getElementById('roommate-modal-' + roommateId).classList.add('active');
+        }
+        function closeRoommateModal(e, roommateId) {
+            const overlay = document.getElementById('roommate-modal-' + roommateId);
+            if (e && e.target !== overlay) return;
+            overlay.classList.remove('active');
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(el => el.classList.remove('active'));
+            }
+        });
+    </script>
 {% endblock %}

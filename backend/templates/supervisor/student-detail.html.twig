@@ -40,6 +40,19 @@
 
             <dt>Admission Date</dt>
             <dd>{{ student.admissionDate ? student.admissionDate|date('d M Y') : '—' }}</dd>
+
+            <dt>Documents</dt>
+            <dd style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
+                {% if student.idCardPicturePath %}
+                    <a href="{{ student.idCardPicturePath }}" target="_blank" class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem; border: 1px solid #334155; border-radius: 4px; color: #e2e8f0; text-decoration: none;">📄 ID Card</a>
+                {% endif %}
+                {% if student.nidOrBirthCertPath %}
+                    <a href="{{ student.nidOrBirthCertPath }}" target="_blank" class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem; border: 1px solid #334155; border-radius: 4px; color: #e2e8f0; text-decoration: none;">📄 NID / Birth Cert</a>
+                {% endif %}
+                {% if not student.idCardPicturePath and not student.nidOrBirthCertPath %}
+                    <span style="color: #94a3b8; font-size: 0.8rem;">No documents</span>
+                {% endif %}
+            </dd>
         </dl>
     </div>
 

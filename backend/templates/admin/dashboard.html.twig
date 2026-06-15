@@ -86,7 +86,7 @@
                             <td>
                                 <div style="display:flex;gap:6px;justify-content:flex-end;">
                                     <button class="btn btn-action approve" style="padding:4px 8px;font-size:0.75rem;background:#1e293b;border:1px solid #334155;color:#e2e8f0;"
-                                            onclick="openDetailsModal({{ req.id }}, '{{ req.student.user.name|escape('js') }}', '{{ req.student.studentNumber|escape('js') }}', '{{ req.student.user.email|escape('js') }}', '{{ (req.student.phone ?? '—')|escape('js') }}', '{{ (req.student.emergencyContact ?? '—')|escape('js') }}', '{{ (req.preferredRoomType ?? '—')|escape('js') }}', '{{ req.requestedDate|date('M j, Y')|escape('js') }}', '{{ csrf_token('admission_approve_' ~ req.id)|escape('js') }}')">
+                                            onclick="openDetailsModal({{ req.id }}, '{{ req.student.user.name|escape('js') }}', '{{ req.student.studentNumber|escape('js') }}', '{{ req.student.user.email|escape('js') }}', '{{ (req.student.phone ?? '—')|escape('js') }}', '{{ (req.student.emergencyContact ?? '—')|escape('js') }}', '{{ (req.preferredRoomType ?? '—')|escape('js') }}', '{{ req.requestedDate|date('M j, Y')|escape('js') }}', '{{ csrf_token('admission_approve_' ~ req.id)|escape('js') }}', '{{ (req.student.idCardPicturePath ?? '')|escape('js') }}', '{{ (req.student.nidOrBirthCertPath ?? '')|escape('js') }}')">
                                         📋 Details
                                     </button>
                                     <form method="POST" action="{{ path('admin_admission_approve', {id: req.id}) }}" style="display:inline;">
@@ -181,6 +181,14 @@
                         <span class="modal-detail-label">Applied Date</span>
                         <span class="modal-detail-value" id="det-date"></span>
                     </div>
+                    <div class="modal-detail-item" style="grid-column: 1 / -1;">
+                        <span class="modal-detail-label">Documents</span>
+                        <div style="display: flex; gap: 10px; margin-top: 5px;">
+                            <a id="det-id-card-link" href="#" target="_blank" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.8rem; display: none;">📄 View ID Card</a>
+                            <a id="det-nid-link" href="#" target="_blank" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.8rem; display: none;">📄 View NID / Birth Cert</a>
+                            <span id="det-no-docs" style="color: #94a3b8; font-size: 0.85rem; display: none;">No documents uploaded.</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="modal-action-bar">
@@ -227,7 +235,7 @@
         const dateEl = document.getElementById('current-date');
         if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-        function openDetailsModal(id, name, number, email, phone, emergency, roomType, date, approveToken) {
+        function openDetailsModal(id, name, number, email, phone, emergency, roomType, date, approveToken, idCardPath, nidPath) {
             document.getElementById('det-name').textContent = name;
             document.getElementById('det-id').textContent = number;
             document.getElementById('det-email').textContent = email;
@@ -235,6 +243,29 @@
             document.getElementById('det-emergency').textContent = emergency;
             document.getElementById('det-room-type').textContent = roomType;
             document.getElementById('det-date').textContent = date;
+            
+            const idCardLink = document.getElementById('det-id-card-link');
+            const nidLink = document.getElementById('det-nid-link');
+            const noDocs = document.getElementById('det-no-docs');
+
+            let hasDocs = false;
+            if (idCardPath) {
+                idCardLink.href = idCardPath;
+                idCardLink.style.display = 'inline-block';
+                hasDocs = true;
+            } else {
+                idCardLink.style.display = 'none';
+            }
+
+            if (nidPath) {
+                nidLink.href = nidPath;
+                nidLink.style.display = 'inline-block';
+                hasDocs = true;
+            } else {
+                nidLink.style.display = 'none';
+            }
+
+            noDocs.style.display = hasDocs ? 'none' : 'inline-block';
             
             // Set action for Approve form in modal
             const approveForm = document.getElementById('det-approve-form');

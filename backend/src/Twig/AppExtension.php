@@ -40,6 +40,7 @@ class AppExtension extends AbstractExtension
             ->getQuery()
             ->getResult();
 
-        return count($announcements);
+        $readCount = $student->getReadAnnouncements()->count();
+        return max(0, count($announcements) - $readCount);
     }
 }
