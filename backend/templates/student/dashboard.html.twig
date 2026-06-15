@@ -249,9 +249,13 @@
     {{ parent() }}
     <script>
         // Live date display
-        const dateEl = document.getElementById('current-date');
-        const now = new Date();
-        dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        document.addEventListener('DOMContentLoaded', () => {
+            const dateEl = document.getElementById('current-date');
+            if (dateEl) {
+                const now = new Date();
+                dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            }
+        });
 
         // Roommate modal — now per-roommate IDs
         function openRoommateModal(roommateId) {

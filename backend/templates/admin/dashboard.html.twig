@@ -232,8 +232,10 @@
 {% block javascripts %}
     {{ parent() }}
     <script>
-        const dateEl = document.getElementById('current-date');
-        if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        document.addEventListener('DOMContentLoaded', () => {
+            const dateEl = document.getElementById('current-date');
+            if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        });
 
         function openDetailsModal(id, name, number, email, phone, emergency, roomType, date, approveToken, idCardPath, nidPath) {
             document.getElementById('det-name').textContent = name;
