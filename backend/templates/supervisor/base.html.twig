@@ -21,6 +21,7 @@
                     <li><a href="{{ path('supervisor_complaints') }}" class="{{ app.request.attributes.get('_route') starts with 'supervisor_complaint' ? 'active' : '' }}">📋 Complaints</a></li>
                     <li><a href="{{ path('supervisor_room_changes') }}" class="{{ app.request.attributes.get('_route') starts with 'supervisor_room_change' ? 'active' : '' }}">🔄 Room Changes</a></li>
                     <li><a href="{{ path('supervisor_announcements') }}" class="{{ app.request.attributes.get('_route') == 'supervisor_announcements' ? 'active' : '' }}">📢 Announcements</a></li>
+                    <li><a href="{{ path('supervisor_tasks') }}" class="{{ app.request.attributes.get('_route') starts with 'supervisor_task' ? 'active' : '' }}">✅ My Tasks</a></li>
                     <li><a href="{{ path('supervisor_chat') }}" class="{{ app.request.attributes.get('_route') starts with 'supervisor_chat' ? 'active' : '' }}">💬 Chat</a></li>
                 </ul>
                 <div class="sidebar-bottom">

@@ -44,11 +44,7 @@
                         <input type="text" id="lastName" name="lastName" class="form-control" placeholder="e.g. Faruk" required value="{{ app.request.request.get('lastName') }}">
                     </div>
 
-                    <!-- Student ID -->
-                    <div class="form-group">
-                        <label for="studentId">Student ID</label>
-                        <input type="text" id="studentId" name="studentId" class="form-control" placeholder="011223344" required value="{{ app.request.request.get('studentId') }}">
-                    </div>
+                    <!-- Student ID is automatically assigned upon approval -->
 
                     <!-- Preferred Room Type -->
                     <div class="form-group">

@@ -142,46 +142,7 @@ class AdminController extends AbstractController
         ]);
     }
 
-    #[Route('/students/{id}/change-supervisor', name: 'admin_student_change_supervisor', methods: ['POST'])]
-    public function studentChangeSupervisor(
-        int $id,
-        Request $request,
-        StudentRepository $studentRepo,
-        SupervisorRepository $supervisorRepo,
-        EntityManagerInterface $em,
-    ): Response {
-        $student = $studentRepo->find($id);
-        if (!$student) {
-            $this->addFlash('error', 'Student not found.');
-            return $this->redirectToRoute('admin_students');
-        }
 
-        $supervisorId = (int) $request->request->get('supervisorId', 0);
-
-        if ($supervisorId === 0) {
-            // Remove supervisor assignment
-            $student->setSupervisor(null);
-            $this->addFlash('success', 'Supervisor removed from ' . $student->getUser()->getName() . '.');
-        } else {
-            $supervisor = $supervisorRepo->find($supervisorId);
-            if (!$supervisor) {
-                $this->addFlash('error', 'Supervisor not found.');
-                return $this->redirectToRoute('admin_students');
-            }
-            $student->setSupervisor($supervisor);
-            $this->addFlash('success',
-                $supervisor->getUser()->getName() . ' is now the supervisor of ' . $student->getUser()->getName() . '.');
-        }
-
-        $em->flush();
-        $this->logAudit($em, 'student.change_supervisor', [
-            'studentId'    => $student->getId(),
-            'studentName'  => $student->getUser()->getName(),
-            'supervisorId' => $supervisorId,
-        ]);
-
-        return $this->redirectToRoute('admin_students');
-    }
 
     // ─── Rooms ────────────────────────────────────────────────────────────────
 
@@ -765,6 +726,30 @@ class AdminController extends AbstractController
         $student->setAdmissionStatus(AdmissionStatus::Approved);
         $student->setAdmissionDate(new DateTimeImmutable());
 
+        // Auto-assign a unique system student number on approval.
+        // Overwrite whatever was stored at registration (avoids autofill / email-as-ID bugs).
+        $year      = (int) date('Y');
+        $prefix    = sprintf('UIU-%d-', $year);
+        // Find the highest existing number for this year
+        $last = $em->createQueryBuilder()
+            ->select('s.studentNumber')
+            ->from(\App\Entity\Student::class, 's')
+            ->where('s.studentNumber LIKE :prefix')
+            ->setParameter('prefix', $prefix . '%')
+            ->orderBy('s.studentNumber', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        $nextSeq = 1;
+        if ($last) {
+            $parts   = explode('-', $last['studentNumber']);
+            $lastSeq = (int) end($parts);
+            $nextSeq = $lastSeq + 1;
+        }
+        $newStudentNumber = $prefix . str_pad((string) $nextSeq, 4, '0', STR_PAD_LEFT);
+        $student->setStudentNumber($newStudentNumber);
+
         $em->flush();
 
         // B-18: notify student
@@ -773,15 +758,17 @@ class AdminController extends AbstractController
             $student->getUser()->getEmail(),
             'Admission Approved — UIU Hostel',
             sprintf(
-                "Dear %s,\n\nCongratulations! Your hostel admission application has been APPROVED.\n\nPlease log in to your account to complete the room assignment process.\n\nUIU Hostel Administration",
-                $student->getUser()->getName()
+                "Dear %s,\n\nCongratulations! Your hostel admission application has been APPROVED.\n\nYour Student ID: %s\n\nPlease log in to your account to complete the room assignment process.\n\nUIU Hostel Administration",
+                $student->getUser()->getName(),
+                $newStudentNumber
             )
         );
 
         // B-20: audit log
         $this->logAudit($em, 'admission.approve', [
-            'studentName' => $student->getUser()->getName(),
-            'requestId'   => $admRequest->getId(),
+            'studentName'   => $student->getUser()->getName(),
+            'requestId'     => $admRequest->getId(),
+            'studentNumber' => $newStudentNumber,
         ]);
 
         $this->addFlash('success', $student->getUser()->getName() . '\'s admission has been approved!');

@@ -72,6 +72,7 @@
                         <tr>
                             <th>Student</th>
                             <th>Applied</th>
+                            <th>Preferred Room</th>
                             <th style="text-align:right;">Actions</th>
                         </tr>
                     </thead>
@@ -84,21 +85,17 @@
                             </td>
                             <td style="font-size:0.85rem;">{{ req.requestedDate|date('M j, Y') }}</td>
                             <td>
+                                {% if req.preferredRoomType %}
+                                    <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:6px;padding:3px 9px;font-size:0.78rem;font-weight:600;color:#60a5fa;">🛏️ {{ req.preferredRoomType }}</span>
+                                {% else %}
+                                    <span style="font-size:0.8rem;color:#475569;font-style:italic;">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
                                 <div style="display:flex;gap:6px;justify-content:flex-end;">
                                     <button class="btn btn-action approve" style="padding:4px 8px;font-size:0.75rem;background:#1e293b;border:1px solid #334155;color:#e2e8f0;"
                                             onclick="openDetailsModal({{ req.id }}, '{{ req.student.user.name|escape('js') }}', '{{ req.student.studentNumber|escape('js') }}', '{{ req.student.user.email|escape('js') }}', '{{ (req.student.phone ?? '—')|escape('js') }}', '{{ (req.student.emergencyContact ?? '—')|escape('js') }}', '{{ (req.preferredRoomType ?? '—')|escape('js') }}', '{{ req.requestedDate|date('M j, Y')|escape('js') }}', '{{ csrf_token('admission_approve_' ~ req.id)|escape('js') }}', '{{ (req.student.idCardPicturePath ?? '')|escape('js') }}', '{{ (req.student.nidOrBirthCertPath ?? '')|escape('js') }}')">
                                         📋 Details
-                                    </button>
-                                    <form method="POST" action="{{ path('admin_admission_approve', {id: req.id}) }}" style="display:inline;">
-                                        <input type="hidden" name="_token" value="{{ csrf_token('admission_approve_' ~ req.id) }}">
-                                        <button type="submit" class="btn btn-action approve" style="padding:4px 8px;font-size:0.75rem;"
-                                                onclick="return confirm('Approve admission for {{ req.student.user.name|escape('js') }}?')">
-                                            ✓ Approve
-                                        </button>
-                                    </form>
-                                    <button class="btn btn-action reject" style="padding:4px 8px;font-size:0.75rem;"
-                                            onclick="openRejectModal({{ req.id }}, '{{ req.student.user.name|escape('js') }}')">
-                                        ✗ Reject
                                     </button>
                                 </div>
                             </td>

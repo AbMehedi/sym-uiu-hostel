@@ -1,0 +1,227 @@
+{% extends 'supervisor/base.html.twig' %}
+
+{% block title %}My Tasks{% endblock %}
+
+{% block body %}
+<style>
+    /* ── Stats strip ── */
+    .tk-stats { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:28px; }
+    .tk-stat {
+        flex:1 1 120px;
+        background:#0f172a; border:1px solid #1e2a3a; border-radius:12px;
+        padding:14px 18px; display:flex; align-items:center; gap:14px;
+    }
+    .tk-stat-icon {
+        width:42px; height:42px; border-radius:10px;
+        display:flex; align-items:center; justify-content:center;
+        font-size:1.25rem; flex-shrink:0;
+    }
+    .tk-stat-label { font-size:0.72rem; color:#64748b; margin-bottom:2px; }
+    .tk-stat-val   { font-size:1.45rem; font-weight:700; }
+
+    /* ── Task cards ── */
+    .tk-list { display:flex; flex-direction:column; gap:14px; }
+    .tk-card {
+        background:#0f172a; border:1px solid #1e2a3a; border-radius:14px;
+        padding:20px 22px; transition:border-color 0.18s;
+    }
+    .tk-card:hover { border-color:#334155; }
+    .tk-card.tk-done { opacity:0.6; }
+
+    .tk-card-top { display:flex; align-items:flex-start; gap:14px; flex-wrap:wrap; }
+    .tk-card-body { flex:1; min-width:0; }
+
+    .tk-title {
+        font-size:1rem; font-weight:700; color:#e2e8f0;
+        margin:0 0 6px; word-break:break-word;
+    }
+    .tk-desc { font-size:0.85rem; color:#64748b; margin:0 0 10px; }
+    .tk-meta { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+    /* Priority badge */
+    .tk-prio {
+        display:inline-flex; align-items:center; gap:4px;
+        font-size:0.7rem; font-weight:700; letter-spacing:0.05em;
+        padding:3px 9px; border-radius:999px;
+    }
+    .prio-high   { background:rgba(239,68,68,0.12);   color:#ef4444; border:1px solid #ef4444; }
+    .prio-normal { background:rgba(245,158,11,0.12);  color:#f59e0b; border:1px solid #f59e0b; }
+    .prio-low    { background:rgba(100,116,139,0.12); color:#94a3b8; border:1px solid #94a3b8; }
+
+    /* Status pill */
+    .tk-status {
+        display:inline-flex; align-items:center; gap:4px;
+        font-size:0.7rem; font-weight:700; letter-spacing:0.04em;
+        padding:3px 9px; border-radius:999px;
+    }
+    .st-pending     { background:rgba(245,158,11,0.12); color:#f59e0b; border:1px solid #f59e0b; }
+    .st-in_progress { background:rgba(59,130,246,0.12); color:#60a5fa; border:1px solid #60a5fa; }
+    .st-done        { background:rgba(16,185,129,0.12); color:#10b981; border:1px solid #10b981; }
+
+    /* Due date */
+    .tk-due { font-size:0.78rem; color:#64748b; }
+    .tk-due.overdue { color:#ef4444; font-weight:600; }
+
+    /* Assigned by */
+    .tk-by { font-size:0.75rem; color:#475569; }
+
+    /* Update form */
+    .tk-update-form {
+        margin-top:14px; padding-top:14px;
+        border-top:1px solid #1e2a3a;
+        display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    }
+    .tk-update-form label { font-size:0.75rem; color:#94a3b8; }
+    .tk-update-select {
+        background:#060d18; border:1px solid #334155; border-radius:7px;
+        color:#e2e8f0; padding:6px 12px; font-size:0.84rem; outline:none;
+        cursor:pointer;
+    }
+    .tk-update-select:focus { border-color:#3b82f6; }
+    .tk-save-btn {
+        padding:6px 16px; font-size:0.82rem; font-weight:600;
+        background:#3b82f6; color:white; border:none; border-radius:7px;
+        cursor:pointer; transition:opacity 0.15s;
+    }
+    .tk-save-btn:hover { opacity:0.85; }
+
+    /* Empty state */
+    .tk-empty {
+        text-align:center; padding:72px 24px; color:#475569;
+    }
+    .tk-empty .em-icon { font-size:2.8rem; margin-bottom:16px; }
+    .tk-empty p { font-size:0.92rem; }
+
+    /* Flash messages */
+    .flash-success { background:#064e3b; border:1px solid #10b981; color:#6ee7b7; border-radius:8px; padding:12px 18px; margin-bottom:20px; }
+    .flash-error   { background:#7f1d1d; border:1px solid #ef4444; color:#fca5a5; border-radius:8px; padding:12px 18px; margin-bottom:20px; }
+</style>
+
+{# Flash messages #}
+{% for type, messages in app.flashes %}
+    {% for message in messages %}
+        <div class="flash-{{ type }}">{{ message }}</div>
+    {% endfor %}
+{% endfor %}
+
+{# ── Header ── #}
+<header class="dashboard-header">
+    <div>
+        <h1>My Tasks</h1>
+        <p class="date-display">Tasks assigned to you by the admin.</p>
+    </div>
+</header>
+
+{# ── Stats strip ── #}
+{% set pendingCount    = tasks|filter(t => t.status.value == 'pending')|length %}
+{% set inProgCount     = tasks|filter(t => t.status.value == 'in_progress')|length %}
+{% set doneCount       = tasks|filter(t => t.status.value == 'done')|length %}
+{% set overdueCount    = tasks|filter(t => t.status.value != 'done' and t.dueDate is not null and t.dueDate < date())|length %}
+
+<div class="tk-stats">
+    <div class="tk-stat">
+        <div class="tk-stat-icon" style="background:rgba(59,130,246,0.12);">📋</div>
+        <div>
+            <div class="tk-stat-label">Total Tasks</div>
+            <div class="tk-stat-val" style="color:#3b82f6;">{{ tasks|length }}</div>
+        </div>
+    </div>
+    <div class="tk-stat">
+        <div class="tk-stat-icon" style="background:rgba(245,158,11,0.12);">⏳</div>
+        <div>
+            <div class="tk-stat-label">Pending</div>
+            <div class="tk-stat-val" style="color:#f59e0b;">{{ pendingCount }}</div>
+        </div>
+    </div>
+    <div class="tk-stat">
+        <div class="tk-stat-icon" style="background:rgba(59,130,246,0.08);">🔄</div>
+        <div>
+            <div class="tk-stat-label">In Progress</div>
+            <div class="tk-stat-val" style="color:#60a5fa;">{{ inProgCount }}</div>
+        </div>
+    </div>
+    <div class="tk-stat">
+        <div class="tk-stat-icon" style="background:rgba(16,185,129,0.10);">✅</div>
+        <div>
+            <div class="tk-stat-label">Done</div>
+            <div class="tk-stat-val" style="color:#10b981;">{{ doneCount }}</div>
+        </div>
+    </div>
+    {% if overdueCount > 0 %}
+    <div class="tk-stat">
+        <div class="tk-stat-icon" style="background:rgba(239,68,68,0.10);">🚨</div>
+        <div>
+            <div class="tk-stat-label">Overdue</div>
+            <div class="tk-stat-val" style="color:#ef4444;">{{ overdueCount }}</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{# ── Task list ── #}
+{% if tasks is empty %}
+    <div class="tk-empty">
+        <div class="em-icon">📭</div>
+        <p>No tasks assigned to you yet.</p>
+    </div>
+{% else %}
+    <div class="tk-list">
+        {% for task in tasks %}
+        {% set statusVal = task.status.value %}
+        {% set prioVal   = task.priority.value %}
+        {% set isOverdue = statusVal != 'done' and task.dueDate is not null and task.dueDate < date() %}
+
+        <div class="tk-card {{ statusVal == 'done' ? 'tk-done' : '' }}">
+            <div class="tk-card-top">
+                <div class="tk-card-body">
+                    <div class="tk-title">{{ task.title }}</div>
+                    {% if task.description %}
+                        <div class="tk-desc">{{ task.description }}</div>
+                    {% endif %}
+
+                    <div class="tk-meta">
+                        {# Priority #}
+                        <span class="tk-prio prio-{{ prioVal }}">
+                            {{ prioVal == 'high' ? '🔴' : (prioVal == 'normal' ? '🟡' : '🔵') }}
+                            {{ prioVal|capitalize }} Priority
+                        </span>
+
+                        {# Status #}
+                        <span class="tk-status st-{{ statusVal }}">
+                            {{ statusVal == 'pending' ? '⏳ Pending' : (statusVal == 'in_progress' ? '🔄 In Progress' : '✅ Done') }}
+                        </span>
+
+                        {# Due date #}
+                        {% if task.dueDate %}
+                            <span class="tk-due {{ isOverdue ? 'overdue' : '' }}">
+                                {{ isOverdue ? '⚠️ Overdue · ' : '📅 Due: ' }}{{ task.dueDate|date('M j, Y') }}
+                            </span>
+                        {% endif %}
+
+                        {# Assigned by #}
+                        {% if task.assignedBy %}
+                            <span class="tk-by">Assigned by: {{ task.assignedBy.name }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {# Status update form (hidden when done) #}
+            {% if statusVal != 'done' %}
+            <form class="tk-update-form"
+                  method="POST"
+                  action="{{ path('supervisor_task_update', {id: task.id}) }}">
+                <label for="status-{{ task.id }}">Update status:</label>
+                <select id="status-{{ task.id }}" name="status" class="tk-update-select">
+                    <option value="pending"     {{ statusVal == 'pending'     ? 'selected' : '' }}>⏳ Pending</option>
+                    <option value="in_progress" {{ statusVal == 'in_progress' ? 'selected' : '' }}>🔄 In Progress</option>
+                    <option value="done"                                                          >✅ Mark as Done</option>
+                </select>
+                <button type="submit" class="tk-save-btn">Save</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}

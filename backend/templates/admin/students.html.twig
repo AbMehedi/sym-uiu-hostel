@@ -267,26 +267,7 @@
 .so-sup-badge .sup-name { font-size: 0.9rem; font-weight: 600; color: white; }
 .so-sup-badge .sup-sub  { font-size: 0.77rem; color: #3b82f6; margin-top: 2px; }
 
-/* Change supervisor form */
-.so-chg-sup {
-    background: #060d18; border: 1px solid #1e293b; border-radius: 10px; padding: 13px 14px;
-}
-.so-chg-sup .chg-label {
-    font-size: 0.71rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;
-    display: block; margin-bottom: 8px;
-}
-.so-chg-row { display: flex; gap: 8px; }
-.so-chg-row select {
-    flex: 1; background: #0b1120; border: 1px solid #334155; border-radius: 7px;
-    color: #e2e8f0; padding: 7px 10px; font-size: 0.86rem; outline: none;
-}
-.so-chg-row select:focus { border-color: #3b82f6; }
-.btn-chg-save {
-    padding: 7px 14px; font-size: 0.82rem; font-weight: 600;
-    background: #3b82f6; color: white; border: none; border-radius: 7px;
-    cursor: pointer; transition: opacity 0.15s; white-space: nowrap;
-}
-.btn-chg-save:hover { opacity: 0.87; }
+
 
 /* Assignment history inside panel */
 .so-hist-item {
@@ -428,25 +409,10 @@
 
                 {# Actions #}
                 <td>
-                    <div class="st-actions">
-                        {# View Details button #}
-                        <button class="act-btn act-btn-slate"
-                                onclick="openPanel({{ student.id }})">
-                            📋 Details
-                        </button>
-
-                        {# Assign/Change Room #}
-                        <button class="act-btn act-btn-blue"
-                                onclick="openPanel({{ student.id }}, 'room')">
-                            {{ room ? '🔄 Room' : '🛏️ Assign Room' }}
-                        </button>
-
-                        {# Assign/Change Supervisor #}
-                        <button class="act-btn act-btn-green"
-                                onclick="openPanel({{ student.id }}, 'supervisor')">
-                            {{ supervisor ? '🔁 Supervisor' : '👤 Assign Supervisor' }}
-                        </button>
-                    </div>
+                    <button class="act-btn act-btn-slate"
+                            onclick="openPanel({{ student.id }})">
+                        📋 Details
+                    </button>
                 </td>
             </tr>
             {% endfor %}
@@ -612,7 +578,7 @@
         </div>
     </div>
     {# ── Supervisor ── #}
-    <div class="so-section" id="so-sup-section-{{ student.id }}">
+    <div class="so-section">
         <div class="so-section-title">Supervisor</div>
 
         {% if supervisor %}
@@ -625,29 +591,10 @@
             </div>
         </div>
         {% else %}
-        <div style="padding:10px 13px;background:#060d18;border:1px dashed #1e293b;border-radius:8px;color:#475569;font-size:0.84rem;margin-bottom:12px;">
+        <div style="padding:10px 13px;background:#060d18;border:1px dashed #1e293b;border-radius:8px;color:#475569;font-size:0.84rem;">
             ⚠️ No supervisor assigned
         </div>
         {% endif %}
-
-        <div class="so-chg-sup">
-            <span class="chg-label">{% if supervisor %}🔁 Change Supervisor{% else %}👤 Assign Supervisor{% endif %}</span>
-            <form method="POST" action="{{ path('admin_student_change_supervisor', {id: student.id}) }}"
-                  onsubmit="return confirmSupChange(this)">
-                <div class="so-chg-row">
-                    <select name="supervisorId">
-                        <option value="0"{% if supervisor is null %} selected{% endif %}>— Remove supervisor —</option>
-                        {% for sup in supervisors %}
-                        <option value="{{ sup.id }}"
-                            {{ supervisor is not null and supervisor.id == sup.id ? 'selected' : '' }}>
-                            {{ sup.user.name }} ({{ sup.hostelAssigned ?? 'No hostel' }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" class="btn-chg-save">Save</button>
-                </div>
-            </form>
-        </div>
     </div>
 
     {# ── Activity ── #}
@@ -817,16 +764,6 @@ function soFilterByHostel(studentId) {
     if (hostelSel) hostelSel.dispatchEvent(new Event('change'));
 }
 
-/* ════════════════════════════════
-   Confirm supervisor change
-   ════════════════════════════════ */
-function confirmSupChange(form) {
-    const sel   = form.querySelector('select');
-    const label = sel.options[sel.selectedIndex].text.trim();
-    const msg   = sel.value === '0'
-        ? 'Remove the supervisor from this student?'
-        : `Assign "${label}" as this student's supervisor?`;
-    return confirm(msg);
-}
+
 </script>
 {% endblock %}
